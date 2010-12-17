@@ -1,0 +1,24 @@
+0.0               ! BETA (DEGREES)
+2                 ! IBN   TYPE OF BOUND. CONDIT.: 1-OPEN CELL 2-CLOSED CELL
+0.56E-3           ! TEMP  TEMPERATURE (K)
+284.0             ! H     FIELD
+0.1               ! GRAD  GRADIENT H (OE/CM)
+0.18              ! CLE   CELL LENGTH
+0.0076            ! HY    RF FIELD (OE)
+-0.1              ! SLP   STARTING LARMOR POSITION (CM)
+0.25              ! SWR   SWEEP RATE (CM/SEC)
+1.0E-7  !!!!1.38E-6    !DC    DIFFUSION * T^2
+6.0E+14           ! T1C   T1=T1C*T
+5.0E-3            ! DTW   STEP IN TIME FOR TIME DEPENDENCIES
+25    !1.0E-8     ! NEPS   RELATIVE TIME ERROR BOUND
+22                ! MF    11,12,21,22; USE DERIVF FOR JACOBIAN: 11,21
+0                 ! MJW   WRITE TO MJ FILE: 0-DON'T 1-WRITE
+1.6               ! TSW  TIME TO STOP SWEEP
+11.595            ! TW  TIME TO WRITE MJ
+1.65              ! TS      TIME OF X OSC
+5.0               ! XS      AMPL OF X-OSC
+-1.0              ! FF
+4000.0            ! CCC
+0.2D0             ! CK
+1.7               ! TOUT  TIME TO STOP COMPUTATION
+

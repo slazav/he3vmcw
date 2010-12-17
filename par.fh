@@ -1,0 +1,20 @@
+C--------------- PARAMETERS LIST ------------------------------------
+      PARAMETER( NPDE=7,         ! NUMBER OF EQUATIONS
+     +           NPTS=1025,      ! NUMBER OF GRID POINTS (NPTS=8N+4)
+     +           NINT=NPTS-1,    ! NUMBER OF SUBINTERVALS
+     +           KORD=4,         ! POLYNOMIAL ORDER
+     +           NCC=3,          ! NUMBER OF CONTINUITY COND.
+     +           NDERV=3,        ! DERIV. OF FINAL SOLUTION
+     +           MAXDER=5)       ! DEFAULT VALUE
+
+      PARAMETER( ML = NPDE*(KORD-1)-1 )
+      PARAMETER( NCPTS=KORD*NINT-NCC*(NINT-1) )
+      PARAMETER( IDIMWORK=KORD+4*NPDE+9*NPDE**2+NCPTS*(3*KORD+2)+
+     +         NPDE*NCPTS*(3*ML+MAXDER+7) )
+      PARAMETER( IDIMIWORK=NCPTS*(NPDE+1) )
+      PARAMETER( ITP=100000)
+                                 ! PRECISION OF INTEGRATION
+      PARAMETER ( EPS_INT=1.D-5, JMAX_INT=20 )
+
+
+
