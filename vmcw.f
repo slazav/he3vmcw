@@ -1,84 +1,84 @@
 C---------------- CB=0.0 !!!!!!!!!!
-        IMPLICIT REAL*8(A-H,O-Z)
-        INCLUDE 'par.fh'
-        COMMON /IOUNIT/ LOUT
-        COMMON /TIMEP/ T
-        COMMON /ARRAYS/ USOL(NPDE,NPTS,NDERV),U(NPDE,NPTS),X(NPTS)
-        COMMON /CH_PAR/ CLE,SLP,SWR,EPS,MF,IC,MJW,IBN,BETA
-        COMMON /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
+        implicit REAL*8(A-H,O-Z)
+        include 'par.fh'
+        common /IOUNIT/ LOUT
+        common /TIMEP/ T
+        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),U(NPDE,NPTS),X(NPTS)
+        common /CH_PAR/ CLE,SLP,SWR,EPS,MF,IC,MJW,IBN,BETA
+        common /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
      +   AF0,TS,XS,PI,DTW,FF,CCC,CK,DTW1
-        DIMENSION SCTCH(KORD*(NDERV+1)),WORK(IDIMWORK),IWORK(IDIMIWORK)
+        dimension SCTCH(KORD*(NDERV+1)),WORK(IDIMWORK),IWORK(IDIMIWORK)
 C--------------- INITIALIZATION -------------------------------------
         GAMMA=2.0378D+4    ! GAMMA
-        OPEN(54,FILE='cfg')
-        READ(54,*)BETA   ! TIPPING ANGLE (DEGREES)
-        READ(54,*)IBN    ! TYPE OF BOUND. COND.: 1-OPEN CELL 2-CLOSED CELL
-        READ(54,*)TEMP   ! TEMPERATURE (K)          (0.9299)
-        READ(54,*)H      ! FIELD (OE)               (110)
-        READ(54,*)GRAD   ! GRADIENT H (OE/CM)       (-0.2)
-        READ(54,*)CLE    ! CELL LENGTH (CM)         (0.4)
-        READ(54,*)HY     ! RF FIELD (OE)            (0.06)
-        READ(54,*)SLP    ! STARTING LARMOR POSITION (CM) (-0.1)
-        READ(54,*)SWR    ! SWEEP RATE (CM/SEC)      (0.03)
-        READ(54,*)DC     ! DIFFUSION * T^2          (1.38E-6)
-        READ(54,*)T1C    ! T1*T                     (1.0E-3)
-        READ(54,*)DTW1   ! STEP IN TIME FOR TIME DEPENDENCIES (1.0E-5)
-        READ(54,*)NEPS   ! RELATIVE TIME ERROR BOUND(1.0E-3)
-        READ(54,*)MF     ! METHOD OF PDE SOLUTION    (11)
+        open(54,FILE='cfg')
+        read(54,*)BETA   ! TIPPING ANGLE (DEGREES)
+        read(54,*)IBN    ! TYPE OF BOUND. COND.: 1-OPEN CELL 2-CLOSED CELL
+        read(54,*)TEMP   ! TEMPERATURE (K)          (0.9299)
+        read(54,*)H      ! FIELD (OE)               (110)
+        read(54,*)GRAD   ! GRADIENT H (OE/CM)       (-0.2)
+        read(54,*)CLE    ! CELL LENGTH (CM)         (0.4)
+        read(54,*)HY     ! RF FIELD (OE)            (0.06)
+        read(54,*)SLP    ! STARTING LARMOR POSITION (CM) (-0.1)
+        read(54,*)SWR    ! SWEEP RATE (CM/SEC)      (0.03)
+        read(54,*)DC     ! DIFFUSION * T^2          (1.38E-6)
+        read(54,*)T1C    ! T1*T                     (1.0E-3)
+        read(54,*)DTW1   ! STEP IN TIME FOR TIME DEPENDENCIES (1.0E-5)
+        read(54,*)NEPS   ! RELATIVE TIME ERROR BOUND(1.0E-3)
+        read(54,*)MF     ! METHOD OF PDE SOLUTION    (11)
                          ! 11 - ADAMS METHOD; USE DERIVF FOR JACOBIAN
                          ! 12 - ADAMS METHOD; CALCULATE JACOBIAN
                          ! 21 - BWD METHOD; USE DERIVF FOR JACOBIAN
                          ! 22 - BWD METHOD; CALCULATE JACOBIAN
-        READ(54,*)MJW    ! WRITE TO MJ FILE:  0-DON'T  1-WRITE
-        READ(54,*)TSW    ! TIME TO STOP SWEEP
-        READ(54,*)TW     ! TIME TO WRITE MJ
-        READ(54,*)TS     ! TIME OF X OSC
-        READ(54,*)XS     ! AMPL OF X-OSC
-        READ(54,*)FF     ! FF
-        READ(54,*)CCC    ! CCC (AERO KRUTIZNA  1000)
-        READ(54,*)CK     ! CK (KRUTIZNI KUCHNOST' 0.01)
-        READ(54,*)TOUT   ! TIME TO STOP COMPUTATION (SEC) (0.0001)
-        CLOSE(54)
+        read(54,*)MJW    ! WRITE TO MJ FILE:  0-DON'T  1-WRITE
+        read(54,*)TSW    ! TIME TO STOP SWEEP
+        read(54,*)TW     ! TIME TO WRITE MJ
+        read(54,*)TS     ! TIME OF X OSC
+        read(54,*)XS     ! AMPL OF X-OSC
+        read(54,*)FF     ! FF
+        read(54,*)CCC    ! CCC (AERO KRUTIZNA  1000)
+        read(54,*)CK     ! CK (KRUTIZNI KUCHNOST' 0.01)
+        read(54,*)TOUT   ! TIME TO STOP COMPUTATION (SEC) (0.0001)
+        close(54)
 
         FLP=SLP+SWR*TSW
         SH1=GRAD*FLP/H-XS/GAMMA/H
         SH2=GRAD*(FLP-CLE)/H-XS/GAMMA/H
         HMAL=HY/H
-        OPEN(76,FILE='shift')
-        WRITE(76,68)TSW,SH1,SH2,HMAL,HMAL/DSQRT(15.0D0)
-        CLOSE(76)
+        open(76,FILE='shift')
+        write(76,68)TSW,SH1,SH2,HMAL,HMAL/DSQRT(15.0D0)
+        close(76)
 
         DTW=DTW1
         EPS=2.0D0**(-NEPS)
-        OPEN(44,FILE='vmcw.t')
-        OPEN(21,FILE='vmcw.mj')
-        OPEN(24,FILE='vmcwx.mj')
-        OPEN(47,FILE='pulse.t')
+        open(44,FILE='vmcw.t')
+        open(21,FILE='vmcw.mj')
+        open(24,FILE='vmcwx.mj')
+        open(47,FILE='pulse.t')
 
-        OPEN(10,FILE='nul')
+        open(10,FILE='nul')
         LOUT=10                     ! DIAGNOSTIC'S OUTPUT
         T=0.0                        ! STARTING TIME
         IC=0                       ! TIME DEPENDENCIES COUNTER
-        CALL SET_MESH()
-        CALL SET_ICOND()
+        call SET_MESH()
+        call SET_ICOND()
         IWORK(1)=IDIMWORK
         IWORK(2)=IDIMIWORK
 
-        OPEN(49,FILE='aero.x')
-        DO J=1,NPTS
+        open(49,FILE='aero.x')
+        do J=1,NPTS
           CC=FER(X(J),CLE*0.5D0,CCC)
-          WRITE(49,*)X(J),CC
-        ENDDO
-        CLOSE(49)
+          write(49,*)X(J),CC
+        enddo
+        close(49)
 
         DELT=20.0D0/CCC
         TOLD=0.0D0
         DT=1.D-10                    ! INITIAL STEP SIZE IN T
         T0=T                         ! STARTING TIME
         INDEX=1                      ! TYPE OF CALL (FIRST CALL)
-        DO I=1,IDIMWORK
+        do I=1,IDIMWORK
           WORK(I)=0.0D0
-        ENDDO
+        enddo
 C--------------- COMPUTE PARAMETERS ----------------------------
         W=GAMMA*H                    ! OMEGA (RAD/SEC)
         WY=GAMMA*HY                  ! rf-OMEGA (RAD/SEC)
@@ -98,57 +98,57 @@ C--------------- COMPUTE PARAMETERS ----------------------------
         DW=GW*SWR
 C----------------MAIN LOOP -------------------------------------------
    2    CONTINUE
-        IF(T.GE.TOUT) THEN
-          WRITE(*,*) 'FINAL TIME REACHED..'
-          STOP
-        ENDIF
-        DTW2=DTW1*0.02D0
-        IF(T.GT.TS-DTW1)DTW=DTW2
-        T=T+DTW
-        CALL PDECOL(T0,T,DT,X,EPS,NINT,KORD,NCC,NPDE,MF,
-     +   INDEX,WORK,IWORK)
-        WRITE(LOUT,*) 'TIME=',T,'INDEX=',INDEX
-        IF(INDEX.NE.0) THEN
-          OPEN(46,FILE='vmcw.err')
-          WRITE(46,*) 'INTEGRATION FAILED; INDEX=', INDEX
-          CLOSE(46)
-          CLOSE(44)
-          CLOSE(21)
-          CLOSE(24)
-          CLOSE(47)
-          CLOSE(48)
+        if(T.GE.TOUT) THEN
+          write(*,*) 'FINAL TIME REACHED..'
           stop
-        ENDIF
-        CALL VALUES(X,USOL,SCTCH,NPDE,NPTS,NPTS,2,WORK)
-        DO I=1,NPTS
-          DO J=1,NPDE
+        endif
+        DTW2=DTW1*0.02D0
+        if(T.GT.TS-DTW1)DTW=DTW2
+        T=T+DTW
+        call PDECOL(T0,T,DT,X,EPS,NINT,KORD,NCC,NPDE,MF,
+     +   INDEX,WORK,IWORK)
+        write(LOUT,*) 'TIME=',T,'INDEX=',INDEX
+        if(INDEX.NE.0) THEN
+          open(46,FILE='vmcw.err')
+          write(46,*) 'INTEGRATION FAILED; INDEX=', INDEX
+          close(46)
+          close(44)
+          close(21)
+          close(24)
+          close(47)
+          close(48)
+          stop
+        endif
+        call VALUES(X,USOL,SCTCH,NPDE,NPTS,NPTS,2,WORK)
+        do I=1,NPTS
+          do J=1,NPDE
             U(J,I)=USOL(J,I,1)
-          ENDDO
-        ENDDO
-        CALL MONITOR()
-        GOTO 2
-   68   FORMAT(F8.4, 4(1PE18.9))
-      END
+          enddo
+        enddo
+        call MONITOR()
+        goto 2
+   68   format(F8.4, 4(1PE18.9))
+      end
 C-- F ---------- EVALUATION OF F ------------------------------------
-      SUBROUTINE F(T,X,U,UX,UXX,FV,NPDE)
-        IMPLICIT REAL*8(A-H,O-Z)
-        DIMENSION U(NPDE),UX(NPDE),UXX(NPDE),FV(NPDE)
-        COMMON /CH_PAR/ CLE,SLP,SWR,EPS,MF,IC,MJW,IBN,BETA
-        COMMON /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
+      subroutine F(T,X,U,UX,UXX,FV,NPDE)
+        implicit REAL*8(A-H,O-Z)
+        dimension U(NPDE),UX(NPDE),UXX(NPDE),FV(NPDE)
+        common /CH_PAR/ CLE,SLP,SWR,EPS,MF,IC,MJW,IBN,BETA
+        common /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
      +   AF0,TS,XS,PI,DTW,FF,CCC,CK,DTW1
-        IF(T.GE.TSW)THEN
+        if(T.GE.TSW)THEN
           WZ=W0+DW*TSW
-        ELSE
+        else
           WZ=W0+DW*T
-        ENDIF
+        endif
         WR=W+X*GW
         WZR=WZ+W
         XZA=X*GW-WZ
-        IF(T.GE.TS)THEN
+        if(T.GE.TS)THEN
           XZ=XZA+XS
-        ELSE
+        else
           XZ=XZA
-        ENDIF
+        endif
         UM=DSQRT(U(4)**2+U(5)**2+U(6)**2)
         U4=U(4)/UM
         U5=U(5)/UM
@@ -204,23 +204,23 @@ C-- F ---------- EVALUATION OF F ------------------------------------
         FV(6)=-WR2*(U(2)*U4+U5*WYT1+CTG*
      *   ((U5*U(2)-U4*WYT1)*U6-U31*(U4**2+U5**2)))
         FV(7)=WR*USN+UT/TF0                           !U(7)=TETA
-        RETURN
-      END
+        return
+      end
 C-- BNDRY ------ BOUNDARY CONDITIONS -- B(U,UX)=Z(T) ------------
-      SUBROUTINE BNDRY(T,X,U,UX,DBDU,DBDUX,DZDT,NPDE)
-        IMPLICIT REAL*8(A-H,O-Z)
-        DIMENSION U(NPDE),UX(NPDE),DZDT(NPDE),
+      subroutine BNDRY(T,X,U,UX,DBDU,DBDUX,DZDT,NPDE)
+        implicit REAL*8(A-H,O-Z)
+        dimension U(NPDE),UX(NPDE),DZDT(NPDE),
      *   DBDU(NPDE,NPDE),DBDUX(NPDE,NPDE)
-        COMMON /CH_PAR/ CLE,SLP,SWR,EPS,MF,IC,MJW,IBN,BETA
-        COMMON /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
+        common /CH_PAR/ CLE,SLP,SWR,EPS,MF,IC,MJW,IBN,BETA
+        common /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
      +   AF0,TS,XS,PI,DTW,FF,CCC,CK,DTW1
-        DO I=1,NPDE
+        do I=1,NPDE
           DZDT(I)=0.0D0
-          DO J=1,NPDE
+          do J=1,NPDE
             DBDU(I,J)=0.0D0
             DBDUX(I,J)=0.0D0
-          ENDDO
-        ENDDO
+          enddo
+        enddo
         UM=DSQRT(U(4)**2+U(5)**2+U(6)**2)
         U4=U(4)/UM
         U5=U(5)/UM
@@ -245,7 +245,7 @@ C-- BNDRY ------ BOUNDARY CONDITIONS -- B(U,UX)=Z(T) ------------
         C266=2.0D0-C66
         AF=AF0-AF0*0.5D0*FER(X,CLE*0.5D0,CCC)
         DA=-DIFF/AF
-        IF(IBN.EQ.2)THEN       ! CLOSED CELL
+        if(IBN.EQ.2)THEN       ! CLOSED CELL
           DBDUX(4,1)=DA
           DBDUX(5,2)=DA
           DBDUX(6,3)=DA
@@ -281,94 +281,94 @@ C          DBDU(7,6)=UX(6)         !!
 C          DBDUX(7,4)=U4         !!
 C          DBDUX(7,5)=U5         !!
 C          DBDUX(7,6)=U6         !!
-        ENDIF
-        RETURN
-      END
+        endif
+        return
+      end
 C-- SET_MESH --- SET UP THE MESH ------------------------------------
-      SUBROUTINE SET_MESH()
-        IMPLICIT REAL*8(A-H,O-Z)
-        INCLUDE 'par.fh'
-        DIMENSION DXX(NPTS),XX(NPTS)
-        COMMON /SIG/ XM(NPTS)
-        COMMON /ARRAYS/ USOL(NPDE,NPTS,NDERV),U(NPDE,NPTS),X(NPTS)
-        COMMON /CH_PAR/ CLE,SLP,SWR,EPS,MF,IC,MJW,IBN,BETA
-        COMMON /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
+      subroutine SET_MESH()
+        implicit REAL*8(A-H,O-Z)
+        include 'par.fh'
+        dimension DXX(NPTS),XX(NPTS)
+        common /SIG/ XM(NPTS)
+        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),U(NPDE,NPTS),X(NPTS)
+        common /CH_PAR/ CLE,SLP,SWR,EPS,MF,IC,MJW,IBN,BETA
+        common /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
      +   AF0,TS,XS,PI,DTW,FF,CCC,CK,DTW1
-        OPEN(69,FILE='ress')
-        OPEN(57,FILE='mesh')
+        open(69,FILE='ress')
+        open(57,FILE='mesh')
         CLE2=CLE*0.5D0
         DX=CLE/(NPTS-1)
-        DO J=1,NPTS
+        do J=1,NPTS
           XX(J)=DX*(J-1)
           CC=FER(XX(J),CLE2,CCC)
           CCD=ABS(DFER(XX(J),CLE2,CCC))
-          WRITE(69,*)XX(J),CC,CCD
-        ENDDO
-        CLOSE(69)
+          write(69,*)XX(J),CC,CCD
+        enddo
+        close(69)
         KK=1
         EP=1.0D-20
    44   CONTINUE
         X(1)=0.0D0
         XT=0.0D0
         DXX(1)=DX/(1.0D0+CK*ABS(DFER(DX*0.5D0,CLE2,CCC)))
-        DO J=2,(NPTS-1)/2+1
+        do J=2,(NPTS-1)/2+1
           XT=XT+DXX(J-1)
           DXX(J)=DX/(1.0D0+CK*ABS(DFER(XT+DX*0.5D0,CLE2,CCC)))
-        ENDDO
+        enddo
         KK=KK+1
-        IF(DABS(CLE2-XT).GT.EP.AND.KK.LT.2000)THEN
+        if(DABS(CLE2-XT).GT.EP.AND.KK.LT.2000)THEN
           DK=XT-CLE2
           DD=DK/(NPTS-1)*2
-          WRITE(*,*)'DK=',DK,'  K=',KK-1
+          write(*,*)'DK=',DK,'  K=',KK-1
           DX=DX-DD
-          GOTO 44
-        ELSE
-          DO J=1,(NPTS-1)/2
+          goto 44
+        else
+          do J=1,(NPTS-1)/2
             X(J+1)=X(J)+DXX(J)
-          ENDDO
+          enddo
           LL=(NPTS-1)/2+1
 
           UDXX=1.0D0-(X(LL)-CLE2)/CLE2
 C         UFF=(X(LL)-CLE2)/(NPTS-1)*2.0D0
-          DO J=1,(NPTS-1)/2
+          do J=1,(NPTS-1)/2
             DXX(J)=DXX(J)*UDXX
 C           X(J+1)=X(J)+DXX(J)-UFF
             X(J+1)=X(J)+DXX(J)
-C           WRITE(57,55)J,X(J),DXX(J),UDXX
-          ENDDO
-        ENDIF
-        DO J=NPTS,(NPTS-1)/2+1,-1
+C           write(57,55)J,X(J),DXX(J),UDXX
+          enddo
+        endif
+        do J=NPTS,(NPTS-1)/2+1,-1
           X(J)=CLE-X(NPTS-J+1)
-        ENDDO
+        enddo
         X(1)=0.0D0
         X(NPTS)=CLE
-        DO J=1,NPTS
-          WRITE(57,55)J,X(J)
-        ENDDO
-        DO J=2,NPTS-1
+        do J=1,NPTS
+          write(57,55)J,X(J)
+        enddo
+        do J=2,NPTS-1
           XM(J)=(1.0D5*X(J+1)-1.0D5*X(J-1))*0.5D0
-        ENDDO
+        enddo
         XM(1)=(1.0D5*X(2)-1.0D5*X(1))*0.5D0
         XM(NPTS)=(1.0D5*X(NPTS)-1.0D5*X(NPTS-1))*0.5D0
-        DO J=1,NPTS
-cc        WRITE(57,55)J,X(J),XM(J)
-        ENDDO
-        CLOSE(57)
+        do J=1,NPTS
+cc        write(57,55)J,X(J),XM(J)
+        enddo
+        close(57)
 
-   55   FORMAT(I5, 7(1PE25.16))
-      END
+   55   format(I5, 7(1PE25.16))
+      end
 C-- SET_ICOND -- INITIAL CONDITIONS ---------------------------------
-      SUBROUTINE SET_ICOND()
-        IMPLICIT REAL*8(A-H,O-Z)
-        INCLUDE 'par.fh'
-        COMMON /CH_PAR/ CLE,SLP,SWR,EPS,MF,IC,MJW,IBN,BETA
-        COMMON /ARRAYS/ USOL(NPDE,NPTS,NDERV),U(NPDE,NPTS),X(NPTS)
+      subroutine SET_ICOND()
+        implicit REAL*8(A-H,O-Z)
+        include 'par.fh'
+        common /CH_PAR/ CLE,SLP,SWR,EPS,MF,IC,MJW,IBN,BETA
+        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),U(NPDE,NPTS),X(NPTS)
         PI=4.0D0*DATAN(1.0D0)
         BET=BETA*PI/180.0D0
         UMZ=DCOS(BET)
         UMX=DSIN(BET)*DSQRT(0.5D0)
         UMY=UMX
-        IF(UMZ.GE.-0.25D0)THEN
+        if(UMZ.GE.-0.25D0)THEN
           UNZ2=0.8D0*(0.25D0+DCOS(BET))
           UNZ=DSQRT(UNZ2)
           DELTA=(25.0D0*UNZ2+15.0D0)/16.0D0
@@ -379,13 +379,13 @@ C-- SET_ICOND -- INITIAL CONDITIONS ---------------------------------
           UNX=DELTAX/DELTA
           UNY=DELTAY/DELTA
           UCTG=DACOS(-0.25D0)
-        ELSE
+        else
           UNZ=0.0D0
           UNX=-DSQRT(0.5D0)
           UNY=DSQRT(0.5D0)
           UCTG=BET
-        ENDIF
-        DO I=1,NPTS
+        endif
+        do I=1,NPTS
           USOL(1,I,1)=UMX             ! Mx
           USOL(2,I,1)=UMY             ! My
           USOL(3,I,1)=UMZ             ! Mz
@@ -393,33 +393,33 @@ C-- SET_ICOND -- INITIAL CONDITIONS ---------------------------------
           USOL(5,I,1)=UNY             ! Ny   !!
           USOL(6,I,1)=UNZ             ! Nz
           USOL(7,I,1)=UCTG            ! TETA         !!!!!+/-
-        ENDDO
-        DO I=1,NPTS
-          DO J=1,NPDE
-            DO K=2,3
+        enddo
+        do I=1,NPTS
+          do J=1,NPDE
+            do K=2,3
               USOL(J,I,K)=0.0
-            ENDDO
-          ENDDO
-        ENDDO
-        DO I=1,NPTS
-          DO J=1,NPDE
+            enddo
+          enddo
+        enddo
+        do I=1,NPTS
+          do J=1,NPDE
             U(J,I)=USOL(J,I,1)
-          ENDDO
-        ENDDO
-        RETURN
-      END
+          enddo
+        enddo
+        return
+      end
 C-- USP(X) ----- CSI OF SOLUTION ------------------------------------
-      DOUBLE PRECISION FUNCTION USP(XI,I)
-        IMPLICIT REAL*8(A-H,O-Z)
-        INCLUDE 'par.fh'
-        COMMON /ARRAYS/ USOL(NPDE,NPTS,NDERV),U(NPDE,NPTS),X(NPTS)
-        COMMON /CH_PAR/ CLE,SLP,SWR,EPS,MF,IC,MJW,IBN,BETA
-        DO K=1,NPTS
+      double precision function USP(XI,I)
+        implicit REAL*8(A-H,O-Z)
+        include 'par.fh'
+        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),U(NPDE,NPTS),X(NPTS)
+        common /CH_PAR/ CLE,SLP,SWR,EPS,MF,IC,MJW,IBN,BETA
+        do K=1,NPTS
           USM=DSQRT(USOL(5,K,1)**2+USOL(6,K,1)**2+USOL(4,K,1)**2)
           USOL(4,K,1)=USOL(4,K,1)/USM
           USOL(5,K,1)=USOL(5,K,1)/USM
           USOL(6,K,1)=USOL(6,K,1)/USM
-        ENDDO
+        enddo
 C      KL=1
 C      KH=NPTS
 C   19    IF(KH-KL.GT.1)THEN
@@ -444,138 +444,138 @@ CC      J=INT(XI/CLE*NINT+1.1)
 CC      USP=USOL(I,J,1)
         AA=1.0D20
         IK=1
-        DO II=1,NPTS
+        do II=1,NPTS
           BB=(X(II)-XI)**2
-          IF(BB.LE.AA)THEN
+          if(BB.LE.AA)THEN
             AA=BB
             IK=II
-          ENDIF
-        ENDDO
+          endif
+        enddo
         J=IK
         USP=USOL(I,J,1)
-        RETURN
-      END
+        return
+      end
 C-- UINIT ------ INITIAL CONDITIONS ---------------------------------
-      SUBROUTINE UINIT(XI,UI,NPDEI)
-        IMPLICIT REAL*8(A-H,O-Z)
-        DIMENSION UI(NPDEI)
-        DO I=1,NPDEI
+      subroutine UINIT(XI,UI,NPDEI)
+        implicit REAL*8(A-H,O-Z)
+        dimension UI(NPDEI)
+        do I=1,NPDEI
           UI(I)=USP(XI,I)
-        ENDDO
-        RETURN
-      END
+        enddo
+        return
+      end
 C-- DERIVF ----- SET UP DERIVATIVES ---------------------------------
-      SUBROUTINE DERIVF(T,X,U,UX,UXX,DFDU,DFDUX,DFDUXX,NPDE)
-        IMPLICIT REAL*8(A-H,O-Z)
-        DIMENSION U(NPDE),UX(NPDE),UXX(NPDE),
+      subroutine DERIVF(T,X,U,UX,UXX,DFDU,DFDUX,DFDUXX,NPDE)
+        implicit REAL*8(A-H,O-Z)
+        dimension U(NPDE),UX(NPDE),UXX(NPDE),
      *       DFDU(NPDE,NPDE),DFDUX(NPDE,NPDE),DFDUXX(NPDE,NPDE)
-        COMMON /CH_PAR/ CLE,SLP,SWR,EPS,MF,IC,MJW,IBN,BETA
-        COMMON /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
+        common /CH_PAR/ CLE,SLP,SWR,EPS,MF,IC,MJW,IBN,BETA
+        common /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
      +   AF0,TS,XS,PI,DTW,FF,CCC,CK,DTW1
-        DO I=1,NPDE
-          DO J=1,NPDE
+        do I=1,NPDE
+          do J=1,NPDE
             DFDU(I,J)=0.0D0
             DFDUX(I,J)=0.0D0
             DFDUXX(I,J)=0.0D0
-          ENDDO
-        ENDDO
+          enddo
+        enddo
 CCC ATTENTION :   DERIVF IS WRONG
-        RETURN
-      END
+        return
+      end
 C-- FERMI_ST --- FERMI STEP -----------------------------------------
-      DOUBLE PRECISION FUNCTION FER(X1,X0,C)
-        IMPLICIT REAL*8(A-H,O-Z)
-        COMMON /CH_PAR/ CLE,SLP,SWR,EPS,MF,IC,MJW,IBN,BETA
-        COMMON /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
+      double precision function FER(X1,X0,C)
+        implicit REAL*8(A-H,O-Z)
+        common /CH_PAR/ CLE,SLP,SWR,EPS,MF,IC,MJW,IBN,BETA
+        common /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
      +   AF0,TS,XS,PI,DTW,FF,CCC,CK,DTW1
         CLE2=CLE*0.5D0
         ARG=C*(ABS(X1-X0)-CLE2*FF)
-        IF(ARG.LT.82.0D0)THEN
+        if(ARG.LT.82.0D0)THEN
           FER=1.0D0/(1.0D0+DEXP(ARG))
-        ELSE
+        else
           FER=0.0D0
-        ENDIF
-        RETURN
-      END
+        endif
+        return
+      end
 C----- DFERMI STEP -----------------------------------------
-      DOUBLE PRECISION FUNCTION DFER(X1,X0,C)
-        IMPLICIT REAL*8(A-H,O-Z)
-        COMMON /CH_PAR/ CLE,SLP,SWR,EPS,MF,IC,MJW,IBN,BETA
-        COMMON /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
+      double precision function DFER(X1,X0,C)
+        implicit REAL*8(A-H,O-Z)
+        common /CH_PAR/ CLE,SLP,SWR,EPS,MF,IC,MJW,IBN,BETA
+        common /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
      +   AF0,TS,XS,PI,DTW,FF,CCC,CK,DTW1
         CLE2=CLE*0.5D0
         ARG=C*(ABS(X1-X0)-CLE2*FF)
         UU=DSIGN(1.0D0,X0-X1)
-        IF(ARG.LT.82.0D0)THEN
+        if(ARG.LT.82.0D0)THEN
           DFER=C/((1.0D0+DEXP(ARG))**2)*DEXP(ARG)*UU
-        ELSE
+        else
           DFER=0.0D0
-        ENDIF
-        RETURN
-      END
+        endif
+        return
+      end
 C-- MONITOR ---- MONITORING THE SOLUTION ----------------------------
-      SUBROUTINE MONITOR()
-        IMPLICIT REAL*8(A-H,O-Z)
-        INCLUDE 'par.fh'
-        COMMON /SIG/ XM(NPTS)
-        COMMON /TIMEP/ T
-        COMMON /GEAR0/ DTUSED,NQUSED,NSTEP,NFE,NJE
-        COMMON /ARRAYS/ USOL(NPDE,NPTS,NDERV),U(NPDE,NPTS),X(NPTS)
-        COMMON /TM_ARR/ TMMS(ITP),TMLP(ITP),TMAB(ITP),TMDS(ITP),
+      subroutine MONITOR()
+        implicit REAL*8(A-H,O-Z)
+        include 'par.fh'
+        common /SIG/ XM(NPTS)
+        common /TIMEP/ T
+        common /GEAR0/ DTUSED,NQUSED,NSTEP,NFE,NJE
+        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),U(NPDE,NPTS),X(NPTS)
+        common /TM_ARR/ TMMS(ITP),TMLP(ITP),TMAB(ITP),TMDS(ITP),
      *   TMPC(ITP),TMZ(ITP)
-        COMMON /CH_PAR/ CLE,SLP,SWR,EPS,MF,IC,MJW,IBN,BETA
-        COMMON /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
+        common /CH_PAR/ CLE,SLP,SWR,EPS,MF,IC,MJW,IBN,BETA
+        common /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
      +   AF0,TS,XS,PI,DTW,FF,CCC,CK,DTW1
         IC = IC+1
 C--------------- COMPUTE TIME DEPENDENCIES --------------------------
         TMMS(IC)=T*1000.0D0
-        IF(T.GE.TSW)THEN
+        if(T.GE.TSW)THEN
           TMLP(IC)=SLP+SWR*TSW
-        ELSE
+        else
           TMLP(IC)=SLP+SWR*T
-        ENDIF
+        endif
         TMAB(IC)=0.0D0
         TMDS(IC)=0.0D0
         TMZ(IC)=0.0D0
-        DO I=1,NPTS
+        do I=1,NPTS
           TMAB(IC)=TMAB(IC)+USP(X(I),1)*XM(I)
           TMDS(IC)=TMDS(IC)+USP(X(I),2)*XM(I)
           TMZ(IC)=TMZ(IC)+USP(X(I),3)*XM(I)
-        ENDDO
+        enddo
         TMPC(IC)=(DSQRT(TMAB(IC)**2+TMDS(IC)**2))
-        IF(T.LE.TS)THEN
-          WRITE(44,61)
+        if(T.LE.TS)THEN
+          write(44,61)
      +     TMMS(IC),TMLP(IC),TMAB(IC),TMDS(IC),TMPC(IC),TMZ(IC)
-        ENDIF
-        IF(T.GE.TS-DTW1)THEN
-C          WRITE(47,63)TMMS(IC),TMAB(IC),TMDS(IC),TMZ(IC)
-          WRITE(47,69)TMMS(IC),TMDS(IC)
-        ENDIF
+        endif
+        if(T.GE.TS-DTW1)THEN
+C          write(47,63)TMMS(IC),TMAB(IC),TMDS(IC),TMZ(IC)
+          write(47,69)TMMS(IC),TMDS(IC)
+        endif
 C--------------- SHOW INFORMATION -----------------------------------
-        WRITE(*,12) ' TIME=',T*1000.,' (MSEC)  COUNT=',IC
-        IF(MJW.EQ.1.OR.T.GE.TW) CALL WRITE_MJ()    !
-c        WRITE(*,*) '  X    ','   MX    ','  MY     ','   MZ   ',
+        write(*,12) ' TIME=',T*1000.,' (MSEC)  COUNT=',IC
+        if(MJW.EQ.1.OR.T.GE.TW) CALL WRITE_MJ()    !
+c        write(*,*) '  X    ','   MX    ','  MY     ','   MZ   ',
 c     *'   NX    ','  NY   ','   NZ   '
 c        DO I=1,NPTS,(NPTS-1)/21
-c          WRITE(*,72)X(I),U(1,I),U(2,I),U(3,I),U(4,I),U(5,I),U(6,I)
+c          write(*,72)X(I),U(1,I),U(2,I),U(3,I),U(4,I),U(5,I),U(6,I)
 c        ENDDO
-c        WRITE(*,*)
-        IF(IC.EQ.1) RETURN
-  12    FORMAT(A,F10.3,A,I5)
-  72    FORMAT(F6.3, 6(1PE11.3))
-   61   FORMAT(F7.1, 6(1PE14.6))
-   63   FORMAT(F8.3, 3(1PE25.16))
-   69   FORMAT(F8.3, 1PE25.16)
-  181   FORMAT(A)
-      END
+c        write(*,*)
+        if(IC.EQ.1) RETURN
+  12    format(A,F10.3,A,I5)
+  72    format(F6.3, 6(1PE11.3))
+   61   format(F7.1, 6(1PE14.6))
+   63   format(F8.3, 3(1PE25.16))
+   69   format(F8.3, 1PE25.16)
+  181   format(A)
+      end
 C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
-      SUBROUTINE WRITE_MJ()
-        IMPLICIT REAL*8(A-H,O-Z)
-        INCLUDE 'par.fh'
-        COMMON /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
+      subroutine WRITE_MJ()
+        implicit REAL*8(A-H,O-Z)
+        include 'par.fh'
+        common /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
      +   AF0,TS,XS,PI,DTW,FF,CCC,CK,DTW1
-        COMMON /ARRAYS/ USOL(NPDE,NPTS,NDERV),U(NPDE,NPTS),X(NPTS)
-        DO I=1, NPTS
+        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),U(NPDE,NPTS),X(NPTS)
+        do I=1, NPTS
           CT=DCOS(USOL(7,I,1))
           ST=DSIN(USOL(7,I,1))
           CTM=1.0D0-CT
@@ -602,15 +602,15 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
           UFY=UJY*AF-DIFF*UX2
           UFZ=UJZ*AF-DIFF*UX3
 
-C          WRITE(21,101)X(I),U(1,I),U(2,I),U(3,I),
+C          write(21,101)X(I),U(1,I),U(2,I),U(3,I),
 C     *      U(4,I),U(5,I),U(6,I),U(7,I)
-          WRITE(24,102)X(I),USOL(1,I,2),USOL(2,I,2),USOL(3,I,2),
+          write(24,102)X(I),USOL(1,I,2),USOL(2,I,2),USOL(3,I,2),
      *      USOL(4,I,2),USOL(5,I,2),USOL(6,I,2),USOL(7,I,2),UFX,UFY,UFZ
-          WRITE(21,101)X(I),USOL(1,I,1),USOL(2,I,1),USOL(3,I,1),
+          write(21,101)X(I),USOL(1,I,1),USOL(2,I,1),USOL(3,I,1),
      *      USOL(4,I,1),USOL(5,I,1),USOL(6,I,1),USOL(7,I,1)
 
-        ENDDO
-  100   FORMAT(A)
-  101   FORMAT(F10.6, 7(1PE25.16))
-  102   FORMAT(F10.6, 10(1PE25.16))
-      END
+        enddo
+  100   format(A)
+  101   format(F10.6, 7(1PE25.16))
+  102   format(F10.6, 10(1PE25.16))
+      end
