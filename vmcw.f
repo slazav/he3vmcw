@@ -8,37 +8,67 @@ C---------------- CB=0.0 !!!!!!!!!!
         common /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
      +   AF0,TS,XS,PI,DTW,FF,CCC,CK,DTW1
         dimension SCTCH(KORD*(NDERV+1)),WORK(IDIMWORK),IWORK(IDIMIWORK)
+        character*64 CFG_KEY
+
 C--------------- INITIALIZATION -------------------------------------
         GAMMA=2.0378D+4    ! GAMMA
-        open(54,FILE='cfg')
-        read(54,*)BETA   ! TIPPING ANGLE (DEGREES)
-        read(54,*)IBN    ! TYPE OF BOUND. COND.: 1-OPEN CELL 2-CLOSED CELL
-        read(54,*)TEMP   ! TEMPERATURE (K)          (0.9299)
-        read(54,*)H      ! FIELD (OE)               (110)
-        read(54,*)GRAD   ! GRADIENT H (OE/CM)       (-0.2)
-        read(54,*)CLE    ! CELL LENGTH (CM)         (0.4)
-        read(54,*)HY     ! RF FIELD (OE)            (0.06)
-        read(54,*)SLP    ! STARTING LARMOR POSITION (CM) (-0.1)
-        read(54,*)SWR    ! SWEEP RATE (CM/SEC)      (0.03)
-        read(54,*)DC     ! DIFFUSION * T^2          (1.38E-6)
-        read(54,*)T1C    ! T1*T                     (1.0E-3)
-        read(54,*)DTW1   ! STEP IN TIME FOR TIME DEPENDENCIES (1.0E-5)
-        read(54,*)NEPS   ! RELATIVE TIME ERROR BOUND(1.0E-3)
-        read(54,*)MF     ! METHOD OF PDE SOLUTION    (11)
-                         ! 11 - ADAMS METHOD; USE DERIVF FOR JACOBIAN
-                         ! 12 - ADAMS METHOD; CALCULATE JACOBIAN
-                         ! 21 - BWD METHOD; USE DERIVF FOR JACOBIAN
-                         ! 22 - BWD METHOD; CALCULATE JACOBIAN
-        read(54,*)MJW    ! WRITE TO MJ FILE:  0-DON'T  1-WRITE
-        read(54,*)TSW    ! TIME TO STOP SWEEP
-        read(54,*)TW     ! TIME TO WRITE MJ
-        read(54,*)TS     ! TIME OF X OSC
-        read(54,*)XS     ! AMPL OF X-OSC
-        read(54,*)FF     ! FF
-        read(54,*)CCC    ! CCC (AERO KRUTIZNA  1000)
-        read(54,*)CK     ! CK (KRUTIZNI KUCHNOST' 0.01)
-        read(54,*)TOUT   ! TIME TO STOP COMPUTATION (SEC) (0.0001)
-        close(54)
+        open(54,FILE='vmcw.cfg')
+   11   read(54,*,END=12) CFG_KEY, CFG_VAL
+        if (CFG_KEY.EQ.'BETA') then
+          BETA=CFG_VAL ! TIPPING ANGLE (DEGREES)
+        elseif (CFG_KEY.EQ.'IBN') then
+          IBN=CFG_VAL  ! TYPE OF BOUND. COND.: 1-OPEN CELL 2-CLOSED CELL
+        elseif (CFG_KEY.EQ.'TEMP') then
+          TEMP=CFG_VAL ! TEMPERATURE (K)          (0.9299)
+        elseif (CFG_KEY.EQ.'H') then
+          H=CFG_VAL    ! FIELD (OE)               (110)
+        elseif (CFG_KEY.EQ.'GRAD') then
+          GRAD=CFG_VAL ! GRADIENT H (OE/CM)       (-0.2)
+        elseif (CFG_KEY.EQ.'CLE') then
+          CLE=CFG_VAL  ! CELL LENGTH (CM)         (0.4)
+        elseif (CFG_KEY.EQ.'HY') then
+          HY=CFG_VAL   ! RF FIELD (OE)            (0.06)
+        elseif (CFG_KEY.EQ.'SLP') then
+          SLP=CFG_VAL  ! STARTING LARMOR POSITION (CM) (-0.1)
+        elseif (CFG_KEY.EQ.'SWR') then
+          SWR=CFG_VAL  ! SWEEP RATE (CM/SEC)      (0.03)
+        elseif (CFG_KEY.EQ.'DC') then
+          DC=CFG_VAL   ! DIFFUSION * T^2          (1.38E-6)
+        elseif (CFG_KEY.EQ.'T1C') then
+          T1C=CFG_VAL  ! T1*T                     (1.0E-3)
+        elseif (CFG_KEY.EQ.'DTW1') then
+          DTW1=CFG_VAL ! STEP IN TIME FOR TIME DEPENDENCIES (1.0E-5)
+        elseif (CFG_KEY.EQ.'NEPS') then
+          NEPS=CFG_VAL ! RELATIVE TIME ERROR BOUND(1.0E-3)
+        elseif (CFG_KEY.EQ.'MF') then
+          MF=CFG_VAL   ! METHOD OF PDE SOLUTION    (11)
+                       ! 11 - ADAMS METHOD; USE DERIVF FOR JACOBIAN
+                       ! 12 - ADAMS METHOD; CALCULATE JACOBIAN
+                       ! 21 - BWD METHOD; USE DERIVF FOR JACOBIAN
+                       ! 22 - BWD METHOD; CALCULATE JACOBIAN
+        elseif (CFG_KEY.EQ.'MJW') then
+          MJW=CFG_VAL  ! WRITE TO MJ FILE:  0-DON'T  1-WRITE
+        elseif (CFG_KEY.EQ.'TSW') then
+          TSW=CFG_VAL  ! TIME TO STOP SWEEP
+        elseif (CFG_KEY.EQ.'TW') then
+          TW=CFG_VAL   ! TIME TO WRITE MJ
+        elseif (CFG_KEY.EQ.'TS') then
+          TS=CFG_VAL   ! TIME OF X OSC
+        elseif (CFG_KEY.EQ.'XS') then
+          XS=CFG_VAL   ! AMPL OF X-OSC
+        elseif (CFG_KEY.EQ.'FF') then
+          FF=CFG_VAL   ! FF
+        elseif (CFG_KEY.EQ.'CCC') then
+          CCC=CFG_VAL  ! CCC (AERO KRUTIZNA  1000)
+        elseif (CFG_KEY.EQ.'CK') then
+          CK=CFG_VAL   ! CK (KRUTIZNI KUCHNOST' 0.01)
+        elseif (CFG_KEY.EQ.'TOUT') then
+          TOUT=CFG_VAL ! TIME TO STOP COMPUTATION (SEC) (0.0001)
+        else
+          write(*,*) 'warning: unknown parameter in cfg-file: ', CFG_KEY
+        endif
+        goto 11
+   12   close(54)
 
         FLP=SLP+SWR*TSW
         SH1=GRAD*FLP/H-XS/GAMMA/H
