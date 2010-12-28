@@ -5,13 +5,20 @@ C---------------- CB=0.0 !!!!!!!!!!
         common /TIMEP/ T
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),U(NPDE,NPTS),X(NPTS)
         common /CH_PAR/ CLE,SLP,SWR,EPS,MF,IC,MJW,IBN,BETA
+
+        common /CFG_AER/  AER, AER_LEN, AER_CNT, AER_TRW
+        common /CFG_CELL/ CELL_LEN
+        common /CFG_MESH/ XMESH_K,XMESH_ACC
+
+
         common /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
-     +   AF0,TS,XS,PI,DTW,FF,CCC,CK,DTW1
+     +   AF0,TS,XS,PI,DTW,DTW1
         dimension SCTCH(KORD*(NDERV+1)),WORK(IDIMWORK),IWORK(IDIMIWORK)
         character*64 CFG_KEY
 
 C--------------- INITIALIZATION -------------------------------------
         GAMMA=2.0378D+4    ! GAMMA
+
         open(54,FILE='vmcw.cfg')
    11   read(54,*,END=12) CFG_KEY, CFG_VAL
         if (CFG_KEY.EQ.'BETA') then
@@ -56,14 +63,27 @@ C--------------- INITIALIZATION -------------------------------------
           TS=CFG_VAL   ! TIME OF X OSC
         elseif (CFG_KEY.EQ.'XS') then
           XS=CFG_VAL   ! AMPL OF X-OSC
-        elseif (CFG_KEY.EQ.'FF') then
-          FF=CFG_VAL   ! FF
-        elseif (CFG_KEY.EQ.'CCC') then
-          CCC=CFG_VAL  ! CCC (AERO KRUTIZNA  1000)
-        elseif (CFG_KEY.EQ.'CK') then
-          CK=CFG_VAL   ! CK (KRUTIZNI KUCHNOST' 0.01)
         elseif (CFG_KEY.EQ.'TOUT') then
           TOUT=CFG_VAL ! TIME TO STOP COMPUTATION (SEC) (0.0001)
+
+C       CFG_CELL parameter group:
+        elseif (CFG_KEY.EQ.'CELL_LEN') then
+          CELL_LEN=CFG_VAL
+C       CFG_MESH parameter group:
+        elseif (CFG_KEY.EQ.'XMESH_K') then
+          XMESH_K=CFG_VAL
+        elseif (CFG_KEY.EQ.'XMESH_ACC') then
+          XMESH_ACC=CFG_VAL
+C       CFG_AER parameter group:
+        elseif (CFG_KEY.EQ.'AER') then
+          AER=CFG_VAL
+        elseif (CFG_KEY.EQ.'AER_LEN') then
+          AER_LEN=CFG_VAL
+        elseif (CFG_KEY.EQ.'AER_CNT') then
+          AER_CNT=CFG_VAL
+        elseif (CFG_KEY.EQ.'AER_TRW') then
+          AER_TRW=CFG_VAL
+
         else
           write(*,*) 'warning: unknown parameter in cfg-file: ', CFG_KEY
         endif
@@ -90,18 +110,20 @@ C--------------- INITIALIZATION -------------------------------------
         T=0.0                        ! STARTING TIME
         IC=0                       ! TIME DEPENDENCIES COUNTER
         call SET_MESH()
+        call SET_XM()
         call SET_ICOND()
         IWORK(1)=IDIMWORK
         IWORK(2)=IDIMIWORK
 
-        open(49,FILE='aero.x')
+        open(54,FILE='aer_step.dat')
+        write(54,*), '#  I    X(I) STEP(X) STEP''(X)'
         do J=1,NPTS
-          CC=FER(X(J),CLE*0.5D0,CCC)
-          write(49,*)X(J),CC
+          write(54,'(I4," ",F7.5," ",F7.5," ",e12.5e2)')
+     +     J, X(J), AER_STEP(X(J),0), AER_STEP(X(J),1)
         enddo
-        close(49)
+        close(54)
 
-        DELT=20.0D0/CCC
+        DELT=20.0D0*AER_TRW*CELL_LEN
         TOLD=0.0D0
         DT=1.D-10                    ! INITIAL STEP SIZE IN T
         T0=T                         ! STARTING TIME
@@ -165,7 +187,7 @@ C-- F ---------- EVALUATION OF F ------------------------------------
         dimension U(NPDE),UX(NPDE),UXX(NPDE),FV(NPDE)
         common /CH_PAR/ CLE,SLP,SWR,EPS,MF,IC,MJW,IBN,BETA
         common /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
-     +   AF0,TS,XS,PI,DTW,FF,CCC,CK,DTW1
+     +   AF0,TS,XS,PI,DTW,DTW1
         if(T.GE.TSW)THEN
           WZ=W0+DW*TSW
         else
@@ -195,10 +217,11 @@ C-- F ---------- EVALUATION OF F ------------------------------------
         CTG=ST/CTM
         UT=ST*(1.0D0+4.0D0*CT)*0.2666666D0
         AUT0=AA*UT
-        AF=AF0-AF0*0.5D0*FER(X,CLE*0.5D0,CCC)
-        DAF=-AF0*0.5D0*DFER(X,CLE*0.5D0,CCC)
-        AUT=AUT0-AUT0*0.835D0*FER(X,CLE*0.5D0,CCC)
-        TF0=TF-TF*0.5D0*FER(X,CLE*0.5D0,CCC)
+        AF=AF0-AF0*0.5D0 * AER_STEP(X,0)
+        DAF=-AF0*0.5D0 * AER_STEP(X,1)
+        AUT=AUT0-AUT0*0.835D0 * AER_STEP(X,0)
+        TF0=TF-TF*0.5D0 * AER_STEP(X,0)
+
         FTN=CTM*DD45-ST*UX(6)-UX(7)*U6
         DFTN=CTM*(U4*UXX(5)-UXX(4)*U5)-ST*UXX(6)-UXX(7)*U6-
      *   CT1*UX(7)*UX(6)+ST*UX(7)*DD45
@@ -243,7 +266,7 @@ C-- BNDRY ------ BOUNDARY CONDITIONS -- B(U,UX)=Z(T) ------------
      *   DBDU(NPDE,NPDE),DBDUX(NPDE,NPDE)
         common /CH_PAR/ CLE,SLP,SWR,EPS,MF,IC,MJW,IBN,BETA
         common /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
-     +   AF0,TS,XS,PI,DTW,FF,CCC,CK,DTW1
+     +   AF0,TS,XS,PI,DTW,DTW1
         do I=1,NPDE
           DZDT(I)=0.0D0
           do J=1,NPDE
@@ -273,7 +296,7 @@ C-- BNDRY ------ BOUNDARY CONDITIONS -- B(U,UX)=Z(T) ------------
         C56=CTM*U5*U6-U4*ST             !!!!!!!!!!!
         C66=CTM*U6**2+CT
         C266=2.0D0-C66
-        AF=AF0-AF0*0.5D0*FER(X,CLE*0.5D0,CCC)
+        AF=AF0-AF0*0.5D0 * AER_STEP(X,0)
         DA=-DIFF/AF
         if(IBN.EQ.2)THEN       ! CLOSED CELL
           DBDUX(4,1)=DA
@@ -313,79 +336,6 @@ C          DBDUX(7,5)=U5         !!
 C          DBDUX(7,6)=U6         !!
         endif
         return
-      end
-C-- SET_MESH --- SET UP THE MESH ------------------------------------
-      subroutine SET_MESH()
-        implicit REAL*8(A-H,O-Z)
-        include 'par.fh'
-        dimension DXX(NPTS),XX(NPTS)
-        common /SIG/ XM(NPTS)
-        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),U(NPDE,NPTS),X(NPTS)
-        common /CH_PAR/ CLE,SLP,SWR,EPS,MF,IC,MJW,IBN,BETA
-        common /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
-     +   AF0,TS,XS,PI,DTW,FF,CCC,CK,DTW1
-        open(69,FILE='ress')
-        open(57,FILE='mesh')
-        CLE2=CLE*0.5D0
-        DX=CLE/(NPTS-1)
-        do J=1,NPTS
-          XX(J)=DX*(J-1)
-          CC=FER(XX(J),CLE2,CCC)
-          CCD=ABS(DFER(XX(J),CLE2,CCC))
-          write(69,*)XX(J),CC,CCD
-        enddo
-        close(69)
-        KK=1
-        EP=1.0D-20
-   44   CONTINUE
-        X(1)=0.0D0
-        XT=0.0D0
-        DXX(1)=DX/(1.0D0+CK*ABS(DFER(DX*0.5D0,CLE2,CCC)))
-        do J=2,(NPTS-1)/2+1
-          XT=XT+DXX(J-1)
-          DXX(J)=DX/(1.0D0+CK*ABS(DFER(XT+DX*0.5D0,CLE2,CCC)))
-        enddo
-        KK=KK+1
-        if(DABS(CLE2-XT).GT.EP.AND.KK.LT.2000)THEN
-          DK=XT-CLE2
-          DD=DK/(NPTS-1)*2
-          write(*,*)'DK=',DK,'  K=',KK-1
-          DX=DX-DD
-          goto 44
-        else
-          do J=1,(NPTS-1)/2
-            X(J+1)=X(J)+DXX(J)
-          enddo
-          LL=(NPTS-1)/2+1
-
-          UDXX=1.0D0-(X(LL)-CLE2)/CLE2
-C         UFF=(X(LL)-CLE2)/(NPTS-1)*2.0D0
-          do J=1,(NPTS-1)/2
-            DXX(J)=DXX(J)*UDXX
-C           X(J+1)=X(J)+DXX(J)-UFF
-            X(J+1)=X(J)+DXX(J)
-C           write(57,55)J,X(J),DXX(J),UDXX
-          enddo
-        endif
-        do J=NPTS,(NPTS-1)/2+1,-1
-          X(J)=CLE-X(NPTS-J+1)
-        enddo
-        X(1)=0.0D0
-        X(NPTS)=CLE
-        do J=1,NPTS
-          write(57,55)J,X(J)
-        enddo
-        do J=2,NPTS-1
-          XM(J)=(1.0D5*X(J+1)-1.0D5*X(J-1))*0.5D0
-        enddo
-        XM(1)=(1.0D5*X(2)-1.0D5*X(1))*0.5D0
-        XM(NPTS)=(1.0D5*X(NPTS)-1.0D5*X(NPTS-1))*0.5D0
-        do J=1,NPTS
-cc        write(57,55)J,X(J),XM(J)
-        enddo
-        close(57)
-
-   55   format(I5, 7(1PE25.16))
       end
 C-- SET_ICOND -- INITIAL CONDITIONS ---------------------------------
       subroutine SET_ICOND()
@@ -501,7 +451,7 @@ C-- DERIVF ----- SET UP DERIVATIVES ---------------------------------
      *       DFDU(NPDE,NPDE),DFDUX(NPDE,NPDE),DFDUXX(NPDE,NPDE)
         common /CH_PAR/ CLE,SLP,SWR,EPS,MF,IC,MJW,IBN,BETA
         common /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
-     +   AF0,TS,XS,PI,DTW,FF,CCC,CK,DTW1
+     +   AF0,TS,XS,PI,DTW,DTW1
         do I=1,NPDE
           do J=1,NPDE
             DFDU(I,J)=0.0D0
@@ -512,36 +462,72 @@ C-- DERIVF ----- SET UP DERIVATIVES ---------------------------------
 CCC ATTENTION :   DERIVF IS WRONG
         return
       end
-C-- FERMI_ST --- FERMI STEP -----------------------------------------
-      double precision function FER(X1,X0,C)
+C------- AEROGEL STEP -----------------------------------------
+C       Aerogel density function. Returns 1 in the central
+C       part of the cell with fermi steps to 0 on edges.
+C         X        -- coord, cm
+C         D        -- derivative order (0|1)
+C         CELL_LEN -- cell length, cm
+C         AER      -- if >0 then do step
+C         AER_LEN  -- aerogel length / cell length
+C         AER_CNT  -- center of aerogel area / cell length
+C         AER_TRW  -- transition width / cell length
+      double precision function AER_STEP(X,D)
         implicit REAL*8(A-H,O-Z)
-        common /CH_PAR/ CLE,SLP,SWR,EPS,MF,IC,MJW,IBN,BETA
-        common /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
-     +   AF0,TS,XS,PI,DTW,FF,CCC,CK,DTW1
-        CLE2=CLE*0.5D0
-        ARG=C*(ABS(X1-X0)-CLE2*FF)
+        integer D
+        common /CFG_AER/  AER, AER_LEN, AER_CNT, AER_TRW
+        common /CFG_CELL/ CELL_LEN
+        if (AER.LE.0) then
+          AER_STEP=0.0D0
+          return
+        endif
+        ARG=(ABS(X/CELL_LEN - AER_CNT) - AER_LEN*0.5D0) / AER_TRW
         if(ARG.LT.82.0D0)THEN
-          FER=1.0D0/(1.0D0+DEXP(ARG))
+          if (D.eq.0) then
+            AER_STEP=1.0D0/(1.0D0+DEXP(ARG))
+          elseif (D.eq.1) then
+            STEP_SIGN=DSIGN(1.0D0,X/CELL_LEN-AER_CNT)
+            AER_STEP=STEP_SIGN*DEXP(ARG)/AER_TRW/CELL_LEN/
+     +                (1.0D0+DEXP(ARG))**2
+          else
+            AER_STEP=0.0D0
+          endif
         else
-          FER=0.0D0
+          AER_STEP=0.0D0
         endif
         return
       end
-C----- DFERMI STEP -----------------------------------------
-      double precision function DFER(X1,X0,C)
+C-- SET_MESH --- SET UP THE MESH ------------------------------------
+      subroutine SET_MESH()
         implicit REAL*8(A-H,O-Z)
-        common /CH_PAR/ CLE,SLP,SWR,EPS,MF,IC,MJW,IBN,BETA
-        common /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
-     +   AF0,TS,XS,PI,DTW,FF,CCC,CK,DTW1
-        CLE2=CLE*0.5D0
-        ARG=C*(ABS(X1-X0)-CLE2*FF)
-        UU=DSIGN(1.0D0,X0-X1)
-        if(ARG.LT.82.0D0)THEN
-          DFER=C/((1.0D0+DEXP(ARG))**2)*DEXP(ARG)*UU
-        else
-          DFER=0.0D0
-        endif
-        return
+        include 'par.fh'
+        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),U(NPDE,NPTS),X(NPTS)
+        common /CFG_CELL/ CELL_LEN
+        common /CFG_MESH/ XMESH_K,XMESH_ACC
+        X(1)=0
+        DX=CELL_LEN/(NPTS-1)
+        do I=1,100
+          do J=1,NPTS-1
+            X(J+1)=X(J) +
+     +        DX/(1.0D0+XMESH_K*ABS(AER_STEP(X(J),1)))
+          enddo
+          DELTA=CELL_LEN - X(NPTS)
+          DX = DX + DELTA/(NPTS+1)
+          if (ABS(DELTA).LT.XMESH_ACC) return
+        enddo
+        write(*,*) 'warning: low mesh accuracy: ', ABS(DELTA)
+      end
+C-- SET_XM ---------------------------------------
+      subroutine SET_XM()
+        implicit REAL*8(A-H,O-Z)
+        include 'par.fh'
+        common /SIG/ XM(NPTS)
+        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),U(NPDE,NPTS),X(NPTS)
+        XM(1)=(1.0D5*X(2)-1.0D5*X(1))*0.5D0
+        XM(NPTS)=(1.0D5*X(NPTS)-1.0D5*X(NPTS-1))*0.5D0
+        do J=2,NPTS-1
+          XM(J)=(1.0D5*X(J+1)-1.0D5*X(J-1))*0.5D0
+        enddo
       end
 C-- MONITOR ---- MONITORING THE SOLUTION ----------------------------
       subroutine MONITOR()
@@ -555,7 +541,7 @@ C-- MONITOR ---- MONITORING THE SOLUTION ----------------------------
      *   TMPC(ITP),TMZ(ITP)
         common /CH_PAR/ CLE,SLP,SWR,EPS,MF,IC,MJW,IBN,BETA
         common /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
-     +   AF0,TS,XS,PI,DTW,FF,CCC,CK,DTW1
+     +   AF0,TS,XS,PI,DTW,DTW1
         IC = IC+1
 C--------------- COMPUTE TIME DEPENDENCIES --------------------------
         TMMS(IC)=T*1000.0D0
@@ -603,7 +589,7 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
         implicit REAL*8(A-H,O-Z)
         include 'par.fh'
         common /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
-     +   AF0,TS,XS,PI,DTW,FF,CCC,CK,DTW1
+     +   AF0,TS,XS,PI,DTW,DTW1
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),U(NPDE,NPTS),X(NPTS)
         do I=1, NPTS
           CT=DCOS(USOL(7,I,1))
