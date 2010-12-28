@@ -12,7 +12,6 @@ C--------------- PARAMETERS LIST ------------------------------------
       PARAMETER( IDIMWORK=KORD+4*NPDE+9*NPDE**2+NCPTS*(3*KORD+2)+
      +         NPDE*NCPTS*(3*ML+MAXDER+7) )
       PARAMETER( IDIMIWORK=NCPTS*(NPDE+1) )
-      PARAMETER( ITP=100000)
                                  ! PRECISION OF INTEGRATION
       PARAMETER ( EPS_INT=1.D-5, JMAX_INT=20 )
 
