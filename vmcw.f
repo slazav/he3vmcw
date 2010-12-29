@@ -555,7 +555,8 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
         common /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
      +   AF0,TS,XS,PI,DTW,DTW1
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
-        do I=1, NPTS
+        common /TIMEP/ T
+        do I=1, NPTS, 128
           CT=DCOS(USOL(7,I,1))
           ST=DSIN(USOL(7,I,1))
           CTM=1.0D0-CT
@@ -582,12 +583,17 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
           UFY=UJY*AF-DIFF*UX2
           UFZ=UJZ*AF-DIFF*UX3
 
-          write(24,102)X(I),USOL(1,I,2),USOL(2,I,2),USOL(3,I,2),
-     *      USOL(4,I,2),USOL(5,I,2),USOL(6,I,2),USOL(7,I,2),UFX,UFY,UFZ
-          write(21,101)X(I),USOL(1,I,1),USOL(2,I,1),USOL(3,I,1),
+          write(21,101) T*1000.,X(I),
+     *      USOL(1,I,1),USOL(2,I,1),USOL(3,I,1),
      *      USOL(4,I,1),USOL(5,I,1),USOL(6,I,1),USOL(7,I,1)
+          write(24,102) T*1000., X(I),
+     *      USOL(1,I,2),USOL(2,I,2),USOL(3,I,2),
+     *      USOL(4,I,2),USOL(5,I,2),USOL(6,I,2),USOL(7,I,2),
+     *      UFX,UFY,UFZ
 
         enddo
-  101   format(F10.6, 7(1PE25.16))
-  102   format(F10.6, 10(1PE25.16))
+        write(24,*)''
+        write(21,*)''
+  101   format(F7.1 F10.6, 7(1PE15.6))
+  102   format(F7.1 F10.6, 10(1PE15.6))
       end
