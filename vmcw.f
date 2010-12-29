@@ -10,7 +10,7 @@ C---------------- CB=0.0 !!!!!!!!!!
         common /CFG_MESH/ XMESH_K,XMESH_ACC
 
 
-        common /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
+        common /BLK_UMU/ T11,GW,W,W0,AA,TF,AF,DIFF,WY,DW,TSW,TW,
      +   AF0,TS,XS,PI,DTW,DTW1
         dimension SCTCH(KORD*(NDERV+1)),WORK(IDIMWORK),IWORK(IDIMIWORK)
         character*64 CFG_KEY
@@ -110,7 +110,6 @@ C       CFG_AER parameter group:
         close(54)
 
         DELT=20.0D0*AER_TRW*CELL_LEN
-        TOLD=0.0D0
         DT=1.D-10                    ! INITIAL STEP SIZE IN T
         T0=T                         ! STARTING TIME
 
@@ -164,7 +163,7 @@ C-- F ---------- EVALUATION OF F ------------------------------------
         implicit REAL*8(A-H,O-Z)
         dimension U(NPDE),UX(NPDE),UXX(NPDE),FV(NPDE)
         common /CH_PAR/ SLP,SWR,EPS,BETA,MJW,IBN
-        common /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
+        common /BLK_UMU/ T11,GW,W,W0,AA,TF,AF,DIFF,WY,DW,TSW,TW,
      +   AF0,TS,XS,PI,DTW,DTW1
         if(T.GE.TSW)THEN
           WZ=W0+DW*TSW
@@ -243,7 +242,7 @@ C-- BNDRY ------ BOUNDARY CONDITIONS -- B(U,UX)=Z(T) ------------
         dimension U(NPDE),UX(NPDE),DZDT(NPDE),
      *   DBDU(NPDE,NPDE),DBDUX(NPDE,NPDE)
         common /CH_PAR/ SLP,SWR,EPS,BETA,MJW,IBN
-        common /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
+        common /BLK_UMU/ T11,GW,W,W0,AA,TF,AF,DIFF,WY,DW,TSW,TW,
      +   AF0,TS,XS,PI,DTW,DTW1
         do I=1,NPDE
           DZDT(I)=0.0D0
@@ -423,7 +422,7 @@ C-- DERIVF ----- SET UP DERIVATIVES ---------------------------------
         dimension U(NPDE),UX(NPDE),UXX(NPDE),
      *       DFDU(NPDE,NPDE),DFDUX(NPDE,NPDE),DFDUXX(NPDE,NPDE)
         common /CH_PAR/ SLP,SWR,EPS,BETA,MJW,IBN
-        common /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
+        common /BLK_UMU/ T11,GW,W,W0,AA,TF,AF,DIFF,WY,DW,TSW,TW,
      +   AF0,TS,XS,PI,DTW,DTW1
         do I=1,NPDE
           do J=1,NPDE
@@ -511,7 +510,7 @@ C-- MONITOR ---- MONITORING THE SOLUTION ----------------------------
         common /GEAR0/ DTUSED,NQUSED,NSTEP,NFE,NJE
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
         common /CH_PAR/ SLP,SWR,EPS,BETA,MJW,IBN
-        common /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
+        common /BLK_UMU/ T11,GW,W,W0,AA,TF,AF,DIFF,WY,DW,TSW,TW,
      +   AF0,TS,XS,PI,DTW,DTW1
 C--------------- COMPUTE TIME DEPENDENCIES --------------------------
         TMMS=T*1000.0D0
@@ -546,7 +545,7 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
       subroutine WRITE_MJ()
         implicit REAL*8(A-H,O-Z)
         include 'par.fh'
-        common /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
+        common /BLK_UMU/ T11,GW,W,W0,AA,TF,AF,DIFF,WY,DW,TSW,TW,
      +   AF0,TS,XS,PI,DTW,DTW1
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
         common /TIMEP/ T
