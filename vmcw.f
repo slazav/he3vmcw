@@ -1,7 +1,6 @@
 C---------------- CB=0.0 !!!!!!!!!!
         implicit REAL*8(A-H,O-Z)
         include 'par.fh'
-        common /IOUNIT/ LOUT
         common /TIMEP/ T
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
         common /CH_PAR/ SLP,SWR,EPS,BETA,MJW,IBN
@@ -97,8 +96,6 @@ C       CFG_AER parameter group:
         open(24,FILE='vmcwx.mj')
         open(47,FILE='pulse.t')
 
-        open(10,FILE='nul')
-        LOUT=10                     ! DIAGNOSTIC'S OUTPUT
         T=0.0                        ! STARTING TIME
         call SET_MESH()
         call SET_XM()
@@ -153,7 +150,6 @@ C----------------MAIN LOOP -------------------------------------------
         T=T+DTW
         call PDECOL(T0,T,DT,X,EPS,NINT,KORD,NCC,NPDE,MF,
      +              INDEX,WORK,IWORK)
-        write(LOUT,*) 'TIME=',T,'INDEX=',INDEX
         if(INDEX.NE.0) THEN
           write(*,*) 'INTEGRATION FAILED; INDEX=', INDEX
           stop
