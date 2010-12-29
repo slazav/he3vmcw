@@ -4,7 +4,7 @@ C---------------- CB=0.0 !!!!!!!!!!
         common /IOUNIT/ LOUT
         common /TIMEP/ T
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
-        common /CH_PAR/ CLE,SLP,SWR,EPS,BETA,MJW,IBN
+        common /CH_PAR/ SLP,SWR,EPS,BETA,MJW,IBN
 
         common /CFG_AER/  AER, AER_LEN, AER_CNT, AER_TRW
         common /CFG_CELL/ CELL_LEN
@@ -31,8 +31,6 @@ C--------------- INITIALIZATION -------------------------------------
           H=CFG_VAL    ! FIELD (OE)               (110)
         elseif (CFG_KEY.EQ.'GRAD') then
           GRAD=CFG_VAL ! GRADIENT H (OE/CM)       (-0.2)
-        elseif (CFG_KEY.EQ.'CLE') then
-          CLE=CFG_VAL  ! CELL LENGTH (CM)         (0.4)
         elseif (CFG_KEY.EQ.'HY') then
           HY=CFG_VAL   ! RF FIELD (OE)            (0.06)
         elseif (CFG_KEY.EQ.'SLP') then
@@ -86,7 +84,7 @@ C       CFG_AER parameter group:
 
         FLP=SLP+SWR*TSW
         SH1=GRAD*FLP/H-XS/GAMMA/H
-        SH2=GRAD*(FLP-CLE)/H-XS/GAMMA/H
+        SH2=GRAD*(FLP-CELL_LEN)/H-XS/GAMMA/H
         HMAL=HY/H
         open(76,FILE='shift')
         write(76,68)TSW,SH1,SH2,HMAL,HMAL/DSQRT(15.0D0)
@@ -169,7 +167,7 @@ C-- F ---------- EVALUATION OF F ------------------------------------
       subroutine F(T,X,U,UX,UXX,FV,NPDE)
         implicit REAL*8(A-H,O-Z)
         dimension U(NPDE),UX(NPDE),UXX(NPDE),FV(NPDE)
-        common /CH_PAR/ CLE,SLP,SWR,EPS,BETA,MJW,IBN
+        common /CH_PAR/ SLP,SWR,EPS,BETA,MJW,IBN
         common /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
      +   AF0,TS,XS,PI,DTW,DTW1
         if(T.GE.TSW)THEN
@@ -248,7 +246,7 @@ C-- BNDRY ------ BOUNDARY CONDITIONS -- B(U,UX)=Z(T) ------------
         implicit REAL*8(A-H,O-Z)
         dimension U(NPDE),UX(NPDE),DZDT(NPDE),
      *   DBDU(NPDE,NPDE),DBDUX(NPDE,NPDE)
-        common /CH_PAR/ CLE,SLP,SWR,EPS,BETA,MJW,IBN
+        common /CH_PAR/ SLP,SWR,EPS,BETA,MJW,IBN
         common /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
      +   AF0,TS,XS,PI,DTW,DTW1
         do I=1,NPDE
@@ -325,7 +323,7 @@ C-- SET_ICOND -- INITIAL CONDITIONS ---------------------------------
       subroutine SET_ICOND()
         implicit REAL*8(A-H,O-Z)
         include 'par.fh'
-        common /CH_PAR/ CLE,SLP,SWR,EPS,BETA,MJW,IBN
+        common /CH_PAR/ SLP,SWR,EPS,BETA,MJW,IBN
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
         PI=4.0D0*DATAN(1.0D0)
         BET=BETA*PI/180.0D0
@@ -372,7 +370,7 @@ C-- USP(X) ----- CSI OF SOLUTION ------------------------------------
         implicit REAL*8(A-H,O-Z)
         include 'par.fh'
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
-        common /CH_PAR/ CLE,SLP,SWR,EPS,BETA,MJW,IBN
+        common /CH_PAR/ SLP,SWR,EPS,BETA,MJW,IBN
         do K=1,NPTS
           USM=DSQRT(USOL(5,K,1)**2+USOL(6,K,1)**2+USOL(4,K,1)**2)
           USOL(4,K,1)=USOL(4,K,1)/USM
@@ -399,7 +397,7 @@ C      Y2L=USOL(I,KL,3)
 C      Y2H=USOL(I,KH,3)
 C      USP=A*YAL+B*YAH+((A**3-A)*Y2L+(B**3-B)*Y2H)*(H**2)/6.0D0
 C
-CC      J=INT(XI/CLE*NINT+1.1)
+CC      J=INT(XI/CELL_LEN*NINT+1.1)
 CC      USP=USOL(I,J,1)
         AA=1.0D20
         IK=1
@@ -428,7 +426,7 @@ C-- DERIVF ----- SET UP DERIVATIVES ---------------------------------
         implicit REAL*8(A-H,O-Z)
         dimension U(NPDE),UX(NPDE),UXX(NPDE),
      *       DFDU(NPDE,NPDE),DFDUX(NPDE,NPDE),DFDUXX(NPDE,NPDE)
-        common /CH_PAR/ CLE,SLP,SWR,EPS,BETA,MJW,IBN
+        common /CH_PAR/ SLP,SWR,EPS,BETA,MJW,IBN
         common /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
      +   AF0,TS,XS,PI,DTW,DTW1
         do I=1,NPDE
@@ -516,7 +514,7 @@ C-- MONITOR ---- MONITORING THE SOLUTION ----------------------------
         common /TIMEP/ T
         common /GEAR0/ DTUSED,NQUSED,NSTEP,NFE,NJE
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
-        common /CH_PAR/ CLE,SLP,SWR,EPS,BETA,MJW,IBN
+        common /CH_PAR/ SLP,SWR,EPS,BETA,MJW,IBN
         common /BLK_UMU/ T11,GW,W,W0,TOLD,AA,TF,AF,DIFF,WY,DW,TSW,TW,
      +   AF0,TS,XS,PI,DTW,DTW1
 C--------------- COMPUTE TIME DEPENDENCIES --------------------------
