@@ -98,7 +98,6 @@ C       CFG_AER parameter group:
 
         T=0.0                        ! STARTING TIME
         call SET_MESH()
-        call SET_XM()
         call SET_ICOND()
 
         open(54,FILE='aer_step.dat')
@@ -489,23 +488,10 @@ C-- SET_MESH --- SET UP THE MESH ------------------------------------
         enddo
         write(*,*) 'warning: low mesh accuracy: ', ABS(DELTA)
       end
-C-- SET_XM ---------------------------------------
-      subroutine SET_XM()
-        implicit REAL*8(A-H,O-Z)
-        include 'par.fh'
-        common /SIG/ XM(NPTS)
-        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
-        XM(1)=(1.0D5*X(2)-1.0D5*X(1))*0.5D0
-        XM(NPTS)=(1.0D5*X(NPTS)-1.0D5*X(NPTS-1))*0.5D0
-        do J=2,NPTS-1
-          XM(J)=(1.0D5*X(J+1)-1.0D5*X(J-1))*0.5D0
-        enddo
-      end
 C-- MONITOR ---- MONITORING THE SOLUTION ----------------------------
       subroutine MONITOR()
         implicit REAL*8(A-H,O-Z)
         include 'par.fh'
-        common /SIG/ XM(NPTS)
         common /TIMEP/ T
         common /GEAR0/ DTUSED,NQUSED,NSTEP,NFE,NJE
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
