@@ -15,8 +15,18 @@ C---------------- CB=0.0 !!!!!!!!!!
         dimension SCTCH(KORD*(NDERV+1)),WORK(IDIMWORK),IWORK(IDIMIWORK)
         character*64 CFG_KEY
 
+        integer FILES_MJ(NPTS) ! files for writing MJ along the cell
+        integer FILE_MMJ       ! file for writing mean values
+        integer FILE_AER       ! file for writing aerogel step and mesh
+        common /FILES/ FILES_MJ, FILE_MMJ, FILE_AER
+
+        real*8 WRITEMJ_XSTEP
+        common /CFG_WRITE/ WRITEMJ_XSTEP
+
 C--------------- INITIALIZATION -------------------------------------
         GAMMA=2.0378D+4    ! GAMMA
+
+        WRITEMJ_XSTEP=0.1D0
 
         open(54,FILE='vmcw.cfg')
    11   read(54,*,END=12) CFG_KEY, CFG_VAL
@@ -65,6 +75,9 @@ C       CFG_MESH parameter group:
           XMESH_K=CFG_VAL
         elseif (CFG_KEY.EQ.'XMESH_ACC') then
           XMESH_ACC=CFG_VAL
+C       CFG_WRITE parameter group:
+        elseif (CFG_KEY.EQ.'WRITEMJ_XSTEP') then
+          WRITEMJ_XSTEP=CFG_VAL
 C       CFG_AER parameter group:
         elseif (CFG_KEY.EQ.'AER') then
           AER=CFG_VAL
@@ -100,13 +113,16 @@ C       CFG_AER parameter group:
         call SET_MESH()
         call SET_ICOND()
 
-        open(54,FILE='aer_step.dat')
-        write(54,*), '#  I    X(I) STEP(X) STEP''(X)'
+        FILE_AER=54
+        open(FILE_AER,FILE='aer_step.dat')
+        write(FILE_AER,*), '#  I    X(I) STEP(X) STEP''(X)'
         do J=1,NPTS
-          write(54,'(I4," ",F7.5," ",F7.5," ",e12.5e2)')
+          write(FILE_AER,'(I4," ",F7.5," ",F7.5," ",e12.5e2)')
      +     J, X(J), AER_STEP(X(J),0), AER_STEP(X(J),1)
         enddo
-        close(54)
+        close(FILE_AER)
+
+        call WRITEMJ_OPEN()
 
         DELT=20.0D0*AER_TRW*CELL_LEN
         DT=1.D-10                    ! INITIAL STEP SIZE IN T
@@ -524,6 +540,7 @@ C--------------- COMPUTE TIME DEPENDENCIES --------------------------
 C--------------- SHOW INFORMATION -----------------------------------
         write(*,'(A,F6.1,A)') ' TIME=',T*1000.,' ms'
         if(MJW.EQ.1.OR.T.GE.TW) CALL WRITE_MJ()    !
+        call WRITEMJ_DO()
    61   format(F7.1, 6(1PE14.6))
    69   format(F8.3, 1PE25.16)
       end
@@ -573,6 +590,86 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
         enddo
         write(24,*)''
         write(21,*)''
+  101   format(F7.1 F10.6, 7(1PE15.6))
+  102   format(F7.1 F10.6, 10(1PE15.6))
+      end
+
+      subroutine WRITEMJ_OPEN()
+        implicit REAL*8(A-H,O-Z)
+        include 'par.fh'
+        integer FILES_MJ(NPTS), FILE_MMJ, FILE_AER
+        common /FILES/ FILES_MJ, FILE_MMJ, FILE_AER
+        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
+        common /CFG_CELL/ CELL_LEN
+        common /CFG_WRITE/ WRITEMJ_XSTEP
+        real*8 X0
+        character*64 FNAME
+        integer I
+        FILE_MMJ=1000
+        open(FILE_MMJ, FILE='mj_mean.dat')
+        X0=0
+        do I=1,NPTS
+          if (X(I).GE.X0) then
+            FILES_MJ(I)=1000+I
+            write(FNAME,'(A,F6.4,A)') 'mj',X(I),'.dat'
+            open(FILES_MJ(I),FILE=FNAME)
+            write(FILES_MJ(I),'(A,F6.3AI4)') '# X= ', X(I), ' I = ', I
+            X0 = X0 + WRITEMJ_XSTEP*CELL_LEN
+          else
+            FILES_MJ(I)=0
+          endif
+        enddo
+      end
+
+      subroutine WRITEMJ_DO()
+        implicit REAL*8(A-H,O-Z)
+        include 'par.fh'
+        common /BLK_UMU/ T11,GW,W,W0,AA,TF,AF,DIFF,WY,DW,TSW,TW,
+     +   AF0,TS,XS,PI,DTW,DTW1
+        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
+        common /TIMEP/ T
+        integer FILES_MJ(NPTS), FILE_MMJ, FILE_AER
+        common /FILES/ FILES_MJ, FILE_MMJ, FILE_AER
+
+        do I=1, NPTS
+          if (FILES_MJ(I).NE.0) then
+
+            CT=DCOS(USOL(7,I,1))
+            ST=DSIN(USOL(7,I,1))
+            CTM=1.0D0-CT
+            DD45=USOL(4,I,1)*USOL(5,I,2)-USOL(4,I,2)*USOL(5,I,1)
+            FTN=CTM*DD45-ST*USOL(6,I,2)-USOL(7,I,2)*USOL(6,I,1)
+            U4=USOL(4,I,1)
+            U5=USOL(5,I,1)
+            U6=USOL(6,I,1)
+            UX1=USOL(1,I,2)
+            UX2=USOL(2,I,2)
+            UX3=USOL(3,I,2)
+            UX4=USOL(4,I,2)
+            UX5=USOL(5,I,2)
+            UX6=USOL(6,I,2)
+            UX7=USOL(7,I,2)
+
+            UJX=2.0D0*(UX7*U4+ST*UX4+CTM*(U5*UX6-UX5*U6))+
+     *       (CTM*U4*U6+U5*ST)*FTN
+            UJY=2.0D0*(UX7*U5+ST*UX5-CTM*(U4*UX6-UX4*U6))+
+     *       (CTM*U5*U6-U4*ST)*FTN
+            UJZ=2.0D0*(UX7*U6+ST*UX6+CTM*(U4*UX5-UX4*U5))+
+     *       (CTM*U6**2+CT)*FTN
+            UFX=UJX*AF-DIFF*UX1
+            UFY=UJY*AF-DIFF*UX2
+            UFZ=UJZ*AF-DIFF*UX3
+
+            write(FILES_MJ(I),101) T*1000.,
+     *        USOL(1,I,1),USOL(2,I,1),USOL(3,I,1),
+     *        USOL(4,I,1),USOL(5,I,1),USOL(6,I,1),USOL(7,I,1)
+C            write(24,102) T*1000., X(I),
+C     *        USOL(1,I,2),USOL(2,I,2),USOL(3,I,2),
+C     *        USOL(4,I,2),USOL(5,I,2),USOL(6,I,2),USOL(7,I,2),
+C     *        UFX,UFY,UFZ
+          endif
+        enddo
+C       write(24,*)''
   101   format(F7.1 F10.6, 7(1PE15.6))
   102   format(F7.1 F10.6, 10(1PE15.6))
       end
