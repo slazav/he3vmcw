@@ -132,7 +132,7 @@ C--------------- COMPUTE PARAMETERS ----------------------------
         TETC=DSQRT(1.0D0-TTC)
         FLEG=330460.0D0*TETC           ! LEGGETT FREQ.(HZ) 0 BAR
         CPAR=1300.0D0*TETC             ! SPIN WAVES VELOCITY  (2000)
-        TF=0.0000005D0/TETC      !!!!!!!!!!         ! TAU EFFECTIVE (L-T) SECONDS
+        TF=0.0000005D0/TETC            ! TAU EFFECTIVE (L-T) SECONDS
         AA=FLEG*FLEG/W*4.0D0*PI**2
         AF0=-CPAR**2/W
         DIFF=DC/TEMP/TEMP               ! DIFFUSION
@@ -164,6 +164,16 @@ C-- F ---------- EVALUATION OF F ------------------------------------
         common /CH_PAR/ SLP,SWR,EPS,BETA,MJW,IBN
         common /BLK_UMU/ T11,GW,W,W0,AA,TF,AF,DIFF,WY,DW,TSW,TW,
      +   AF0,TS,XS,PI,DTW,DTW1
+C	T - time
+C	X - x-coord
+C	U   - Mx My Mz Nx Ny Nz T 
+C	UX  - dU/dx
+C	UXX - d2U/dx2
+C	FV  - result
+
+C	WY - RF-field
+
+C       calculate freq
         if(T.GE.TSW)THEN
           WZ=W0+DW*TSW
         else
@@ -172,20 +182,25 @@ C-- F ---------- EVALUATION OF F ------------------------------------
         WR=W+X*GW
         WZR=WZ+W
         XZA=X*GW-WZ
+
+C	x-field step an TS
         if(T.GE.TS)THEN
           XZ=XZA+XS
         else
           XZ=XZA
         endif
+
+C	fix n vector length
         UM=DSQRT(U(4)**2+U(5)**2+U(6)**2)
         U4=U(4)/UM
         U5=U(5)/UM
         U6=U(6)/UM
+
         WR2=0.5D0*WR
         WYT1=WY/WR-U(1)
-        U31=U(3)-1.0D0
-        USN=U(2)*U5+U31*U6-U4*WYT1
-        DD45=U4*UX(5)-UX(4)*U5
+        U31=U(3)-1.0D0              ! Mz-1
+        USN=U(2)*U5+U31*U6-U4*WYT1  ! (Mx - Nx Wy/Wr) + My*Ny + (Mz-1)*Nz
+        DD45=U4*UX(5)-UX(4)*U5      ! Nx Ny` - Nx` Ny
         ST=DSIN(U(7))
         CT=DCOS(U(7))
         CTM=1.0D0-CT
@@ -193,9 +208,9 @@ C-- F ---------- EVALUATION OF F ------------------------------------
         CTG=ST/CTM
         UT=ST*(1.0D0+4.0D0*CT)*0.2666666D0
         AUT0=AA*UT
-        AF=AF0-AF0*0.5D0 * AER_STEP(X,0)
+        AF=AF0 - AF0*0.5D0 * AER_STEP(X,0)
         DAF=-AF0*0.5D0 * AER_STEP(X,1)
-        AUT=AUT0-AUT0*0.835D0 * AER_STEP(X,0)
+        AUT=AUT0 - AUT0*0.835D0 * AER_STEP(X,0)
         TF0=TF-TF*0.5D0 * AER_STEP(X,0)
 
         FTN=CTM*DD45-ST*UX(6)-UX(7)*U6
@@ -223,16 +238,18 @@ C-- F ---------- EVALUATION OF F ------------------------------------
      *   ST*UX(7)*DD45+CTM*(U4*UXX(5)-UXX(4)*U5))+
      *   (CTM*U6**2+CT)*DFTN+(ST*UX(7)*U6**2+
      *   CTM*2.0D0*U6*UX(6)-ST*UX(7))*FTN)-DIFF*UXX(3)+DAF*UJZ
-        FV(1)=U(2)*XZ+AUT*U4-DJX
-        FV(2)=-U(1)*XZ+AUT*U5+WY*U(3)-DJY
-        FV(3)=AUT*U6-U31*T11-WY*U(2)-DJZ
+
+        FV(1)=   XZ*U(2)           + AUT*U4 - DJX
+        FV(2)= - XZ*U(1) + WY*U(3) + AUT*U5 - DJY
+        FV(3)=           - WY*U(2) + AUT*U6 - DJZ - U31*T11
+
         FV(4)=-WZR*U5-WR2*(U31*U5-U(2)*U6+CTG*
      *   ((U5*U(2)+U6*U31)*U4+WYT1*(U5**2+U6**2)))
         FV(5)=WZR*U4-WR2*(-WYT1*U6-U31*U4+CTG*
      *   ((U6*U31-U4*WYT1)*U5-U(2)*(U4**2+U6**2)))
         FV(6)=-WR2*(U(2)*U4+U5*WYT1+CTG*
      *   ((U5*U(2)-U4*WYT1)*U6-U31*(U4**2+U5**2)))
-        FV(7)=WR*USN+UT/TF0                           !U(7)=TETA
+        FV(7)=WR*USN + UT/TF0                       !U(7)=TETA
         return
       end
 C-- BNDRY ------ BOUNDARY CONDITIONS -- B(U,UX)=Z(T) ------------
