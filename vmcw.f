@@ -3,15 +3,15 @@ C---------------- CB=0.0 !!!!!!!!!!
         include 'par.fh'
         common /TIMEP/ T
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
-        common /CH_PAR/ SLP,SWR,EPS,BETA,MJW,IBN
+        common /CH_PAR/ SLP,SWR,BETA,MJW,IBN
 
         common /CFG_AER/  AER, AER_LEN, AER_CNT, AER_TRW
         common /CFG_CELL/ CELL_LEN
         common /CFG_MESH/ XMESH_K,XMESH_ACC
 
 
-        common /BLK_UMU/ T11,GW,W,W0,AA,TF,AF,DIFF,WY,DW,TSW,TW,
-     +   AF0,TS,XS,PI,DTW,DTW1
+        common /BLK_UMU/ T11,GW,W,W0,AA,TF,DIFF,WY,DW,TSW,TW,
+     +   AF0,TS,TIME_STEP,XS,PI
         dimension SCTCH(KORD*(NDERV+1)),WORK(IDIMWORK),IWORK(IDIMIWORK)
         character*64 CFG_KEY
 
@@ -21,9 +21,19 @@ C--------------- INITIALIZATION -------------------------------------
         open(54,FILE='vmcw.cfg')
    11   read(54,*,END=12) CFG_KEY, CFG_VAL
         if (CFG_KEY.EQ.'BETA') then
-          BETA=CFG_VAL ! TIPPING ANGLE (DEGREES)
-        elseif (CFG_KEY.EQ.'IBN') then
-          IBN=CFG_VAL  ! TYPE OF BOUND. COND.: 1-OPEN CELL 2-CLOSED CELL
+          BETA=CFG_VAL ! INITIAL TIPPING ANGLE (DEGREES)
+        elseif (CFG_KEY.EQ.'SLP') then
+          SLP=CFG_VAL  ! STARTING LARMOR POSITION (CM) (-0.1)
+        elseif (CFG_KEY.EQ.'SWR') then
+          SWR=CFG_VAL  ! SWEEP RATE (CM/SEC)      (0.03)
+
+        elseif (CFG_KEY.EQ.'DC') then
+          DC=CFG_VAL   ! DIFFUSION * T^2          (1.38E-6)
+        elseif (CFG_KEY.EQ.'T1C') then
+          T1C=CFG_VAL  ! T1*T                     (1.0E-3)
+        elseif (CFG_KEY.EQ.'PDECOL_ACC_LOG2') then
+          PDECOL_ACC_LOG2=CFG_VAL ! RELATIVE TIME ERROR BOUND
+
         elseif (CFG_KEY.EQ.'TEMP') then
           TEMP=CFG_VAL ! TEMPERATURE (K)          (0.9299)
         elseif (CFG_KEY.EQ.'H') then
@@ -32,18 +42,9 @@ C--------------- INITIALIZATION -------------------------------------
           GRAD=CFG_VAL ! GRADIENT H (OE/CM)       (-0.2)
         elseif (CFG_KEY.EQ.'HY') then
           HY=CFG_VAL   ! RF FIELD (OE)            (0.06)
-        elseif (CFG_KEY.EQ.'SLP') then
-          SLP=CFG_VAL  ! STARTING LARMOR POSITION (CM) (-0.1)
-        elseif (CFG_KEY.EQ.'SWR') then
-          SWR=CFG_VAL  ! SWEEP RATE (CM/SEC)      (0.03)
-        elseif (CFG_KEY.EQ.'DC') then
-          DC=CFG_VAL   ! DIFFUSION * T^2          (1.38E-6)
-        elseif (CFG_KEY.EQ.'T1C') then
-          T1C=CFG_VAL  ! T1*T                     (1.0E-3)
-        elseif (CFG_KEY.EQ.'DTW1') then
-          DTW1=CFG_VAL ! STEP IN TIME FOR TIME DEPENDENCIES (1.0E-5)
-        elseif (CFG_KEY.EQ.'NEPS') then
-          NEPS=CFG_VAL ! RELATIVE TIME ERROR BOUND(1.0E-3)
+
+        elseif (CFG_KEY.EQ.'IBN') then
+          IBN=CFG_VAL  ! TYPE OF BOUND. COND.: 1-OPEN CELL 2-CLOSED CELL
         elseif (CFG_KEY.EQ.'MJW') then
           MJW=CFG_VAL  ! WRITE TO MJ FILE:  0-DON'T  1-WRITE
         elseif (CFG_KEY.EQ.'TSW') then
@@ -54,8 +55,10 @@ C--------------- INITIALIZATION -------------------------------------
           TS=CFG_VAL   ! TIME OF X OSC
         elseif (CFG_KEY.EQ.'XS') then
           XS=CFG_VAL   ! AMPL OF X-OSC
-        elseif (CFG_KEY.EQ.'TOUT') then
-          TOUT=CFG_VAL ! TIME TO STOP COMPUTATION (SEC) (0.0001)
+        elseif (CFG_KEY.EQ.'TIME') then
+          TIME=CFG_VAL ! TIME TO STOP COMPUTATION (SEC) (0.0001)
+        elseif (CFG_KEY.EQ.'TIME_STEP') then
+          TIME_STEP=CFG_VAL ! STEP IN TIME FOR TIME DEPENDENCIES
 
 C       CFG_CELL parameter group:
         elseif (CFG_KEY.EQ.'CELL_LEN') then
@@ -89,14 +92,26 @@ C       CFG_AER parameter group:
         write(76,68)TSW,SH1,SH2,HMAL,HMAL/DSQRT(15.0D0)
         close(76)
 
-        DTW=DTW1
-        EPS=2.0D0**(-NEPS)
+        DTW=TIME_STEP
         open(44,FILE='vmcw.t')
         open(21,FILE='vmcw.mj')
         open(24,FILE='vmcwx.mj')
         open(47,FILE='pulse.t')
 
-        T=0.0                        ! STARTING TIME
+
+C       PDECOL parameters:
+        INDEX=1                      ! TYPE OF CALL (FIRST CALL)
+        MF=22
+        IWORK(1)=IDIMWORK
+        IWORK(2)=IDIMIWORK
+        do I=1,IDIMWORK
+          WORK(I)=0.0D0
+        enddo
+        PDECOL_ACC = 2.0D0**(-PDECOL_ACC_LOG2)
+        T=0.0                        ! TIME
+        T0=T                         ! STARTING TIME FOR PDECOL
+        DT=1.D-10                    ! INITIAL STEP SIZE IN T
+
         call SET_MESH()
         call SET_ICOND()
 
@@ -108,18 +123,6 @@ C       CFG_AER parameter group:
         enddo
         close(54)
 
-        DELT=20.0D0*AER_TRW*CELL_LEN
-        DT=1.D-10                    ! INITIAL STEP SIZE IN T
-        T0=T                         ! STARTING TIME
-
-C       PDECOL parameters:
-        INDEX=1                      ! TYPE OF CALL (FIRST CALL)
-        MF=22
-        IWORK(1)=IDIMWORK
-        IWORK(2)=IDIMIWORK
-        do I=1,IDIMWORK
-          WORK(I)=0.0D0
-        enddo
 C--------------- COMPUTE PARAMETERS ----------------------------
         W=GAMMA*H                    ! OMEGA (RAD/SEC)
         WY=GAMMA*HY                  ! rf-OMEGA (RAD/SEC)
@@ -139,21 +142,25 @@ C--------------- COMPUTE PARAMETERS ----------------------------
         DW=GW*SWR
 C----------------MAIN LOOP -------------------------------------------
    2    CONTINUE
-        if(T.GE.TOUT) THEN
-          write(*,*) 'FINAL TIME REACHED..'
-          stop
-        endif
-        DTW2=DTW1*0.02D0
-        if(T.GT.TS-DTW1)DTW=DTW2
-        T=T+DTW
-        call PDECOL(T0,T,DT,X,EPS,NINT,KORD,NCC,NPDE,MF,
-     +              INDEX,WORK,IWORK)
-        if(INDEX.NE.0) THEN
-          write(*,*) 'INTEGRATION FAILED; INDEX=', INDEX
-          stop
-        endif
-        call VALUES(X,USOL,SCTCH,NPDE,NPTS,NPTS,2,WORK)
-        call MONITOR()
+
+          if(T.GE.TIME) THEN
+            write(*,*) 'FINAL TIME REACHED..'
+            stop
+          endif
+
+          if(T.GT.TS-TIME_STEP) DTW = TIME_STEP*0.02D0
+
+          T=T+DTW
+
+          call PDECOL(T0,T,DT,X,PDECOL_ACC,NINT,KORD,NCC,NPDE,MF,
+     +                INDEX,WORK,IWORK)
+          if(INDEX.NE.0) THEN
+            write(*,*) 'INTEGRATION FAILED; INDEX=', INDEX
+            stop
+          endif
+
+          call VALUES(X,USOL,SCTCH,NPDE,NPTS,NPTS,2,WORK)
+          call MONITOR()
         goto 2
    68   format(F8.4, 4(1PE18.9))
       end
@@ -161,9 +168,9 @@ C-- F ---------- EVALUATION OF F ------------------------------------
       subroutine F(T,X,U,UX,UXX,FV,NPDE)
         implicit REAL*8(A-H,O-Z)
         dimension U(NPDE),UX(NPDE),UXX(NPDE),FV(NPDE)
-        common /CH_PAR/ SLP,SWR,EPS,BETA,MJW,IBN
-        common /BLK_UMU/ T11,GW,W,W0,AA,TF,AF,DIFF,WY,DW,TSW,TW,
-     +   AF0,TS,XS,PI,DTW,DTW1
+        common /CH_PAR/ SLP,SWR,BETA,MJW,IBN
+        common /BLK_UMU/ T11,GW,W,W0,AA,TF,DIFF,WY,DW,TSW,TW,
+     +   AF0,TS,TIME_STEP,XS,PI
 C	T - time
 C	X - x-coord
 C	U   - Mx My Mz Nx Ny Nz T 
@@ -171,6 +178,7 @@ C	UX  - dU/dx
 C	UXX - d2U/dx2
 C	FV  - result
 
+C	W = GAMMA H
 C	WY - RF-field
 
 C       calculate freq
@@ -181,40 +189,40 @@ C       calculate freq
         endif
         WR=W+X*GW
         WZR=WZ+W
-        XZA=X*GW-WZ
+        XZ=X*GW-WZ
 
 C	x-field step an TS
         if(T.GE.TS)THEN
-          XZ=XZA+XS
-        else
-          XZ=XZA
+          XZ=XZ+XS
         endif
 
 C	fix n vector length
-        UM=DSQRT(U(4)**2+U(5)**2+U(6)**2)
-        U4=U(4)/UM
-        U5=U(5)/UM
-        U6=U(6)/UM
+        UN=DSQRT(U(4)**2+U(5)**2+U(6)**2)
+        UNx = U(4)/UN
+        UNy = U(5)/UN
+        UNz = U(6)/UN
 
-        WR2=0.5D0*WR
-        WYT1=WY/WR-U(1)
-        U31=U(3)-1.0D0              ! Mz-1
-        USN=U(2)*U5+U31*U6-U4*WYT1  ! (Mx - Nx Wy/Wr) + My*Ny + (Mz-1)*Nz
-        DD45=U4*UX(5)-UX(4)*U5      ! Nx Ny` - Nx` Ny
+        UMxm = U(1)-WY/WR
+        UMym = U(2)
+        UMzm = U(3)-1.0D0
+
+        WR2 = 0.5D0*WR
+        DD45=UNx*UX(5)-UX(4)*UNy       ! Nx Ny` - Nx` Ny
         ST=DSIN(U(7))
         CT=DCOS(U(7))
         CTM=1.0D0-CT
         CT1=1.0D0+CT
-        CTG=ST/CTM
+        CTG=ST/CTM      ! ctg(T/2) = sin(T)/(1-cos(T))
         UT=ST*(1.0D0+4.0D0*CT)*0.2666666D0
         AUT0=AA*UT
+
         AF=AF0 - AF0*0.5D0 * AER_STEP(X,0)
         DAF=-AF0*0.5D0 * AER_STEP(X,1)
         AUT=AUT0 - AUT0*0.835D0 * AER_STEP(X,0)
-        TF0=TF-TF*0.5D0 * AER_STEP(X,0)
+    	TF0=TF-TF*0.5D0 * AER_STEP(X,0)
 
-        FTN=CTM*DD45-ST*UX(6)-UX(7)*U6
-        DFTN=CTM*(U4*UXX(5)-UXX(4)*U5)-ST*UXX(6)-UXX(7)*U6-
+        FTN=CTM*DD45-ST*UX(6)-UX(7)*UNz
+        DFTN=CTM*(UNx*UXX(5)-UXX(4)*UNy)-ST*UXX(6)-UXX(7)*UNz-
      *   CT1*UX(7)*UX(6)+ST*UX(7)*DD45
 
         UJX=2.0D0*(UX(7)*U(4)+ST*UX(4)+CTM*(U(5)*UX(6)-UX(5)*U(6)))+
@@ -224,42 +232,42 @@ C	fix n vector length
         UJZ=2.0D0*(UX(7)*U(6)+ST*UX(6)+CTM*(U(4)*UX(5)-UX(4)*U(5)))+
      *   (CTM*U(6)**2+CT)*FTN
 
-        DJX=AF*(2.0D0*(UXX(7)*U4+CT1*UX(7)*UX(4)+ST*UXX(4)+
-     *   ST*UX(7)*(U5*UX(6)-UX(5)*U6)+CTM*(U5*UXX(6)-UXX(5)*U6))+
-     *   (CTM*U4*U6+U5*ST)*DFTN+(ST*UX(7)*U4*U6+
-     *   CTM*(UX(4)*U6+U4*UX(6))+UX(5)*ST+U5*CT*UX(7))*FTN)-
+        DJX=AF*(2.0D0*(UXX(7)*UNx+CT1*UX(7)*UX(4)+ST*UXX(4)+
+     *   ST*UX(7)*(UNy*UX(6)-UX(5)*UNz)+CTM*(UNy*UXX(6)-UXX(5)*UNz))+
+     *   (CTM*UNx*UNz+UNy*ST)*DFTN+(ST*UX(7)*UNx*UNz+
+     *   CTM*(UX(4)*UNz+UNx*UX(6))+UX(5)*ST+UNy*CT*UX(7))*FTN)-
      *   DIFF*UXX(1)+DAF*UJX
-        DJY=AF*(2.0D0*(UXX(7)*U5+CT1*UX(7)*UX(5)+ST*UXX(5)-
-     *   ST*UX(7)*(U4*UX(6)-UX(4)*U6)-CTM*(U4*UXX(6)-UXX(4)*U6))+
-     *   (CTM*U5*U6-U4*ST)*DFTN+(ST*UX(7)*U5*U6+
-     *   CTM*(UX(5)*U6+U5*UX(6))-UX(4)*ST-U4*CT*UX(7))*FTN)-   !!!!!!!!!
+        DJY=AF*(2.0D0*(UXX(7)*UNy+CT1*UX(7)*UX(5)+ST*UXX(5)-
+     *   ST*UX(7)*(UNx*UX(6)-UX(4)*UNz)-CTM*(UNx*UXX(6)-UXX(4)*UNz))+
+     *   (CTM*UNy*UNz-UNx*ST)*DFTN+(ST*UX(7)*UNy*UNz+
+     *   CTM*(UX(5)*UNz+UNy*UX(6))-UX(4)*ST-UNx*CT*UX(7))*FTN)-   !!!!!!!!!
      *   DIFF*UXX(2)+DAF*UJY
-        DJZ=AF*(2.0D0*(UXX(7)*U6+CT1*UX(7)*UX(6)+ST*UXX(6)+
-     *   ST*UX(7)*DD45+CTM*(U4*UXX(5)-UXX(4)*U5))+
-     *   (CTM*U6**2+CT)*DFTN+(ST*UX(7)*U6**2+
-     *   CTM*2.0D0*U6*UX(6)-ST*UX(7))*FTN)-DIFF*UXX(3)+DAF*UJZ
+        DJZ=AF*(2.0D0*(UXX(7)*UNz+CT1*UX(7)*UX(6)+ST*UXX(6)+
+     *   ST*UX(7)*DD45+CTM*(UNx*UXX(5)-UXX(4)*UNy))+
+     *   (CTM*UNz**2+CT)*DFTN+(ST*UX(7)*UNz**2+
+     *   CTM*2.0D0*UNz*UX(6)-ST*UX(7))*FTN)-DIFF*UXX(3)+DAF*UJZ
 
-        FV(1)=   XZ*U(2)           + AUT*U4 - DJX
-        FV(2)= - XZ*U(1) + WY*U(3) + AUT*U5 - DJY
-        FV(3)=           - WY*U(2) + AUT*U6 - DJZ - U31*T11
+        B = UNx*UMxm + UMym*UNy + UMzm*UNz
 
-        FV(4)=-WZR*U5-WR2*(U31*U5-U(2)*U6+CTG*
-     *   ((U5*U(2)+U6*U31)*U4+WYT1*(U5**2+U6**2)))
-        FV(5)=WZR*U4-WR2*(-WYT1*U6-U31*U4+CTG*
-     *   ((U6*U31-U4*WYT1)*U5-U(2)*(U4**2+U6**2)))
-        FV(6)=-WR2*(U(2)*U4+U5*WYT1+CTG*
-     *   ((U5*U(2)-U4*WYT1)*U6-U31*(U4**2+U5**2)))
-        FV(7)=WR*USN + UT/TF0                       !U(7)=TETA
+        FV(1)=   XZ*U(2)           + AUT*UNx - DJX
+        FV(2)= - XZ*U(1) + WY*U(3) + AUT*UNy - DJY
+        FV(3)=           - WY*U(2) + AUT*UNz - DJZ - UMzm*T11
+
+        FV(4)=-WZR*UNy - WR2*(UMzm*UNy-UMym*UNz+CTG*(B*UNx-UMxm))
+        FV(5)= WZR*UNx - WR2*(UMxm*UNz-UMzm*UNx+CTG*(B*UNy-UMym))
+        FV(6)=         - WR2*(UMym*UNx-UMxm*UNy+CTG*(B*UNz-UMzm))
+        FV(7)=WR*B + UT/TF0
         return
       end
+
 C-- BNDRY ------ BOUNDARY CONDITIONS -- B(U,UX)=Z(T) ------------
       subroutine BNDRY(T,X,U,UX,DBDU,DBDUX,DZDT,NPDE)
         implicit REAL*8(A-H,O-Z)
         dimension U(NPDE),UX(NPDE),DZDT(NPDE),
      *   DBDU(NPDE,NPDE),DBDUX(NPDE,NPDE)
-        common /CH_PAR/ SLP,SWR,EPS,BETA,MJW,IBN
-        common /BLK_UMU/ T11,GW,W,W0,AA,TF,AF,DIFF,WY,DW,TSW,TW,
-     +   AF0,TS,XS,PI,DTW,DTW1
+        common /CH_PAR/ SLP,SWR,BETA,MJW,IBN
+        common /BLK_UMU/ T11,GW,W,W0,AA,TF,DIFF,WY,DW,TSW,TW,
+     +   AF0,TS,TIME_STEP,XS,PI
         do I=1,NPDE
           DZDT(I)=0.0D0
           do J=1,NPDE
@@ -267,27 +275,30 @@ C-- BNDRY ------ BOUNDARY CONDITIONS -- B(U,UX)=Z(T) ------------
             DBDUX(I,J)=0.0D0
           enddo
         enddo
-        UM=DSQRT(U(4)**2+U(5)**2+U(6)**2)
-        U4=U(4)/UM
-        U5=U(5)/UM
-        U6=U(6)/UM
+
+C	fix n vector length
+        UN=DSQRT(U(4)**2+U(5)**2+U(6)**2)
+        UNx=U(4)/UN
+        UNy=U(5)/UN
+        UNz=U(6)/UN
+
         ST=DSIN(U(7))
         ST2=2.0D0*ST
         CT=DCOS(U(7))
         CTM=1.0D0-CT
         CTM2=2.0D0*CTM
-        DD45=U4*UX(5)-UX(4)*U5
-        FTN=CTM*DD45-ST*UX(6)-UX(7)*U6
+        DD45=UNx*UX(5)-UX(4)*UNy
+        FTN=CTM*DD45-ST*UX(6)-UX(7)*UNz
         CTF=CTM*FTN
         STF=ST*FTN
         FTN4=CTM*UX(5)
         FTN5=-CTM*UX(4)
         FTN7=ST*DD45-CT*UX(6)
-        FTNX4=-CTM*U5
-        FTNX5=CTM*U4
-        C46=CTM*U4*U6+U5*ST
-        C56=CTM*U5*U6-U4*ST             !!!!!!!!!!!
-        C66=CTM*U6**2+CT
+        FTNX4=-CTM*UNy
+        FTNX5=CTM*UNx
+        C46=CTM*UNx*UNz+UNy*ST
+        C56=CTM*UNy*UNz-UNx*ST             !!!!!!!!!!!
+        C66=CTM*UNz**2+CT
         C266=2.0D0-C66
         AF=AF0-AF0*0.5D0 * AER_STEP(X,0)
         DA=-DIFF/AF
@@ -295,38 +306,38 @@ C-- BNDRY ------ BOUNDARY CONDITIONS -- B(U,UX)=Z(T) ------------
           DBDUX(4,1)=DA
           DBDUX(5,2)=DA
           DBDUX(6,3)=DA
-          DBDU(4,4)=2.0D0*UX(7)+CTF*U6+C46*FTN4
+          DBDU(4,4)=2.0D0*UX(7)+CTF*UNz+C46*FTN4
           DBDU(4,5)=CTM2*UX(6)+STF+C46*FTN5
-          DBDU(4,6)=-CTM2*UX(5)+CTF*U4-C46*UX(7)
-          DBDU(4,7)=2.0D0*(CT*UX(4)+ST*(U5*UX(6)-UX(5)*U6))+
-     *     STF*U4*U6+U5*CT*FTN+C46*FTN7
+          DBDU(4,6)=-CTM2*UX(5)+CTF*UNx-C46*UX(7)
+          DBDU(4,7)=2.0D0*(CT*UX(4)+ST*(UNy*UX(6)-UX(5)*UNz))+
+     *     STF*UNx*UNz+UNy*CT*FTN+C46*FTN7
           DBDU(5,4)=-CTM2*UX(6)-STF+C56*FTN4
-          DBDU(5,5)=2.0D0*UX(7)+CTF*U6+C56*FTN5
-          DBDU(5,6)=CTM2*UX(4)+CTF*U5-C56*UX(7)
-          DBDU(5,7)=2.0D0*(CT*UX(5)-ST*(U4*UX(6)-UX(4)*U6))+
-     *     STF*U5*U6-U4*CT*FTN+C56*FTN7
+          DBDU(5,5)=2.0D0*UX(7)+CTF*UNz+C56*FTN5
+          DBDU(5,6)=CTM2*UX(4)+CTF*UNy-C56*UX(7)
+          DBDU(5,7)=2.0D0*(CT*UX(5)-ST*(UNx*UX(6)-UX(4)*UNz))+
+     *     STF*UNy*UNz-UNx*CT*FTN+C56*FTN7
           DBDU(6,4)=CTM2*UX(5)+C66*FTN4
           DBDU(6,5)=-CTM2*UX(4)+C66*FTN5
-          DBDU(6,6)=2.0D0*U6*CTF+C266*UX(7)
-          DBDU(6,7)=2.0D0*(CT*UX(6)+ST*DD45)+STF*(U6**2-1.0D0)+C66*FTN7
+          DBDU(6,6)=2.0D0*UNz*CTF+C266*UX(7)
+          DBDU(6,7)=2.0D0*(CT*UX(6)+ST*DD45)+STF*(UNz**2-1.0D0)+C66*FTN7
           DBDUX(4,4)=ST2+C46*FTNX4
-          DBDUX(4,5)=-CTM2*U6+C46*FTNX5
-          DBDUX(4,6)=CTM2*U5-C46*ST
-          DBDUX(4,7)=2.0D0*U4-C46*U6
-          DBDUX(5,4)=CTM2*U6+C56*FTNX4
+          DBDUX(4,5)=-CTM2*UNz+C46*FTNX5
+          DBDUX(4,6)=CTM2*UNy-C46*ST
+          DBDUX(4,7)=2.0D0*UNx-C46*UNz
+          DBDUX(5,4)=CTM2*UNz+C56*FTNX4
           DBDUX(5,5)=ST2+C56*FTNX5
-          DBDUX(5,6)=-CTM2*U4-C56*ST
-          DBDUX(5,7)=2.0D0*U5-C56*U6
-          DBDUX(6,4)=-CTM2*U5+C66*FTNX4
-          DBDUX(6,5)=CTM2*U4+C66*FTNX5
+          DBDUX(5,6)=-CTM2*UNx-C56*ST
+          DBDUX(5,7)=2.0D0*UNy-C56*UNz
+          DBDUX(6,4)=-CTM2*UNy+C66*FTNX4
+          DBDUX(6,5)=CTM2*UNx+C66*FTNX5
           DBDUX(6,6)=C266*ST
-          DBDUX(6,7)=C266*U6
+          DBDUX(6,7)=C266*UNz
 C          DBDU(7,4)=UX(4)         !!
 C          DBDU(7,5)=UX(5)         !!
 C          DBDU(7,6)=UX(6)         !!
-C          DBDUX(7,4)=U4         !!
-C          DBDUX(7,5)=U5         !!
-C          DBDUX(7,6)=U6         !!
+C          DBDUX(7,4)=UNx         !!
+C          DBDUX(7,5)=UNy         !!
+C          DBDUX(7,6)=UNz         !!
         endif
         return
       end
@@ -334,7 +345,7 @@ C-- SET_ICOND -- INITIAL CONDITIONS ---------------------------------
       subroutine SET_ICOND()
         implicit REAL*8(A-H,O-Z)
         include 'par.fh'
-        common /CH_PAR/ SLP,SWR,EPS,BETA,MJW,IBN
+        common /CH_PAR/ SLP,SWR,BETA,MJW,IBN
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
         PI=4.0D0*DATAN(1.0D0)
         BET=BETA*PI/180.0D0
@@ -381,35 +392,13 @@ C-- USP(X) ----- CSI OF SOLUTION ------------------------------------
         implicit REAL*8(A-H,O-Z)
         include 'par.fh'
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
-        common /CH_PAR/ SLP,SWR,EPS,BETA,MJW,IBN
+        common /CH_PAR/ SLP,SWR,BETA,MJW,IBN
         do K=1,NPTS
           USM=DSQRT(USOL(5,K,1)**2+USOL(6,K,1)**2+USOL(4,K,1)**2)
           USOL(4,K,1)=USOL(4,K,1)/USM
           USOL(5,K,1)=USOL(5,K,1)/USM
           USOL(6,K,1)=USOL(6,K,1)/USM
         enddo
-C      KL=1
-C      KH=NPTS
-C   19    IF(KH-KL.GT.1)THEN
-C        K=(KH+KL)/2
-C          IF(X(K).GT.XI)THEN
-C          KH=K
-C          ELSE
-C          KL=K
-C          ENDIF
-C        GOTO 19
-C        ENDIF
-C      H=X(KH)-X(KL)
-C      A=(X(KH)-XI)/H
-C      B=(XI-X(KL))/H
-C      YAL=USOL(I,KL,1)
-C      YAH=USOL(I,KH,1)
-C      Y2L=USOL(I,KL,3)
-C      Y2H=USOL(I,KH,3)
-C      USP=A*YAL+B*YAH+((A**3-A)*Y2L+(B**3-B)*Y2H)*(H**2)/6.0D0
-C
-CC      J=INT(XI/CELL_LEN*NINT+1.1)
-CC      USP=USOL(I,J,1)
         AA=1.0D20
         IK=1
         do II=1,NPTS
@@ -437,9 +426,9 @@ C-- DERIVF ----- SET UP DERIVATIVES ---------------------------------
         implicit REAL*8(A-H,O-Z)
         dimension U(NPDE),UX(NPDE),UXX(NPDE),
      *       DFDU(NPDE,NPDE),DFDUX(NPDE,NPDE),DFDUXX(NPDE,NPDE)
-        common /CH_PAR/ SLP,SWR,EPS,BETA,MJW,IBN
-        common /BLK_UMU/ T11,GW,W,W0,AA,TF,AF,DIFF,WY,DW,TSW,TW,
-     +   AF0,TS,XS,PI,DTW,DTW1
+        common /CH_PAR/ SLP,SWR,BETA,MJW,IBN
+        common /BLK_UMU/ T11,GW,W,W0,AA,TF,DIFF,WY,DW,TSW,TW,
+     +   AF0,TS,TIME_STEP,XS,PI
         do I=1,NPDE
           do J=1,NPDE
             DFDU(I,J)=0.0D0
@@ -450,6 +439,7 @@ C-- DERIVF ----- SET UP DERIVATIVES ---------------------------------
 CCC ATTENTION :   DERIVF IS WRONG
         return
       end
+
 C------- AEROGEL STEP -----------------------------------------
 C       Aerogel density function. Returns 1 in the central
 C       part of the cell with fermi steps to 0 on edges.
@@ -487,24 +477,29 @@ C         AER_TRW  -- transition width / cell length
       end
 C-- SET_MESH --- SET UP THE MESH ------------------------------------
       subroutine SET_MESH()
+C	Set mesh according with AER_STEP function
         implicit REAL*8(A-H,O-Z)
         include 'par.fh'
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
         common /CFG_CELL/ CELL_LEN
         common /CFG_MESH/ XMESH_K,XMESH_ACC
         X(1)=0
+C	start with homogenious mesh with DX intervals
         DX=CELL_LEN/(NPTS-1)
         do I=1,100
+C         build mesh with scaled intervals
           do J=1,NPTS-1
             X(J+1)=X(J) +
      +        DX/(1.0D0+XMESH_K*ABS(AER_STEP(X(J),1)))
           enddo
+C	  scale the whole mesh to fit CELL_LEN
           DELTA=CELL_LEN - X(NPTS)
           DX = DX + DELTA/(NPTS+1)
           if (ABS(DELTA).LT.XMESH_ACC) return
         enddo
         write(*,*) 'warning: low mesh accuracy: ', ABS(DELTA)
       end
+
 C-- MONITOR ---- MONITORING THE SOLUTION ----------------------------
       subroutine MONITOR()
         implicit REAL*8(A-H,O-Z)
@@ -512,9 +507,9 @@ C-- MONITOR ---- MONITORING THE SOLUTION ----------------------------
         common /TIMEP/ T
         common /GEAR0/ DTUSED,NQUSED,NSTEP,NFE,NJE
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
-        common /CH_PAR/ SLP,SWR,EPS,BETA,MJW,IBN
-        common /BLK_UMU/ T11,GW,W,W0,AA,TF,AF,DIFF,WY,DW,TSW,TW,
-     +   AF0,TS,XS,PI,DTW,DTW1
+        common /CH_PAR/ SLP,SWR,BETA,MJW,IBN
+        common /BLK_UMU/ T11,GW,W,W0,AA,TF,DIFF,WY,DW,TSW,TW,
+     +   AF0,TS,TIME_STEP,XS,PI
 C--------------- COMPUTE TIME DEPENDENCIES --------------------------
         TMMS=T*1000.0D0
         if(T.GE.TSW)THEN
@@ -535,7 +530,7 @@ C--------------- COMPUTE TIME DEPENDENCIES --------------------------
           write(44,61)
      +     TMMS,TMLP,TMAB,TMDS,TMPC,TMZ
         endif
-        if(T.GE.TS-DTW1)THEN
+        if(T.GE.TS-TIME_STEP) THEN
           write(47,69)TMMS,TMDS
         endif
 C--------------- SHOW INFORMATION -----------------------------------
@@ -548,19 +543,18 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
       subroutine WRITE_MJ()
         implicit REAL*8(A-H,O-Z)
         include 'par.fh'
-        common /BLK_UMU/ T11,GW,W,W0,AA,TF,AF,DIFF,WY,DW,TSW,TW,
-     +   AF0,TS,XS,PI,DTW,DTW1
+        common /BLK_UMU/ T11,GW,W,W0,AA,TF,DIFF,WY,DW,TSW,TW,
+     +   AF0,TS,TIME_STEP,XS,PI
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
         common /TIMEP/ T
         do I=1, NPTS, 128
           CT=DCOS(USOL(7,I,1))
           ST=DSIN(USOL(7,I,1))
           CTM=1.0D0-CT
-          DD45=USOL(4,I,1)*USOL(5,I,2)-USOL(4,I,2)*USOL(5,I,1)
-          FTN=CTM*DD45-ST*USOL(6,I,2)-USOL(7,I,2)*USOL(6,I,1)
-          U4=USOL(4,I,1)
-          U5=USOL(5,I,1)
-          U6=USOL(6,I,1)
+          UNx=USOL(4,I,1)
+          UNy=USOL(5,I,1)
+          UNz=USOL(6,I,1)
+
           UX1=USOL(1,I,2)
           UX2=USOL(2,I,2)
           UX3=USOL(3,I,2)
@@ -569,12 +563,16 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
           UX6=USOL(6,I,2)
           UX7=USOL(7,I,2)
 
-          UJX=2.0D0*(UX7*U4+ST*UX4+CTM*(U5*UX6-UX5*U6))+
-     *     (CTM*U4*U6+U5*ST)*FTN
-          UJY=2.0D0*(UX7*U5+ST*UX5-CTM*(U4*UX6-UX4*U6))+
-     *     (CTM*U5*U6-U4*ST)*FTN
-          UJZ=2.0D0*(UX7*U6+ST*UX6+CTM*(U4*UX5-UX4*U5))+
-     *     (CTM*U6**2+CT)*FTN
+          DD45 = UNx*UX5 - UX4*UNy
+          FTN = CTM*DD45 - ST*UX6 - UX7*UNz
+
+          UJX=2.0D0*(UX7*UNx+ST*UX4+CTM*(UNy*UX6-UX5*UNz))+
+     *     (CTM*UNx*UNz+UNy*ST)*FTN
+          UJY=2.0D0*(UX7*UNy+ST*UX5-CTM*(UNx*UX6-UX4*UNz))+
+     *     (CTM*UNy*UNz-UNx*ST)*FTN
+          UJZ=2.0D0*(UX7*UNz+ST*UX6+CTM*(UNx*UX5-UX4*UNy))+
+     *     (CTM*UNz**2+CT)*FTN
+          AF=AF0-AF0*0.5D0 * AER_STEP(X,0)
           UFX=UJX*AF-DIFF*UX1
           UFY=UJY*AF-DIFF*UX2
           UFZ=UJZ*AF-DIFF*UX3
