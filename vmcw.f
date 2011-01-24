@@ -225,12 +225,12 @@ C	fix n vector length
         DFTN=CTM*(UNx*UXX(5)-UXX(4)*UNy)-ST*UXX(6)-UXX(7)*UNz-
      *   CT1*UX(7)*UX(6)+ST*UX(7)*DD45
 
-        UJX=2.0D0*(UX(7)*U(4)+ST*UX(4)+CTM*(U(5)*UX(6)-UX(5)*U(6)))+
-     *   (CTM*U(4)*U(6)+U(5)*ST)*FTN
-        UJY=2.0D0*(UX(7)*U(5)+ST*UX(5)-CTM*(U(4)*UX(6)-UX(4)*U(6)))+
-     *   (CTM*U(5)*U(6)-U(4)*ST)*FTN
-        UJZ=2.0D0*(UX(7)*U(6)+ST*UX(6)+CTM*(U(4)*UX(5)-UX(4)*U(5)))+
-     *   (CTM*U(6)**2+CT)*FTN
+        UJX=2.0D0*(UX(7)*UNx+ST*UX(4)+CTM*(UNy*UX(6)-UX(5)*UNz))+
+     *   (CTM*UNx*UNz+UNy*ST)*FTN
+        UJY=2.0D0*(UX(7)*UNy+ST*UX(5)-CTM*(UNx*UX(6)-UX(4)*UNz))+
+     *   (CTM*UNy*UNz-UNx*ST)*FTN
+        UJZ=2.0D0*(UX(7)*UNz+ST*UX(6)+CTM*(UNx*UX(5)-UX(4)*UNy))+
+     *   (CTM*UNz**2+CT)*FTN
 
         DJX=AF*(2.0D0*(UXX(7)*UNx+CT1*UX(7)*UX(4)+ST*UXX(4)+
      *   ST*UX(7)*(UNy*UX(6)-UX(5)*UNz)+CTM*(UNy*UXX(6)-UXX(5)*UNz))+
