@@ -105,7 +105,6 @@ C       CFG_AER parameter group:
         write(76,68)TSW,SH1,SH2,HMAL,HMAL/DSQRT(15.0D0)
         close(76)
 
-        DTW=TIME_STEP
         open(44,FILE='vmcw.t')
         open(21,FILE='vmcw.mj')
         open(24,FILE='vmcwx.mj')
@@ -129,7 +128,7 @@ C       PDECOL parameters:
         call SET_ICOND()
 
         FILE_AER=54
-        open(FILE_AER,FILE='aer_step.dat')
+        open(FILE_AER,FILE='mesh.dat')
         write(FILE_AER,*), '#  I    X(I) STEP(X) STEP''(X)'
         do J=1,NPTS
           write(FILE_AER,'(I4," ",F7.5," ",F7.5," ",e12.5e2)')
@@ -164,9 +163,11 @@ C----------------MAIN LOOP -------------------------------------------
             stop
           endif
 
-          if(T.GT.TS-TIME_STEP) DTW = TIME_STEP*0.02D0
-
-          T=T+DTW
+          if(T.GT.TS-TIME_STEP) then
+            T = T + TIME_STEP * 0.02D0
+          else
+            T = T + TIME_STEP
+          endif
 
           call PDECOL(T0,T,DT,X,PDECOL_ACC,NINT,KORD,NCC,NPDE,MF,
      +                INDEX,WORK,IWORK)
@@ -269,10 +270,10 @@ C	fix n vector length
         FV(2)= - XZ*U(1) + WY*U(3) + AUT*UNy - DJY
         FV(3)=           - WY*U(2) + AUT*UNz - DJZ - UMzm*T11
 
-        FV(4)=-WZR*UNy - WR2*(UMzm*UNy-UMym*UNz+CTG*(B*UNx-UMxm))
-        FV(5)= WZR*UNx - WR2*(UMxm*UNz-UMzm*UNx+CTG*(B*UNy-UMym))
-        FV(6)=         - WR2*(UMym*UNx-UMxm*UNy+CTG*(B*UNz-UMzm))
-        FV(7)=WR*B + UT/TF0
+        FV(4)= - WZR*UNy - WR2*(UMzm*UNy-UMym*UNz+CTG*(B*UNx-UMxm))
+        FV(5)=   WZR*UNx - WR2*(UMxm*UNz-UMzm*UNx+CTG*(B*UNy-UMym))
+        FV(6)=           - WR2*(UMym*UNx-UMxm*UNy+CTG*(B*UNz-UMzm))
+        FV(7)= WR*B + UT/TF0
         return
       end
 
@@ -292,33 +293,34 @@ C-- BNDRY ------ BOUNDARY CONDITIONS -- B(U,UX)=Z(T) ------------
           enddo
         enddo
 
-C	fix n vector length
-        UN=DSQRT(U(4)**2+U(5)**2+U(6)**2)
-        UNx=U(4)/UN
-        UNy=U(5)/UN
-        UNz=U(6)/UN
-
-        ST=DSIN(U(7))
-        ST2=2.0D0*ST
-        CT=DCOS(U(7))
-        CTM=1.0D0-CT
-        CTM2=2.0D0*CTM
-        DD45=UNx*UX(5)-UX(4)*UNy
-        FTN=CTM*DD45-ST*UX(6)-UX(7)*UNz
-        CTF=CTM*FTN
-        STF=ST*FTN
-        FTN4=CTM*UX(5)
-        FTN5=-CTM*UX(4)
-        FTN7=ST*DD45-CT*UX(6)
-        FTNX4=-CTM*UNy
-        FTNX5=CTM*UNx
-        C46=CTM*UNx*UNz+UNy*ST
-        C56=CTM*UNy*UNz-UNx*ST             !!!!!!!!!!!
-        C66=CTM*UNz**2+CT
-        C266=2.0D0-C66
-        AF=AF0-AF0*0.5D0 * AER_STEP(X,0)
-        DA=-DIFF/AF
         if(IBN.EQ.2)THEN       ! CLOSED CELL
+
+C	  fix n vector length
+          UN=DSQRT(U(4)**2+U(5)**2+U(6)**2)
+          UNx=U(4)/UN
+          UNy=U(5)/UN
+          UNz=U(6)/UN
+
+          ST=DSIN(U(7))
+          ST2=2.0D0*ST
+          CT=DCOS(U(7))
+          CTM=1.0D0-CT
+          CTM2=2.0D0*CTM
+          DD45=UNx*UX(5)-UX(4)*UNy
+          FTN=CTM*DD45-ST*UX(6)-UX(7)*UNz
+          CTF=CTM*FTN
+          STF=ST*FTN
+          FTN4=CTM*UX(5)
+          FTN5=-CTM*UX(4)
+          FTN7=ST*DD45-CT*UX(6)
+          FTNX4=-CTM*UNy
+          FTNX5=CTM*UNx
+          C46=CTM*UNx*UNz+UNy*ST
+          C56=CTM*UNy*UNz-UNx*ST             !!!!!!!!!!!
+          C66=CTM*UNz**2+CT
+          C266=2.0D0-C66
+          AF=AF0-AF0*0.5D0 * AER_STEP(X,0)
+          DA=-DIFF/AF
           DBDUX(4,1)=DA
           DBDUX(5,2)=DA
           DBDUX(6,3)=DA
@@ -639,8 +641,8 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
       subroutine WRITEMJ_DO()
         implicit REAL*8(A-H,O-Z)
         include 'par.fh'
-        common /BLK_UMU/ T11,GW,W,W0,AA,TF,AF,DIFF,WY,DW,TSW,TW,
-     +   AF0,TS,XS,PI,DTW,DTW1
+        common /BLK_UMU/ T11,GW,W,W0,AA,TF,DIFF,WY,DW,TSW,TW,
+     +   AF0,TS,TIME_STEP,XS,PI
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
         common /TIMEP/ T
         integer FILES_MJ(NPTS), FILE_MMJ, FILE_AER
