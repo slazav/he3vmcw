@@ -3,17 +3,22 @@ C--------------- FFT ---------------------------------------
       IMPLICIT REAL*8(A-H,O-Z)
       REAL FF(NNX),F1(ND),F2(ND),F3(ND),TT(NNX)
       CHARACTER*100 STR2
+      CHARACTER*100 I_FILE
+      CHARACTER*100 O_FILE
       PI2=8.0*DATAN(1.0D0)             ! 2*PI
 
       OPEN(89,FILE='FFT.PAR')
+      READ(89,*)I_FILE
+      READ(89,*)O_FILE
       READ(89,*)FC
       READ(89,*)DF
       READ(89,*)NF
-      READ(89,*)T0
+      READ(89,*)T1
+      READ(89,*)T2
       CLOSE(89)
 
       II=0
-      open(88,FILE='A')
+      open(88,FILE=I_FILE)
       read(88,*, END=11) STR2
       do NP=0,NNX
         if (NP.GE.NNX) then
@@ -22,8 +27,8 @@ C--------------- FFT ---------------------------------------
           stop
         endif
         read(88,*, END=11) TTA,FFA
-        if (TTA.GT.T0) then
-          TT(II)=TTA-T0
+        if (TTA.GT.T1.AND.TTA.LE.T2) then
+          TT(II)=TTA-T1
           FF(II)=FFA
           II=II+1
         endif
@@ -51,7 +56,7 @@ C--------------- FFT ---------------------------------------
         F1(K)=0.0
         F2(K)=0.0
       enddo
-      open(87,FILE='FFT.RES')
+      open(87,FILE=O_FILE)
       do K=1,2*NF+1
         FCUR=FI+DF*(K-1)
         do I=0,II
