@@ -146,15 +146,29 @@ C--------------- COMPUTE PARAMETERS ----------------------------
         T11=1.0D0/T1
         PI=4.0*DATAN(1.0D0)
         W0=GW*SLP
-        TTC=TEMP/0.00093D0             ! T/TC  0 BAR
+C        TTC=TEMP/0.00093D0             ! T/TC  0 BAR
+        TTC=TEMP/0.00208D0             ! T/TC  19.5 BAR
         TETC=DSQRT(1.0D0-TTC)
-        FLEG=330460.0D0*TETC           ! LEGGETT FREQ.(HZ) 0 BAR
-        CPAR=1300.0D0*TETC             ! SPIN WAVES VELOCITY  (2000)
-        TF=0.0000005D0/TETC            ! TAU EFFECTIVE (L-T) SECONDS
+C        FLEG=330460.0D0*TETC           ! LEGGETT FREQ.(HZ) 0 BAR
+C        CPAR=1300.0D0*TETC             ! SPIN WAVES VELOCITY  (2000)
+        CPAR=1840.0D0*TETC             ! SPIN WAVES VELOCITY -- 1992_hpd_osc (20bar)
+C        TF=5.0D-7/TETC                 ! TAU EFFECTIVE (L-T) SECONDS
+        TF=1.2D-7/TETC                 ! TAU EFFECTIVE (L-T) SECONDS WV pic.10.5 20bar
+
+
         AA=FLEG*FLEG/W*4.0D0*PI**2
         AF0=-CPAR**2/W
         DIFF=DC/TEMP/TEMP               ! DIFFUSION
         DW=GW*SWR
+
+        FLEG_A = -2.3788D11
+        FLEG_B = 2.13492D11
+        FLEG_C = 6.16586D10
+        FLEG = DSQRT(FLEG_A*(1.0D0-TTC)**3 
+     +      + FLEG_B*(1.0D0-TTC)**2 + FLEG_C*(1.0D0-TTC))  ! 20bar, 1989_he3b_nmr
+        write(*,*) 'T/Tc:         ', TTC
+        write(*,*) 'Leggett freq: ', FLEG
+
 C----------------MAIN LOOP -------------------------------------------
    2    CONTINUE
 
@@ -210,7 +224,7 @@ C       calculate freq
 
 C	x-field step an TS
         if(T.GE.TS)THEN
-          XZ=XZ+XS
+          if (X.GE.0.09) XZ=XZ+XS
         endif
 
 C	fix n vector length
@@ -556,7 +570,7 @@ C--------------- SHOW INFORMATION -----------------------------------
         if(MJW.EQ.1.OR.T.GE.TW) CALL WRITE_MJ()    !
         call WRITEMJ_DO()
    61   format(F7.1, 6(1PE14.6))
-   69   format(F8.3, 1PE25.16)
+   69   format(F9.2, 1PE25.16)
       end
 C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
       subroutine WRITE_MJ()
