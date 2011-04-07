@@ -56,6 +56,8 @@ C--------------- FFT ---------------------------------------
         F1(K)=0.0
         F2(K)=0.0
       enddo
+      FMAX=0
+      AMAX=0
       open(87,FILE=O_FILE)
       do K=1,2*NF+1
         FCUR=FI+DF*(K-1)
@@ -67,9 +69,12 @@ C--------------- FFT ---------------------------------------
         F11=F1(K)**2
         F22=F2(K)**2
         F3(K)=DSQRT(F11+F22)
+        if (AMAX.LT.F3(K)) then
+          AMAX=F3(K)
+          FMAX=FCUR
+        endif
         write(87,101)FCUR,F3(K)
-C        WRITE(87,101)FCUR,F1(K),F2(K),F3(K)
       enddo
+      write (*,'("MAX: "3(1PE15.6))') (T1+T2)/2, AMAX, FMAX
   101 format(4(1PE25.16))
       end
-

@@ -151,9 +151,9 @@ C        TTC=TEMP/0.00093D0             ! T/TC  0 BAR
         TETC=DSQRT(1.0D0-TTC)
 C        FLEG=330460.0D0*TETC           ! LEGGETT FREQ.(HZ) 0 BAR
 C        CPAR=1300.0D0*TETC             ! SPIN WAVES VELOCITY  (2000)
-        CPAR=1840.0D0*TETC             ! SPIN WAVES VELOCITY -- 1992_hpd_osc (20bar)
+        CPAR=1840.0D0*TETC              ! SPIN WAVES VELOCITY -- 1992_hpd_osc (20bar)
 C        TF=5.0D-7/TETC                 ! TAU EFFECTIVE (L-T) SECONDS
-        TF=1.2D-7/TETC                 ! TAU EFFECTIVE (L-T) SECONDS WV pic.10.5 20bar
+        TF=1.2D-7/TETC                  ! TAU EFFECTIVE (L-T) SECONDS WV pic.10.5 20bar
 
 
         AA=FLEG*FLEG/W*4.0D0*PI**2
@@ -167,7 +167,10 @@ C        TF=5.0D-7/TETC                 ! TAU EFFECTIVE (L-T) SECONDS
         FLEG = DSQRT(FLEG_A*(1.0D0-TTC)**3 
      +      + FLEG_B*(1.0D0-TTC)**2 + FLEG_C*(1.0D0-TTC))  ! 20bar, 1989_he3b_nmr
         write(*,*) 'T/Tc:         ', TTC
-        write(*,*) 'Leggett freq: ', FLEG
+        write(*,*) 'T:            ', TEMP, 'K'
+        write(*,*) 'Leggett freq: ', FLEG, 'Hz'
+        write(*,*) 'T_eff:        ', TF, 's'
+        write(*,*) 'C_par:        ', CPAR, 'cm/s'
 
 C----------------MAIN LOOP -------------------------------------------
    2    CONTINUE
