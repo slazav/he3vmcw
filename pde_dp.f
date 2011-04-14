@@ -643,7 +643,7 @@ C
 C PACKAGE ROUTINES CALLED..   EVAL,INITAL,INTERP,STIFIB
 C USER ROUTINES CALLED..      BNDRY
 C CALLED BY..                 USERS MAIN PROGRAM
-C FORTRAN FUNCTIONS USED..    ABS,AMAX1,FLOAT,SQRT
+C FORTRAN FUNCTIONS USED..    DABS,DMAX1,FLOAT,DSQRT
 C-----------------------------------------------------------------------
       SAVE
       COMMON /GEAR0/ DTUSED,NQUSED,NSTEP,NFE,NJE
@@ -672,11 +672,11 @@ C-----------------------------------------------------------------------
       IERID = -6
       IF (INDEX .NE. 1) GO TO 320
       IERID = IERID - 1
-      IF (EPS .LE. 0.) GO TO 320
+      IF (EPS .LE. 0D0) GO TO 320
       IERID = IERID - 1
-      IF ((T0-TOUT)*DT .GT. 0.) GO TO 320
+      IF ((T0-TOUT)*DT .GT. 0D0) GO TO 320
       IERID = IERID - 1
-      IF (DT .EQ. 0.0) GO TO 320
+      IF (DT .EQ. 0D0) GO TO 320
       IERID = IERID - 1
       NIN = NINT
       IF (NIN .LT. 1) GO TO 320
@@ -740,7 +740,7 @@ C-----------------------------------------------------------------------
      *           WORK(IW15),WORK(IW16),NPDE)
       DO 20 K=1,NPDE
         I = K + NPDE*(K-1) - 1
-        IF(WORK(IW14+I) .EQ. 0.0 .AND. WORK(IW15+I) .EQ. 0.0)
+        IF(WORK(IW14+I) .EQ. 0D0 .AND. WORK(IW15+I) .EQ. 0D0)
      *     IQUAD = 1
    20 CONTINUE
       CALL EVAL(NCPTS,NPDE,WORK(IW6),WORK(IW9),WORK(IW1),IWORK)
@@ -748,7 +748,7 @@ C-----------------------------------------------------------------------
      *           WORK(IW14),WORK(IW15),WORK(IW16),NPDE)
       DO 30 K=1,NPDE
         I = K + NPDE*(K-1) - 1
-        IF(WORK(IW14+I) .EQ. 0.0 .AND. WORK(IW15+I) .EQ. 0.0)
+        IF(WORK(IW14+I) .EQ. 0D0 .AND. WORK(IW15+I) .EQ. 0D0)
      *     IQUAD = 1
    30 CONTINUE
       ML = ML + IQUAD*NPDE
@@ -769,32 +769,32 @@ C SHOULD BE SET BELOW.
 C-----------------------------------------------------------------------
       DO 50 I = 1,NEQN
         I1 = I - 1
-        WORK(IW4+I1) = ABS(WORK(IW6+I1))
-        IF (WORK(IW4+I1) .LT. 1.) WORK(IW4+I1) = 1.
+        WORK(IW4+I1) = DABS(WORK(IW6+I1))
+        IF (WORK(IW4+I1) .LT. 1D0) WORK(IW4+I1) = 1D0
    50   WORK(IW10+I1) = WORK(IW6+I1)
       N = NEQN
       T = T0
       DTC = DT
-      DTMN = ABS(DT)
-      DTUSED = 0.
+      DTMN = DABS(DT)
+      DTUSED = 0D0
       EPSC = EPS
       MFC = MF
       JSTART = 0
-      EPSJ =  SQRT(UROUND)
+      EPSJ =  DSQRT(UROUND)
       NM1 = NEQN - 1
       N0ML = NEQN*ML
       NHCUT = 0
       KFLAG = 0
       TOUTP = T0
       IF ( T0 .EQ. TOUT ) GO TO 360
-   60 DTMX = ABS(TOUT-TOUTP)*10.
+   60 DTMX = DABS(TOUT-TOUTP)*10D0
       GO TO 140
 C
-   70 DTMX = ABS(TOUT-TOUTP)*10.
-      IF ((T-TOUT)*DTC .GE. 0.) GO TO 340
+   70 DTMX = DABS(TOUT-TOUTP)*10D0
+      IF ((T-TOUT)*DTC .GE. 0D0) GO TO 340
       GO TO 150
 C
-   80 IF ((T-TOUT)*DTC .GE. 0.) GO TO 300
+   80 IF ((T-TOUT)*DTC .GE. 0D0) GO TO 300
       JSTART = -1
       EPSC = EPS
       MFC = MF
@@ -833,24 +833,24 @@ C COMPUTED AND STORED IN SAVE1 ON RETURN.
 C IF INTERPOLATION IS NOT DESIRED, THE CALL TO INTERP SHOULD BE
 C REMOVED AND CONTROL TRANSFERRED TO STATEMENT 340 INSTEAD OF 360.
 C-----------------------------------------------------------------------
-      D = 0.
+      D = 0D0
       DO 130 I = 1,NEQN
         I1 = I - 1
-        AYI = ABS(WORK(IW10+I1))
-        WORK(IW4+I1) = AMAX1(WORK(IW4+I1), AYI)
+        AYI = DABS(WORK(IW10+I1))
+        WORK(IW4+I1) = DMAX1(WORK(IW4+I1), AYI)
   130   D = D + (AYI/WORK(IW4+I1))**2
       D = D*(UROUND/EPS)**2
-      IF (D .GT.  FLOAT(NEQN)) GO TO 240
+      IF (D .GT.  DFLOAT(NEQN)) GO TO 240
       IF (INDEX .EQ. 3) GO TO 340
       IF (INDEX .EQ. 2) GO TO 150
-  140 IF ((T-TOUT)*DTC .LT. 0.) GO TO 100
+  140 IF ((T-TOUT)*DTC .LT. 0D0) GO TO 100
       CALL INTERP(TOUT,WORK(IW10),NEQN,WORK(IW6))
       GO TO 360
 C
-  150 IF (((T+DTC)-TOUT)*DTC .LE. 0.) GO TO 100
-      IF (ABS(T-TOUT) .LE. 100.*UROUND*DTMX) GO TO 340
-      IF ((T-TOUT)*DTC .GE. 0.) GO TO 340
-      DTC = (TOUT - T)*(1. - 4.*UROUND)
+  150 IF (((T+DTC)-TOUT)*DTC .LE. 0D0) GO TO 100
+      IF (DABS(T-TOUT) .LE. 100D0*UROUND*DTMX) GO TO 340
+      IF ((T-TOUT)*DTC .GE. 0D0) GO TO 340
+      DTC = (TOUT - T)*(1D0 - 4D0*UROUND)
       JSTART = -1
       GO TO 100
 C-----------------------------------------------------------------------
@@ -864,8 +864,8 @@ C-----------------------------------------------------------------------
      *   40H  ERROR TEST FAILED WITH ABS(DT) = DTMIN/)
   180 IF (NHCUT .EQ. 10) GO TO 200
       NHCUT = NHCUT + 1
-      DTMN = .1*DTMN
-      DTC = .1*DTC
+      DTMN = .1D0*DTMN
+      DTC = .1D0*DTC
       WRITE (LOUT,190) DTC
   190 FORMAT(25H  DT HAS BEEN REDUCED TO ,E16.8,
      *   26H  AND STEP WILL BE RETRIED//)
@@ -996,7 +996,7 @@ C-----------------------------------------------------------------------
         DO 10 M=1,NDERV1
           I1 = (M-1)*KORD
           DO 10 K=1,NPDE
-            USOL(K,IPTS,M) = 0.
+            USOL(K,IPTS,M) = 0D0
             DO 10 I=1,KORD
               I2 = (I+IK-1)*NPDE + IW6 - 1
               USOL(K,IPTS,M) = USOL(K,IPTS,M) + WORK(I2+K) * SCTCH(I+I1)
@@ -1019,7 +1019,7 @@ C             (SEE COSET FOR RESTRICTIONS).
 C    UROUND = THE UNIT ROUNDOFF OF THE MACHINE, I.E. THE SMALLEST
 C             POSITIVE U SUCH THAT 1. + U .NE. 1. ON THE MACHINE.
 C-----------------------------------------------------------------------
-      PARAMETER (EPSU=2.0**(-47))
+      PARAMETER (EPSU=2D0**(-47))
       COMMON /GEAR1/ DUM(5),UROUND,IDUM(4)
       COMMON /OPTION/ NOGAUS,MAXDER
       COMMON /IOUNIT/ LOUT
@@ -1092,7 +1092,7 @@ C CONDITIONS AT THE COLLOCATION POINTS.  SET THE INTERPOLATION MATRIX
 C INTO THE BANDED MATRIX PW.
 C-----------------------------------------------------------------------
       DO 30 I=1,N0W
-   30   PW(I) = 0.
+   30   PW(I) = 0D0
       DO 40 I=1,NCPTS
         CALL INTERV(XT,NCPTS,XC(I),ILEFT(I),MFLAG)
         CALL BSPLVD(XT,KORD,XC(I),ILEFT(I),A(1,1,I),3)
@@ -1157,14 +1157,14 @@ C-----------------------------------------------------------------------
       IPTS = KORD - 2
       GO TO (10,20,30,40,50,60,70,80,90,100,110,120,130,140,150,160,170,
      *    180),IPTS
-   10 RHO(1) = 0.
+   10 RHO(1) = 0D0
       GO TO 190
    20 RHO(2) = .577350269189626D-00
       RHO(1) = - RHO(2)
       GO TO 190
    30 RHO(3) = .774596669241483D-00
       RHO(1) = - RHO(3)
-      RHO(2) = 0.
+      RHO(2) = 0D0
       GO TO 190
    40 RHO(3) = .339981043584856D-00
       RHO(2) = - RHO(3)
@@ -1175,7 +1175,7 @@ C-----------------------------------------------------------------------
       RHO(2) = - RHO(4)
       RHO(5) = .906179845938664D-00
       RHO(1) = - RHO(5)
-      RHO(3) = 0.
+      RHO(3) = 0D0
       GO TO 190
    60 RHO(4) = .238619186083197D-00
       RHO(3) = - RHO(4)
@@ -1190,7 +1190,7 @@ C-----------------------------------------------------------------------
       RHO(2) = - RHO(6)
       RHO(7) = .949107912342759D-00
       RHO(1) = - RHO(7)
-      RHO(4) = 0.
+      RHO(4) = 0D0
       GO TO 190
    80 RHO(5) = .183434642495650D-00
       RHO(4) = - RHO(5)
@@ -1201,7 +1201,7 @@ C-----------------------------------------------------------------------
       RHO(8) = .960289856497536D-00
       RHO(1) = - RHO(8)
       GO TO 190
-   90 RHO( 5) = .0
+   90 RHO( 5) = 0D0
       RHO( 6) = .324253423403809D-00
       RHO( 7) = .613371432700590D-00
       RHO( 8) = .836031107326636D-00
@@ -1217,7 +1217,7 @@ C-----------------------------------------------------------------------
       DO 105 I=1,5
   105   RHO(I) = -RHO(11-I)
       GO TO 190
-  110 RHO( 6) = .0
+  110 RHO( 6) = 0D0
       RHO( 7) = .269543155952345D-00
       RHO( 8) = .519096129206812D-00
       RHO( 9) = .730152005574049D-00
@@ -1235,7 +1235,7 @@ C-----------------------------------------------------------------------
       DO 125 I=1,6
   125   RHO(I) = -RHO(13-I)
       GO TO 190
-  130 RHO( 7) = .0
+  130 RHO( 7) = 0D0
       RHO( 8) = .230458315955135D-00
       RHO( 9) = .448492751036447D-00
       RHO(10) = .642349339440340D-00
@@ -1255,7 +1255,7 @@ C-----------------------------------------------------------------------
       DO 145 I=1,7
   145   RHO(I) = -RHO(15-I)
       GO TO 190
-  150 RHO( 8) = .0
+  150 RHO( 8) = 0D0
       RHO( 9) = .201194093997435D-00
       RHO(10) = .394151347077563D-00
       RHO(11) = .570972172608539D-00
@@ -1277,7 +1277,7 @@ C-----------------------------------------------------------------------
       DO 165 I=1,8
   165   RHO(I) = -RHO(17-I)
       GO TO 190
-  170 RHO( 9) = .0
+  170 RHO( 9) = 0D0
       RHO(10) = .178484181495848D-00
       RHO(11) = .351231763453876D-00
       RHO(12) = .512690537086477D-00
@@ -1304,10 +1304,10 @@ C-----------------------------------------------------------------------
 C COMPUTE THE GAUSS-LEGENDRE COLLOCATION POINTS IN EACH SUBINTERVAL.
 C-----------------------------------------------------------------------
   190 DO 195 I=1,NINT
-        FAC = ( X(I+1) - X(I) ) * .5
+        FAC = ( X(I+1) - X(I) ) * 0.5D0
         DO 195 J = 1,IPTS
           KNOT = IPTS * (I-1) + J + 1
-  195     XC(KNOT) = X(I) + FAC * ( RHO(J) + 1. )
+  195     XC(KNOT) = X(I) + FAC * ( RHO(J) + 1D0 )
       XC(1) = X(1)
       XC(NCPTS) = X(NINT+1)
       RETURN
@@ -1325,7 +1325,7 @@ C-----------------------------------------------------------------------
         XOLD = 1.D+20
         XL = XT(I)
         XR = XT(I+KORD)
-  210   XNEW = .5 * (XL + XR)
+  210   XNEW = 0.5D0 * (XL + XR)
         IF( XOLD .EQ. XNEW ) GO TO 240
         CALL INTERV(XT,NCPTS,XNEW,ILEFT,MFLAG)
         CALL BSPLVD(XT,KORD,XNEW,ILEFT,RHO,2)
@@ -1333,9 +1333,9 @@ C-----------------------------------------------------------------------
           IF( I .EQ. J + ILEFT - KORD ) GO TO 230
   220   CONTINUE
   230   XVAL = RHO(KORD+J)
-        IF( XVAL .EQ. 0.0 ) XR = XNEW
-        IF( XVAL .GT. 0.0 ) XL = XNEW
-        IF( XVAL .LT. 0.0 ) XR = XNEW
+        IF( XVAL .EQ. 0D0 ) XR = XNEW
+        IF( XVAL .GT. 0D0 ) XL = XNEW
+        IF( XVAL .LT. 0D0 ) XR = XNEW
         XOLD = XNEW
         GO TO 210
   240 XC(I) = XR
@@ -1387,28 +1387,28 @@ C-----------------------------------------------------------------------
    20   CONTINUE
       DO 40 I=1,K
         DO 30 J=1,K
-   30     A(I,J) = 0.
-   40   A(I,I) = 1.
+   30     A(I,J) = 0D0
+   40   A(I,I) = 1D0
       KMD = K
       DO 110 M=2,NDERIV
         KMD = KMD - 1
-        FKMD =  FLOAT(KMD)
+        FKMD =  DFLOAT(KMD)
         I = ILEFT
         J = K
    50   JM1 = J-1
         IPKMD = I + KMD
         DIFF = XT(IPKMD) -XT(I)
         IF (JM1 .EQ. 0) GO TO 80
-        IF (DIFF .EQ. 0.) GO TO 70
+        IF (DIFF .EQ. 0D0) GO TO 70
         DO 60 L=1,J
    60     A(L,J) = (A(L,J) - A(L,J-1))/DIFF*FKMD
    70   J = JM1
         I = I - 1
         GO TO 50
-   80   IF (DIFF .EQ. 0.) GO TO 90
+   80   IF (DIFF .EQ. 0D0) GO TO 90
         A(1,1) = A(1,1)/DIFF*FKMD
    90   DO 110 I=1,K
-          V = 0.
+          V = 0D0
           JLOW = MAX0(I,M)
           DO 100 J=JLOW,K
   100       V = A(I,J)*VNIKX(J,M) + V
@@ -1446,13 +1446,13 @@ C-----------------------------------------------------------------------
       DATA J/1/,DELTAM/20*0.D-00/,DELTAP/20*0.D-00/
       GO TO (10,20),INDEX
    10 J = 1
-      VNIKX(1) = 1.
+      VNIKX(1) = 1D0
       IF (J .GE. JHIGH) GO TO 40
    20 IPJ = ILEFT+J
       DELTAP(J) = XT(IPJ) - X
       IMJP1 = ILEFT-J+1
       DELTAM(J) = X - XT(IMJP1)
-      VMPREV = 0.
+      VMPREV = 0D0
       JP1 = J+1
       DO 30 L=1,J
         JP1ML = JP1-L
@@ -1627,7 +1627,7 @@ C
 C PACKAGE ROUTINES CALLED..  COSET,DIFFUN,PSETIB,RES,SOLB
 C USER ROUTINES CALLED..     NONE
 C CALLED BY..                PDECOL
-C FORTRAN FUNCTIONS USED..   ABS,AMAX1,AMIN1,FLOAT
+C FORTRAN FUNCTIONS USED..   DABS,DMAX1,DMIN1,FLOAT
 C-----------------------------------------------------------------------
 C     SAVE EL,OLDL0,TQ,IER,NQ,L,METH,MITER
       SAVE BND,CON,CRATE,D,D1,E,EDN,ENQ1,ENQ2,ENQ3,EPSOLD,
@@ -1648,7 +1648,7 @@ C     SAVE EL,OLDL0,TQ,IER,NQ,L,METH,MITER
      *          WORK(KORD+NPDE*(4+9*NPDE)+(KORD+(NINT-1)*(KORD-NCC))*
      *               (3*KORD+2+NPDE*(3*(KORD-1)*NPDE+MAXDER+4)))
       DIMENSION EL(13),TQ(4)
-      DATA EL(2)/1./, OLDL0/1./, TQ(1)/0./, IER/0/
+      DATA EL(2)/1D0/, OLDL0/1D0/, TQ(1)/0D0/, IER/0/
       KFLAG = 0
       TOLD = T
       IF (JSTART .GT. 0) GO TO 200
@@ -1672,8 +1672,8 @@ C-----------------------------------------------------------------------
       L = 2
       IDOUB = 3
       RMAX = 1.D+04
-      RC = 0.
-      CRATE = 1.
+      RC = 0D0
+      CRATE = 1D0
       EPSOLD = EPS
       HOLD = H
       MFOLD = MF
@@ -1709,7 +1709,7 @@ C-----------------------------------------------------------------------
       LMAX = MAXDER + 1
       RC = RC*EL(1)/OLDL0
       OLDL0 = EL(1)
-  140 FN =  FLOAT(N)
+  140 FN =  DFLOAT(N)
       EDN = FN*(TQ(1)*EPS)**2
       E   = FN*(TQ(2)*EPS)**2
       EUP = FN*(TQ(3)*EPS)**2
@@ -1725,9 +1725,9 @@ C-----------------------------------------------------------------------
       H = HOLD
       IREDO = 3
       GO TO 175
-  170 RH = AMAX1(RH,HMIN/ ABS(H))
-  175 RH = AMIN1(RH,HMAX/ ABS(H),RMAX)
-      R1 = 1.
+  170 RH = DMAX1(RH,HMIN/ DABS(H))
+  175 RH = DMIN1(RH,HMAX/ DABS(H),RMAX)
+      R1 = 1D0
       DO 180 J = 2,L
         R1 = R1*RH
         DO 180 I = 1,N
@@ -1745,7 +1745,7 @@ C CHANGED MITER, IWEVAL IS SET TO MITER TO FORCE PW TO BE UPDATED.
 C IN ANY CASE, PW IS UPDATED AT LEAST EVERY 40-TH STEP.
 C PW IS THE CHORD ITERATION MATRIX A - H*EL(1)*(DG/DY).
 C-----------------------------------------------------------------------
-  200 IF ( ABS(RC-1.) .GT. 0.3) IWEVAL = MITER
+  200 IF ( DABS(RC-1D0) .GT. 0.3D0) IWEVAL = MITER
       IF (NSTEP .GE. NSTEPJ+40) IWEVAL = MITER
       T = T + H
       DO 210 J1 = 1,NQ
@@ -1763,7 +1763,7 @@ C THE UPDATED H*YDOT IS STORED IN SAVE2.
 C-----------------------------------------------------------------------
   220 DO 230 I = 1,N
         SAVE2(I) = Y(I,2)
-  230   ERROR(I) = 0.
+  230   ERROR(I) = 0D0
       M = 0
       CALL RES (T, H, Y, SAVE2, SAVE3, NPDE, NCPTS, WORK(IW1), IWORK,
      *  WORK, WORK(IW14), WORK(IW15), WORK(IW16), WORK(IW3), WORK(IW9))
@@ -1775,7 +1775,7 @@ C CORRECTOR ITERATION.  IWEVAL IS SET TO 0 AS AN INDICATOR
 C THAT THIS HAS BEEN DONE.  PW IS COMPUTED AND PROCESSED IN PSETIB.
 C-----------------------------------------------------------------------
       IWEVAL = 0
-      RC = 1.
+      RC = 1D0
       NJE = NJE + 1
       NSTEPJ = NSTEP
       CON = -H*EL(1)
@@ -1789,7 +1789,7 @@ C WITH THAT AS RIGHT-HAND SIDE AND PW AS COEFFICIENT MATRIX,
 C USING THE LU DECOMPOSITION OF PW.
 C-----------------------------------------------------------------------
   350 CALL SOLB (N0, N, ML, MU, PW, SAVE3, IPIV)
-  370 D = 0.
+  370 D = 0D0
       DO 380 I = 1,N
         ERROR(I) = ERROR(I) + SAVE3(I)
         D = D + (SAVE3(I)/YMAX(I))**2
@@ -1799,8 +1799,8 @@ C-----------------------------------------------------------------------
 C TEST FOR CONVERGENCE.  IF M.GT.0, AN ESTIMATE OF THE CONVERGENCE
 C RATE CONSTANT IS STORED IN CRATE, AND THIS IS USED IN THE TEST.
 C-----------------------------------------------------------------------
-  400 IF (M .NE. 0) CRATE = AMAX1(.9*CRATE,D/D1)
-      IF ((D*AMIN1(1.E0,2.*CRATE)) .LE. BND) GO TO 450
+  400 IF (M .NE. 0) CRATE = DMAX1(.9D0*CRATE,D/D1)
+      IF ((D*DMIN1(1.D0,2D0*CRATE)) .LE. BND) GO TO 450
       D1 = D
       M = M + 1
       IF (M .EQ. 3) GO TO 410
@@ -1817,14 +1817,14 @@ C-----------------------------------------------------------------------
   410 NFE = NFE + 2
       IF (IWEVAL .EQ. -1) GO TO 440
   420 T = TOLD
-      RMAX = 2.
+      RMAX = 2D0
       DO 430 J1 = 1,NQ
         DO 430 J2 = J1,NQ
           J = (NQ + J1) - J2
           DO 430 I = 1,N
   430       Y(I,J) = Y(I,J) - Y(I,J+1)
-      IF ( ABS(H) .LE. HMIN*1.00001) GO TO 680
-      RH = .25
+      IF ( DABS(H) .LE. HMIN*1.00001D0) GO TO 680
+      RH = 0.25D0
       IREDO = 1
       GO TO 170
   440 IWEVAL = MITER
@@ -1836,7 +1836,7 @@ C IS MADE AND CONTROL PASSES TO STATEMENT 500 IF IT FAILS.
 C-----------------------------------------------------------------------
  450  IWEVAL = -1
       NFE = NFE + M
-      D = 0.
+      D = 0D0
       DO 460 I = 1,N
   460   D = D + (ERROR(I)/YMAX(I))**2
       IF (D .GT. E) GO TO 500
@@ -1878,8 +1878,8 @@ C-----------------------------------------------------------------------
           J = (NQ + J1) - J2
           DO 510 I = 1,N
   510       Y(I,J) = Y(I,J) - Y(I,J+1)
-      RMAX = 2.
-      IF ( ABS(H) .LE. HMIN*1.00001) GO TO 660
+      RMAX = 2D0
+      IF ( DABS(H) .LE. HMIN*1.00001D0) GO TO 660
       IF (KFLAG .LE. -3) GO TO 640
       IREDO = 2
       PR3 = 1.D+20
@@ -1895,39 +1895,39 @@ C ADDITIONAL SCALED DERIVATIVE.
 C-----------------------------------------------------------------------
   520 PR3 = 1.D+20
       IF (L .EQ. LMAX) GO TO 540
-      D1 = 0.
+      D1 = 0D0
       DO 530 I = 1,N
   530   D1 = D1 + ((ERROR(I) - Y(I,LMAX))/YMAX(I))**2
-      ENQ3 = .5/ FLOAT(L+1)
-      PR3 = ((D1/EUP)**ENQ3)*1.4 + 1.4D-06
-  540 ENQ2 = .5/ FLOAT(L)
-      PR2 = ((D/E)**ENQ2)*1.2 + 1.2D-06
+      ENQ3 = 0.5D0/ DFLOAT(L+1)
+      PR3 = ((D1/EUP)**ENQ3)*1.4D0 + 1.4D-06
+  540 ENQ2 = 0.5D0/ DFLOAT(L)
+      PR2 = ((D/E)**ENQ2)*1.2D0 + 1.2D-06
       PR1 = 1.D+20
       IF (NQ .EQ. 1) GO TO 560
-      D = 0.
+      D = 0D0
       DO 550 I = 1,N
   550   D = D + (Y(I,L)/YMAX(I))**2
-      ENQ1 = .5/ FLOAT(NQ)
-      PR1 = ((D/EDN)**ENQ1)*1.3 + 1.3D-06
+      ENQ1 = 0.5D0/ DFLOAT(NQ)
+      PR1 = ((D/EDN)**ENQ1)*1.3D0 + 1.3D-06
   560 IF (PR2 .LE. PR3) GO TO 570
       IF (PR3 .LT. PR1) GO TO 590
       GO TO 580
   570 IF (PR2 .GT. PR1) GO TO 580
       NEWQ = NQ
-      RH = 1./PR2
+      RH = 1D0/PR2
       GO TO 620
   580 NEWQ = NQ - 1
-      RH = 1./PR1
+      RH = 1D0/PR1
       GO TO 620
   590 NEWQ = L
-      RH = 1./PR3
-      IF (RH .LT. 1.1) GO TO 610
+      RH = 1D0/PR3
+      IF (RH .LT. 1.1D0) GO TO 610
       DO 600 I = 1,N
-  600   Y(I,NEWQ+1) = ERROR(I)*EL(L)/ FLOAT(L)
+  600   Y(I,NEWQ+1) = ERROR(I)*EL(L)/ DFLOAT(L)
       GO TO 630
   610 IDOUB = 10
       GO TO 700
-  620 IF ((KFLAG .EQ. 0) .AND. (RH .LT. 1.1)) GO TO 610
+  620 IF ((KFLAG .EQ. 0) .AND. (RH .LT. 1.1D0)) GO TO 610
 C-----------------------------------------------------------------------
 C IF THERE IS A CHANGE OF ORDER, RESET NQ, L, AND THE COEFFICIENTS.
 C IN ANY CASE H IS RESET ACCORDING TO RH AND THE Y ARRAY IS RESCALED.
@@ -1947,8 +1947,8 @@ C H IS REDUCED BY A FACTOR OF 10, AND THE STEP IS RETRIED.
 C AFTER A TOTAL OF 7 FAILURES, AN EXIT IS TAKEN WITH KFLAG = -2.
 C-----------------------------------------------------------------------
   640 IF (KFLAG .EQ. -7) GO TO 670
-      RH = .1
-      RH = AMAX1(HMIN/ ABS(H),RH)
+      RH = 0.1D0
+      RH = DMAX1(HMIN/ DABS(H),RH)
       H = H*RH
       IER = 0
       CALL DIFFUN (N, T, Y, SAVE1, IER, PW, IPIV, WORK, IWORK)
@@ -1975,7 +1975,7 @@ C-----------------------------------------------------------------------
       GO TO 700
   685 KFLAG = -4
       GO TO 700
-  690 RMAX = 10.
+  690 RMAX = 10D0
   700 HOLD = H
       JSTART = NQ
       RETURN
@@ -2004,7 +2004,7 @@ C-----------------------------------------------------------------------
       DO 10 K=1,4
         DO 10 J=1,NPDE
           DO 10 I=1,NPDE
-            BC(I,J,K) = 0.0
+            BC(I,J,K) = 0D0
    10 CONTINUE
 C-----------------------------------------------------------------------
 C UPDATE THE LEFT BOUNDARY VALUES.  SAVE LEFT BOUNDARY CONDITION
@@ -2017,8 +2017,8 @@ C-----------------------------------------------------------------------
       CALL F(T,XC(1),UVAL,UVAL(1,2),UVAL(1,3),UDOT,NPDE)
       ILIM = KORD + 2
       DO 30 K=1,NPDE
-        BC(K,K,1) = 1.
-        IF( DBDU(K,K) .EQ. 0.0  .AND.  DBDUX(K,K) .EQ. 0.0 ) GO TO 30
+        BC(K,K,1) = 1D0
+        IF( DBDU(K,K) .EQ. 0D0  .AND.  DBDUX(K,K) .EQ. 0D0 ) GO TO 30
         UDOT(K,1) = DZDT(K)
         DO 20 J=1,NPDE
           BC(K,J,2) = A(ILIM) * DBDUX(K,J)
@@ -2042,8 +2042,8 @@ C-----------------------------------------------------------------------
       CALL BNDRY(T,XC(NCPTS),UVAL,UVAL(1,2),DBDU,DBDUX,DZDT,NPDE)
       ILIM = NCPTS * 3 * KORD - KORD - 1
       DO 60 K=1,NPDE
-        BC(K,K,4) = 1.
-        IF( DBDU(K,K) .EQ. 0.0  .AND.  DBDUX(K,K) .EQ. 0.0 ) GO TO 60
+        BC(K,K,4) = 1D0
+        IF( DBDU(K,K) .EQ. 0D0  .AND.  DBDUX(K,K) .EQ. 0D0 ) GO TO 60
         UDOT(K,NCPTS) = DZDT(K)
         DO 50 J=1,NPDE
           BC(K,J,3) = A(ILIM) * DBDUX(K,J)
@@ -2075,7 +2075,7 @@ C-----------------------------------------------------------------------
       DO 10 M=1,3
         ICC = IC + KORD*(M-1)
         DO 10 J=1,NPDE
-          UVAL(J,M) = 0.
+          UVAL(J,M) = 0D0
           DO 10 I=1,KORD
             UVAL(J,M) = UVAL(J,M) + C(J,I+IK)*A(I+ICC)
    10 CONTINUE
@@ -2106,7 +2106,7 @@ C-----------------------------------------------------------------------
       CALL GFUN (T, Y, YDOT, NPDE, NCPTS, WORK(IW1), WORK, WORK(IW14),
      *           WORK(IW15), WORK(IW16), WORK(IW3), WORK(IW9), IWORK)
       DO 10 I = 1,N0W
- 10     PW(I) = 0.
+ 10     PW(I) = 0D0
       N0 = NM1 + 1
       CALL ADDA (PW, N0, WORK(IW1), IWORK, WORK, NPDE)
       CALL DECB (N0, N, ML, MU, PW, IPIV, IER)
@@ -2194,8 +2194,8 @@ C WHICH ARE DEPENDENT ON THE BOUNDARY CONDITIONS.
 C-----------------------------------------------------------------------
       ILIM = NCPTS - 1
       DO 20 I=1,NPDE
-        SUM1 = 0.0
-        SUM2 = 0.0
+        SUM1 = 0D0
+        SUM2 = 0D0
         DO 10 J=1,NPDE
           SUM1 = SUM1 + BC(I,J,1) * V(J,1) + BC(I,J,2) * V(J,2)
           SUM2 = SUM2 + BC(I,J,3) * V(J,ILIM) + BC(I,J,4) * V(J,NCPTS)
@@ -2210,7 +2210,7 @@ C-----------------------------------------------------------------------
         I2 = (ICPTS-1) * KORD * 3
         ICOL = ILEFT(ICPTS) - KORD
         DO 40 JJ=1,NPDE
-          SUM1 = 0.
+          SUM1 = 0D0
           DO 30 J=1,KORD
             SUM1 = SUM1 + A(I2+J) * V(JJ,ICOL+J)
    30       CONTINUE
@@ -2236,7 +2236,7 @@ C SEE SUBROUTINES DECB AND SOLB.
 C
 C IN ADDITION TO VARIABLES DESCRIBED PREVIOUSLY, COMMUNICATION
 C WITH PSETIB USES THE FOLLOWING..
-C   EPSJ    = SQRT(UROUND), USED IN THE NUMERICAL JACOBIAN INCREMENTS.
+C   EPSJ    = DSQRT(UROUND), USED IN THE NUMERICAL JACOBIAN INCREMENTS.
 C   MW      = ML + MU + 1.
 C   NM1     = N0 - 1.
 C   N0ML    = N0*ML.
@@ -2245,7 +2245,7 @@ C
 C PACKAGE ROUTINES CALLED..  ADDA,DECB,DIFFF,EVAL,GFUN
 C USER ROUTINES CALLED..     BNDRY,DERIVF
 C CALLED BY..                STIFIB
-C FORTRAN FUNCTIONS USED..   ABS,FLOAT,MAX0,MIN0,SQRT
+C FORTRAN FUNCTIONS USED..   DABS,FLOAT,MAX0,MIN0,DSQRT
 C-----------------------------------------------------------------------
       COMMON /SIZES/ NINT,KORD,NCC,NPD,NCPTS,NEQN,IQUAD
       COMMON /GEAR1/ T,H,DUMMY(3),UROUND,N,IDUMMY(3)
@@ -2257,15 +2257,15 @@ C-----------------------------------------------------------------------
       DIMENSION DZDT(NPDE),DBDU(NPDE,NPDE),DBDUX(NPDE,NPDE)
       DO 10 I=1,NEQN
         DO 5 J=1,MW
-5         PW(I,J)=0.0E0
+5         PW(I,J)=0.0D0
 10    CONTINUE
       IF ( MITER .EQ. 1 ) GO TO 25
       CALL GFUN (T, C, SAVE2, NPDE, NCPTS,A,BC,DBDU,DBDUX,DZDT,XC,
      *           UVAL,ILEFT)
-      D = 0.
+      D = 0D0
       DO 20 I = 1,N
    20   D = D + SAVE2(I)**2
-      R0 =  ABS(H)* SQRT(D/FLOAT(N0))*1.D+03*UROUND
+      R0 =  DABS(H)* DSQRT(D/DFLOAT(N0))*1.D+03*UROUND
 C-----------------------------------------------------------------------
 C COMPUTE BLOCK ROWS OF JACOBIAN.
 C-----------------------------------------------------------------------
@@ -2300,17 +2300,17 @@ C-----------------------------------------------------------------------
       IROW = NEQN - NPDE
       DO 50 K=1,NPDE
         IROW = IROW + 1
-        IF(DBDU(K,K) .EQ. 0.0  .AND.  DBDUX(K,K) .EQ. 0.0) GO TO 50
+        IF(DBDU(K,K) .EQ. 0D0  .AND.  DBDUX(K,K) .EQ. 0D0) GO TO 50
         DO 40 J=1,MW
-          PW(IROW,J) = 0.0
+          PW(IROW,J) = 0D0
    40   CONTINUE
    50 CONTINUE
       CALL EVAL(1,NPDE,C,UVAL,A,ILEFT)
       CALL BNDRY(T,XC(1),UVAL,UVAL(1,2),DBDU,DBDUX,DZDT,NPDE)
       DO 70 K=1,NPDE
-        IF(DBDU(K,K) .EQ. 0.0  .AND.  DBDUX(K,K) .EQ. 0.0) GO TO 70
+        IF(DBDU(K,K) .EQ. 0D0  .AND.  DBDUX(K,K) .EQ. 0D0) GO TO 70
         DO 60 J=1,MW
-          PW(K,J) = 0.0
+          PW(K,J) = 0D0
    60   CONTINUE
    70 CONTINUE
       DO 80 I = 1,N0
@@ -2343,7 +2343,7 @@ C
 C PACKAGE ROUTINES CALLED..  NONE
 C USER ROUTINES CALLED..     F
 C CALLED BY..                PSETIB
-C FORTRAN FUNCTIONS USED..   AMAX1
+C FORTRAN FUNCTIONS USED..   DMAX1
 C-----------------------------------------------------------------------
       COMMON /GEAR9/ EPSJ,R0,ML,MU,MW,NM1,N0ML,N0W
       COMMON /SIZES/ NINT,KORD,NCC,NPD,NCPTS,NEQN,IQUAD
@@ -2353,9 +2353,9 @@ C-----------------------------------------------------------------------
       DO 40 J=1,NPDE
         UJ = U(J)
         R = EPSJ * CMAX(J)
-        R = AMAX1(R,R0)
+        R = DMAX1(R,R0)
         U(J) = U(J) + R
-        RINV = 1. / R
+        RINV = 1D0 / R
         CALL F(T,X,U,UX,UXX,DFDU(1,J),NPDE)
         DO 10 I=1,NPDE
    10     DFDU(I,J) = ( DFDU(I,J) - SAVE2(I+ID) ) * RINV
@@ -2402,7 +2402,7 @@ CCC      DIMENSION Y0(NEQN),Y(NEQN,MAXDER+1)
    10   Y0(I) = Y(I,1)
       L = JSTART + 1
       S = (TOUT - T)/H
-      S1 = 1.
+      S1 = 1D0
       DO 30 J = 2,L
         S1 = S1*S
         DO 20 I = 1,N
@@ -2446,15 +2446,17 @@ C CALLED BY..                STIFIB
 C FORTRAN FUNCTIONS USED..   FLOAT
 C-----------------------------------------------------------------------
       DIMENSION PERTST(12,2,3),EL(13),TQ(4)
-      DATA  PERTST / 1.,1.,2.,1.,.3158,.07407,.01391,.002182,
-     *                 .0002945,.00003492,.000003692,.0000003524,
-     *               1.,1.,.5,.1667,.04167,1.,1.,1.,1.,1.,1.,1.,
-     *               2.,12.,24.,37.89,53.33,70.08,87.97,106.9,
-     *                 126.7,147.4,168.8,191.0,
-     *               2.0,4.5,7.333,10.42,13.7,1.,1.,1.,1.,1.,1.,1.,
-     *               12.0,24.0,37.89,53.33,70.08,87.97,106.9,
-     *                 126.7,147.4,168.8,191.0,1.,
-     *               3.0,6.0,9.167,12.5,1.,1.,1.,1.,1.,1.,1.,1. /
+      DATA  PERTST / 1D0,1D0,2D0,1D0,.3158D0,.07407D0,.01391D0,
+     *               .002182D0,.0002945D0,.00003492D0,.000003692D0,
+     *               .0000003524D0,1D0,1D0,.5D0,.1667D0,.04167D0,
+     *               1D0,1D0,1D0,1D0,1D0,1D0,1D0,2D0,12D0,24D0,
+     *               37.89D0,53.33D0,70.08D0,87.97D0,106.9D0,
+     *               126.7D0,147.4D0,168.8D0,191.0D0,2.0D0,4.5D0,
+     *               7.333D0,10.42D0,13.7D0,1D0,1D0,1D0,1D0,1D0,
+     *               1D0,1D0,12.0D0,24.0D0,37.89D0,53.33D0,70.08D0,
+     *               87.97D0,106.9D0,126.7D0,147.4D0,168.8D0,
+     *               191.0D0,1D0,3.0D0,6.0D0,9.167D0,12.5D0,1D0,
+     *               1D0,1D0,1D0,1D0,1D0,1D0,1D0 /
 C
       GO TO (1,2),METH
     1 GO TO (101,102,103,104,105,106,107,108,109,110,111,112),NQ
@@ -2587,7 +2589,7 @@ C-----------------------------------------------------------------------
 C
  900  DO 910 K = 1,3
  910    TQ(K) = PERTST(NQ,METH,K)
-      TQ(4) = .5D-00*TQ(2)/ FLOAT(NQ+2)
+      TQ(4) = .5D-00*TQ(2)/ DFLOAT(NQ+2)
       RETURN
       END
       SUBROUTINE DECB (NDIM, N, ML, MU, B, IPIV, IER)
@@ -2622,7 +2624,7 @@ C
 C PACKAGE ROUTINES CALLED..  NONE
 C USER ROUTINES CALLED..     NONE
 C CALLED BY..                DIFFUN,INITAL,PSETIB
-C FORTRAN FUNCTIONS USED..   ABS,MIN0
+C FORTRAN FUNCTIONS USED..   DABS,MIN0
 C-----------------------------------------------------------------------
       DIMENSION B(NDIM,2*ML+MU+1),IPIV(N)
       IER = 0
@@ -2637,19 +2639,19 @@ C-----------------------------------------------------------------------
    10     B(I,J) = B(I,J+K)
         K = II + 1
         DO 20 J = K,LL
-   20     B(I,J) = 0.
+   20     B(I,J) = 0D0
    30   CONTINUE
    32 LR = ML
       DO 90 NR = 1,N1
         NP = NR + 1
         IF (LR .NE. N) LR = LR + 1
         MX = NR
-        XM =  ABS(B(NR,1))
+        XM =  DABS(B(NR,1))
         IF (ML .EQ. 0) GO TO 42
         DO 40 I = NP,LR
-          IF ( ABS(B(I,1)) .LE. XM) GO TO 40
+          IF ( DABS(B(I,1)) .LE. XM) GO TO 40
           MX = I
-          XM =  ABS(B(I,1))
+          XM =  DABS(B(I,1))
    40     CONTINUE
    42   IPIV(NR) = MX
         IF (MX .EQ. NR) GO TO 60
@@ -2658,8 +2660,8 @@ C-----------------------------------------------------------------------
           B(NR,I) = B(MX,I)
    50     B(MX,I) = XX
    60   XM = B(NR,1)
-        IF (XM .EQ. 0.) GO TO 100
-        B(NR,1) = 1./XM
+        IF (XM .EQ. 0D0) GO TO 100
+        B(NR,1) = 1D0/XM
         IF (ML .EQ. 0) GO TO 90
         XM = -B(NR,1)
         KK = MIN0(N-NR,LL-1)
@@ -2669,11 +2671,11 @@ C-----------------------------------------------------------------------
           B(NR,J) = XX
           DO 70 II = 1,KK
    70       B(I,II) = B(I,II+1) + XX*B(NR,II+1)
-   80     B(I,LL) = 0.
+   80     B(I,LL) = 0D0
    90   CONTINUE
    92 NR = N
-      IF (B(N,1) .EQ. 0.) GO TO 100
-      B(N,1) = 1./B(N,1)
+      IF (B(N,1) .EQ. 0D0) GO TO 100
+      B(N,1) = 1D0/B(N,1)
       RETURN
   100 IER = NR
       RETURN
@@ -2717,7 +2719,7 @@ C-----------------------------------------------------------------------
       DO 50 NB = 1,N1
         NR = N - NB
         IF (KK .NE. LL) KK = KK + 1
-        DP = 0.
+        DP = 0D0
         IF (LL .EQ. 0) GO TO 50
         DO 40 I = 1,KK
    40     DP = DP + B(NR,I+1)*Y(NR+I)

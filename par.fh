@@ -13,7 +13,6 @@ C--------------- PARAMETERS LIST ------------------------------------
      +         NPDE*NCPTS*(3*ML+MAXDER+7) )
       PARAMETER( IDIMIWORK=NCPTS*(NPDE+1) )
                                  ! PRECISION OF INTEGRATION
-      PARAMETER ( EPS_INT=1.D-5, JMAX_INT=20 )
 
 
 
