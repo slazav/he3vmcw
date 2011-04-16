@@ -4,3 +4,4 @@ FFLAGS= -Werror -Wconversion\
   -Wline-truncation -Wintrinsics-std -Wsurprising -Wno-tabs -Wunderflow\
   -Wno-unused-parameter -Wno-align-commons
 vmcw: vmcw.f pde_dp.f he3_funcs.f
+vmcw_st: vmcw_st.f pde_dp.f he3_funcs.f

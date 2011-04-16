@@ -1,0 +1,5 @@
+RESTORE state1.dat
+WAIT 0.1
+SWEEP_LP 2.5 0.2
+WAIT 0.5
+SAVE state2.dat

@@ -61,7 +61,7 @@ set output "out_n.fig"
 
 set title "Nx, Ny, Nz" 
 
-plot [150:4000] [-0.1:1.1]\
+plot [] [-0.1:1.1]\
   "mj0.0000.dat" using 1:5 ls 1 lw 1.5,\
   "mj0.0181.dat" using 1:5 ls 1,\
   "mj0.0360.dat" using 1:5 ls 1,\
@@ -107,7 +107,7 @@ set output "out_t.fig"
 
 set title "Theta" 
 
-plot [150:4000]\
+plot []\
   "mj0.0000.dat" using 1:(cos($8)) ls 1 lw 1.5,\
   "mj0.0181.dat" using 1:(cos($8)) ls 1,\
   "mj0.0360.dat" using 1:(cos($8)) ls 1,\
