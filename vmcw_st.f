@@ -3,7 +3,7 @@ C---------------- CB=0.0 !!!!!!!!!!
         implicit real*8(A-H,O-Z)
         include 'par.fh'
         include 'he3_const.fh'
-        common /TIMEP/ T, TEND
+        common /TIMEP/ T, TSTEP, TEND
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
         common /CH_PAR/ SLP,SWR,BETA,MJW,IBN
 
@@ -11,8 +11,7 @@ C---------------- CB=0.0 !!!!!!!!!!
         common /CFG_CELL/ CELL_LEN
         common /CFG_MESH/ XMESH_K,XMESH_ACC
 
-        common /BLK_UMU/ T11,GW,W,AA,TF,DIFF,WY,TW,
-     +   AF0,TS,TIME_STEP,XS
+        common /BLK_UMU/ T11,GW,W,AA,TF,DIFF,WY,TW,AF0,TS,XS
         dimension SCTCH(KORD*(NDERV+1)),WORK(IDIMWORK),IWORK(IDIMIWORK)
         character*64 CFG_KEY
 
@@ -67,7 +66,7 @@ C--------------- INITIALIZATION -------------------------------------
         elseif (CFG_KEY.EQ.'XS') then
           XS=CFG_VAL   ! AMPL OF X-OSC
         elseif (CFG_KEY.EQ.'TIME_STEP') then
-          TIME_STEP=CFG_VAL ! STEP IN TIME FOR TIME DEPENDENCIES
+          TSTEP=CFG_VAL ! STEP IN TIME FOR TIME DEPENDENCIES
 
 C       CFG_CELL parameter group:
         elseif (CFG_KEY.EQ.'CELL_LEN') then
@@ -115,6 +114,7 @@ C       PDECOL parameters:
         call SET_MESH()
         TIME=0D0
         SWR=0D0
+        TSTEP=5D-3
         call SET_ICOND()
 
         T0=T                         ! STARTING TIME FOR PDECOL
@@ -157,12 +157,8 @@ C----------------MAIN LOOP -------------------------------------------
    2    CONTINUE
 
           if(T.GE.TEND) call CMD_READ()
+          T=T+TSTEP
 
-          if(T.GT.TS-TIME_STEP) then
-            T = T + TIME_STEP * 0.02D0
-          else
-            T = T + TIME_STEP
-          endif
           call PDECOL(T0,T,DT,X,PDECOL_ACC,NINT,KORD,NCC,NPDE,MF,
      +                INDEX,WORK,IWORK)
           if(INDEX.NE.0) THEN
@@ -181,8 +177,7 @@ C-- F ---------- EVALUATION OF F ------------------------------------
         implicit real*8(A-H,O-Z)
         dimension U(NPDE),UX(NPDE),UXX(NPDE),FV(NPDE)
         common /CH_PAR/ SLP,SWR,BETA,MJW,IBN
-        common /BLK_UMU/ T11,GW,W,AA,TF,DIFF,WY,TW,
-     +   AF0,TS,TIME_STEP,XS
+        common /BLK_UMU/ T11,GW,W,AA,TF,DIFF,WY,TW,AF0,TS,XS
 C       T - time
 C       X - x-coord
 C       U   - Mx My Mz Nx Ny Nz T 
@@ -274,8 +269,7 @@ C-- BNDRY ------ BOUNDARY CONDITIONS -- B(U,UX)=Z(T) ------------
         dimension U(NPDE),UX(NPDE),DZDT(NPDE),
      *   DBDU(NPDE,NPDE),DBDUX(NPDE,NPDE)
         common /CH_PAR/ SLP,SWR,BETA,MJW,IBN
-        common /BLK_UMU/ T11,GW,W,AA,TF,DIFF,WY,TW,
-     +   AF0,TS,TIME_STEP,XS
+        common /BLK_UMU/ T11,GW,W,AA,TF,DIFF,WY,TW,AF0,TS,XS
         do I=1,NPDE
           DZDT(I)=0.0D0
           do J=1,NPDE
@@ -436,8 +430,7 @@ C-- DERIVF ----- SET UP DERIVATIVES ---------------------------------
         dimension U(NPDE),UX(NPDE),UXX(NPDE),
      *       DFDU(NPDE,NPDE),DFDUX(NPDE,NPDE),DFDUXX(NPDE,NPDE)
         common /CH_PAR/ SLP,SWR,BETA,MJW,IBN
-        common /BLK_UMU/ T11,GW,W,AA,TF,DIFF,WY,TW,
-     +   AF0,TS,TIME_STEP,XS
+        common /BLK_UMU/ T11,GW,W,AA,TF,DIFF,WY,TW,AF0,TS,XS
         do I=1,NPDE
           do J=1,NPDE
             DFDU(I,J)=0.0D0
@@ -529,12 +522,11 @@ C-- MONITOR ---- MONITORING THE SOLUTION ----------------------------
       subroutine MONITOR()
         implicit real*8(A-H,O-Z)
         include 'par.fh'
-        common /TIMEP/ T, TEND
+        common /TIMEP/ T, TSTEP, TEND
         common /GEAR0/ DTUSED,NQUSED,NSTEP,NFE,NJE
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
         common /CH_PAR/ SLP,SWR,BETA,MJW,IBN
-        common /BLK_UMU/ T11,GW,W,AA,TF,DIFF,WY,TW,
-     +   AF0,TS,TIME_STEP,XS
+        common /BLK_UMU/ T11,GW,W,AA,TF,DIFF,WY,TW,AF0,TS,XS
 C--------------- COMPUTE TIME DEPENDENCIES --------------------------
         TMMS=T*1000.0D0
 
@@ -552,7 +544,7 @@ C--------------- COMPUTE TIME DEPENDENCIES --------------------------
           write(44,61)
      +     TMMS,TMLP,TMAB,TMDS,TMPC,TMZ
         endif
-        if(T.GE.TS-TIME_STEP) THEN
+        if(T.GE.TS-TSTEP) THEN
           write(47,69)TMMS,TMDS
         endif
 C--------------- SHOW INFORMATION -----------------------------------
@@ -566,10 +558,9 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
       subroutine WRITE_MJ()
         implicit real*8(A-H,O-Z)
         include 'par.fh'
-        common /BLK_UMU/ T11,GW,W,AA,TF,DIFF,WY,TW,
-     +   AF0,TS,TIME_STEP,XS
+        common /BLK_UMU/ T11,GW,W,AA,TF,DIFF,WY,TW,AF0,TS,XS
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
-        common /TIMEP/ T, TEND
+        common /TIMEP/ T, TSTEP, TEND
         do I=1, NPTS, 128
           CT=DCOS(USOL(7,I,1))
           ST=DSIN(USOL(7,I,1))
@@ -623,7 +614,7 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
         common /CFG_CELL/ CELL_LEN
         common /CFG_WRITE/ WRITEMJ_XSTEP
-        common /TIMEP/ T, TEND
+        common /TIMEP/ T, TSTEP, TEND
         real*8 X0
         character*64 FNAME
         integer I
@@ -654,10 +645,9 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
       subroutine WRITEMJ_DO()
         implicit real*8(A-H,O-Z)
         include 'par.fh'
-        common /BLK_UMU/ T11,GW,W,AA,TF,DIFF,WY,TW,
-     +   AF0,TS,TIME_STEP,XS
+        common /BLK_UMU/ T11,GW,W,AA,TF,DIFF,WY,TW,AF0,TS,XS
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
-        common /TIMEP/ T, TEND
+        common /TIMEP/ T, TSTEP, TEND
         integer FILES_MJ(NPTS), FILE_MMJ
         common /FILES/ FILES_MJ, FILE_MMJ
 
@@ -710,10 +700,10 @@ CCC   STATE DUMP/RESTORE
       subroutine STATE_DUMP(FNAME)
         implicit real*8(A-H,O-Z)
         include 'par.fh'
-        common /BLK_UMU/ T11,GW,W,AA,TF,DIFF,WY,TW,
-     +   AF0,TS,TIME_STEP,XS
+        common /BLK_UMU/ T11,GW,W,AA,TF,DIFF,WY,TW,AF0,TS,XS
+        common /CH_PAR/ SLP,SWR,BETA,MJW,IBN
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
-        common /TIMEP/ T, TEND
+        common /TIMEP/ T, TSTEP, TEND
         character FNAME*128
         NFILE=2001
 
@@ -736,10 +726,10 @@ CCC   STATE DUMP/RESTORE
       subroutine STATE_RESTORE(FNAME)
         implicit real*8(A-H,O-Z)
         include 'par.fh'
-        common /BLK_UMU/ T11,GW,W,AA,TF,DIFF,WY,TW,
-     +   AF0,TS,TIME_STEP,XS
+        common /BLK_UMU/ T11,GW,W,AA,TF,DIFF,WY,TW,AF0,TS,XS
+        common /CH_PAR/ SLP,SWR,BETA,MJW,IBN
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
-        common /TIMEP/ T, TEND
+        common /TIMEP/ T, TSTEP, TEND
         character FNAME*128
 
         NFILE=2001
@@ -783,14 +773,16 @@ CCC   CMD PROCESSING
         common /CMD/ CMD_FILE, CMD_FILE_NAME
         integer CMD_FILE
         character CMD_LINE*128, CMD*20, FNAME*128
-        common /TIMEP/ T, TEND
+        common /TIMEP/ T, TSTEP, TEND
         common /CH_PAR/ SLP,SWR,BETA,MJW,IBN
-        real*8 T,TEND,TIME,ARG,SWR,SLP
+        real*8 T,TSTEP,TEND,ARG1,ARG2,SWR,SLP
 
 
  303    read (CMD_FILE,'(A)', END=302) CMD_LINE
 
 C       No args
+
+CC command STOP -- stop program
         if (CMD.EQ.'STOP') then
           write(*,*) 'Command: STOP'
           close (CMD_FILE)
@@ -800,41 +792,53 @@ C       No args
 C       1 str arg
         read (CMD_LINE,*, ERR=302) CMD, FNAME
 
+CC command SAVE/DUMP <filename> -- save state to file
         if (CMD.eq.'SAVE'.or.CMD.eq.'DUMP') then
           write(*,'(A, A, A, A)') 'Command: SAVE, ',
      *       ' FILE = ', FNAME, 's'
           call STATE_DUMP(FNAME)
-          return
+          goto 303 ! next command
         endif
 
+CC command RESTORE <filename> -- restore state from file
         if (CMD.eq.'RESTORE') then
           write(*,'(A, A, A ,A)') 'Command: RESTORE, ',
      *       ' FILE = ', FNAME, 's'
           call STATE_RESTORE(FNAME)
-          return
+          goto 303 ! next command
         endif
 
-C       1 arg
-        read (CMD_LINE,*, ERR=302) CMD, TIME
+C       1 real arg
+        read (CMD_LINE,*, ERR=302) CMD, ARG1
 
+CC command WAIT <time> -- wait
         if (CMD.EQ.'WAIT') then
           write(*,'(A, A, F5.3,A)') 'Command: WAIT, ',
-     *       ' T = ', TIME, 's'
-          TEND=T+TIME
+     *       ' T = ', ARG1, 's'
+          TEND=T+ARG1
           SLP=SLP+T*SWR
           SWR=0D0
           return
         endif
 
-C       2 arg
-        read (CMD_LINE,*, ERR=302) CMD, TIME, ARG
+CC command SET_TSTEP <step> -- set time step
+        if (CMD.EQ.'SET_TSTEP') then
+          write(*,'(A, A, F5.3,A)') 'Command: SET_TSTEP, ',
+     *       ' dT = ', ARG1, 's'
+          TSTEP=ARG1
+          goto 303 ! next command
+        endif
 
+C       2 real args
+        read (CMD_LINE,*, ERR=302) CMD, ARG1, ARG2
+
+CC command SWEEEP_LP <time,s> <rate, cm/s>
         if (CMD.EQ.'SWEEP_LP') then
           write(*,'(A, F5.3, A, F5.3, A)') 'Command: SWEEP_LP, ',
-     *       ARG, ' cm/s, T = ', TIME, 's'
-          TEND=T+TIME
-          SLP=SLP+T*(SWR-ARG)
-          SWR=ARG
+     *       ARG2, ' cm/s, T = ', ARG1, 's'
+          TEND=T+ARG1
+          SLP=SLP+T*(SWR-ARG2)
+          SWR=ARG2
           return
         endif
 
