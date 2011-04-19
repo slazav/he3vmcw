@@ -21,8 +21,12 @@ C---------------- CB=0.0 !!!!!!!!!!
 
         character CMD_FILE_NAME*20  ! file for reading commands
         integer   CMD_FILE          ! file descriptor
+        common /CMD_FILE/ CMD_FILE, CMD_FILE_NAME
         data CMD_FILE_NAME/'vmcw.cmd'/, CMD_FILE/200/
-        common /CMD/ CMD_FILE, CMD_FILE_NAME
+
+        integer   M_FILE ! file for writing Mx,My,Mz
+        common /M_FILE/ M_FILE
+        data M_FILE /201/
 
         real*8 WRITEMJ_XSTEP
         common /CFG_WRITE/ WRITEMJ_XSTEP
@@ -95,10 +99,8 @@ C       CFG_AER parameter group:
         goto 11
    12   close(54)
 
-        open(44,FILE='vmcw.t')
         open(21,FILE='vmcw.mj')
         open(24,FILE='vmcwx.mj')
-        open(47,FILE='pulse.t')
 
 C       PDECOL parameters:
         INDEX=1                      ! TYPE OF CALL (FIRST CALL)
@@ -195,9 +197,9 @@ C       calculate freq
         XZ=X*GW-WZ
 
 C       x-field step an TS
-        if(T.GE.TS)THEN
-          if (X.GE.0.09D0) XZ=XZ+XS
-        endif
+C        if(T.GE.TS)THEN
+C          if (X.GE.0.09D0) XZ=XZ+XS
+C        endif
 
 C       fix n vector length
         UN=DSQRT(U(4)**2+U(5)**2+U(6)**2)
@@ -527,6 +529,10 @@ C-- MONITOR ---- MONITORING THE SOLUTION ----------------------------
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
         common /CH_PAR/ SLP,SWR,BETA,MJW,IBN
         common /BLK_UMU/ T11,GW,W,AA,TF,DIFF,WY,TW,AF0,TS,XS
+
+        integer   M_FILE
+        common /M_FILE/ M_FILE
+
 C--------------- COMPUTE TIME DEPENDENCIES --------------------------
         TMMS=T*1000.0D0
 
@@ -535,20 +541,18 @@ C--------------- COMPUTE TIME DEPENDENCIES --------------------------
         TMDS=0.0D0
         TMZ=0.0D0
         do I=1,NPTS-1
-          TMAB=TMAB + USOL(1,I,1) * (X(I+1)-X(I)) *1D5
-          TMDS=TMDS + USOL(2,I,1) * (X(I+1)-X(I)) *1D5
-          TMZ=TMZ   + USOL(3,I,1) * (X(I+1)-X(I)) *1D5
+          TMAB=TMAB + USOL(1,I,1) * (X(I+1)-X(I))
+          TMDS=TMDS + USOL(2,I,1) * (X(I+1)-X(I))
+          TMZ=TMZ   + USOL(3,I,1) * (X(I+1)-X(I))
         enddo
+        TMAB=TMAB/(X(NPTS)-X(1))
+        TMDS=TMDS/(X(NPTS)-X(1))
+        TMZ=TMZ/(X(NPTS)-X(1))
         TMPC=(DSQRT(TMAB**2+TMDS**2))
-        if(T.LE.TS)THEN
-          write(44,61)
-     +     TMMS,TMLP,TMAB,TMDS,TMPC,TMZ
-        endif
-        if(T.GE.TS-TSTEP) THEN
-          write(47,69)TMMS,TMDS
-        endif
+        write(M_FILE, 61)
+     +   TMMS,TMLP,TMAB,TMDS,TMPC,TMZ
 C--------------- SHOW INFORMATION -----------------------------------
-        write(*,'(A,F6.1,A)') ' TIME=',T*1000D0,' ms'
+        write(*,'(A,F6.1,A)') ' TIME=',TMMS,' ms'
         if(MJW.EQ.1.OR.T.GE.TW) CALL WRITE_MJ()    !
         call WRITEMJ_DO()
    61   format(F7.1, 6(1PE14.6))
@@ -763,24 +767,30 @@ CCC   STATE DUMP/RESTORE
 CCC   CMD PROCESSING
 
       subroutine CMD_OPEN()
-        common /CMD/ CMD_FILE, CMD_FILE_NAME
+        common /CMD_FILE/ CMD_FILE, CMD_FILE_NAME
         integer CMD_FILE
         character CMD_FILE_NAME*20
         open (CMD_FILE, FILE=CMD_FILE_NAME)
       end
 
       subroutine CMD_READ()
-        common /CMD/ CMD_FILE, CMD_FILE_NAME
+
         integer CMD_FILE
-        character CMD_LINE*128, CMD*20, FNAME*128
+        common /CMD_FILE/ CMD_FILE, CMD_FILE_NAME
+
+        integer   M_FILE
+        common /M_FILE/ M_FILE
+
+        character CMD_LINE*128, CMD*128, FNAME*128
         common /TIMEP/ T, TSTEP, TEND
         common /CH_PAR/ SLP,SWR,BETA,MJW,IBN
         real*8 T,TSTEP,TEND,ARG1,ARG2,SWR,SLP
 
 
- 303    read (CMD_FILE,'(A)', END=302) CMD_LINE
+ 303    read (CMD_FILE,'(A)', ERR=302,END=302) CMD_LINE
 
 C       No args
+        CMD=CMD_LINE
 
 CC command STOP -- stop program
         if (CMD.EQ.'STOP') then
@@ -789,58 +799,80 @@ CC command STOP -- stop program
           stop
         endif
 
+CC command WRITE_M_STOP -- stop writing Mx,My,Mz to file
+        if (CMD.eq.'WRITE_M_STOP') then
+          write(*,'(A)') 'Command: WRITE_M_STOP'
+          close(M_FILE)
+          goto 303 ! next command
+        endif
+
 C       1 str arg
-        read (CMD_LINE,*, ERR=302) CMD, FNAME
+        read (CMD_LINE,*, ERR=302, END=303) CMD, FNAME
 
 CC command SAVE/DUMP <filename> -- save state to file
         if (CMD.eq.'SAVE'.or.CMD.eq.'DUMP') then
-          write(*,'(A, A, A, A)') 'Command: SAVE, ',
-     *       ' FILE = ', FNAME, 's'
+          write(*,'(A, A, A30)') 'Command: SAVE, ',
+     *       ' FILE = ', FNAME
           call STATE_DUMP(FNAME)
           goto 303 ! next command
         endif
 
 CC command RESTORE <filename> -- restore state from file
         if (CMD.eq.'RESTORE') then
-          write(*,'(A, A, A ,A)') 'Command: RESTORE, ',
-     *       ' FILE = ', FNAME, 's'
+          write(*,'(A, A, A30)') 'Command: RESTORE, ',
+     *       ' FILE = ', FNAME
           call STATE_RESTORE(FNAME)
           goto 303 ! next command
         endif
 
+CC command WRITE_M <filename> -- write Mx,My,Mz to file
+        if (CMD.eq.'WRITE_M') then
+          write(*,'(A, A, A30)') 'Command: WRITE_M, ',
+     *       ' FILE = ', FNAME
+          open(M_FILE,FILE=FNAME,ERR=310)
+          goto 303 ! next command
+ 310      write (*,*) 'Error: can''t open file: ', FNAME
+          goto 303 ! next command
+        endif
+
 C       1 real arg
-        read (CMD_LINE,*, ERR=302) CMD, ARG1
+        read (CMD_LINE,*, ERR=302, END=303) CMD, ARG1
 
 CC command WAIT <time> -- wait
         if (CMD.EQ.'WAIT') then
           write(*,'(A, A, F5.3,A)') 'Command: WAIT, ',
      *       ' T = ', ARG1, 's'
           TEND=T+ARG1
-          SLP=SLP+T*SWR
-          SWR=0D0
           return
         endif
 
 CC command SET_TSTEP <step> -- set time step
         if (CMD.EQ.'SET_TSTEP') then
-          write(*,'(A, A, F5.3,A)') 'Command: SET_TSTEP, ',
+          write(*,'(A, A, F5.3, A)') 'Command: SET_TSTEP, ',
      *       ' dT = ', ARG1, 's'
           TSTEP=ARG1
           goto 303 ! next command
         endif
 
-C       2 real args
-        read (CMD_LINE,*, ERR=302) CMD, ARG1, ARG2
-
-CC command SWEEEP_LP <time,s> <rate, cm/s>
-        if (CMD.EQ.'SWEEP_LP') then
-          write(*,'(A, F5.3, A, F5.3, A)') 'Command: SWEEP_LP, ',
-     *       ARG2, ' cm/s, T = ', ARG1, 's'
-          TEND=T+ARG1
-          SLP=SLP+T*(SWR-ARG2)
-          SWR=ARG2
-          return
+CC command SET_LP <position, cm> -- set larmor position
+        if (CMD.EQ.'SET_LP') then
+          write(*,'(A, F5.3, A)') 'Command: SET_LP, ',
+     *       ARG1, ' cm'
+          SLP=ARG1-T*SWR
+          goto 303 ! next command
         endif
+
+CC command SET_LP_SWEEP <rate, cm/s> -- set larmor position sweep rate
+        if (CMD.EQ.'SET_LP_SWEEP') then
+          write(*,'(A, F5.3, A)') 'Command: SET_LP_SWEEP, ',
+     *       ARG1, ' cm/s'
+          SLP=SLP+T*(SWR-ARG1)
+          SWR=ARG1
+          goto 303 ! next command
+        endif
+
+C       2 real args
+C        read (CMD_LINE,*, ERR=302) CMD, ARG1, ARG2
 
         write(*,*) 'Unknown command: ', CMD_LINE
         goto 303
@@ -854,7 +886,7 @@ CC command SWEEEP_LP <time,s> <rate, cm/s>
       end
 
       subroutine CMD_CLOSE()
-        common /CMD/ CMD_FILE, CMD_FILE_NAME
+        common /CMD_FILE/ CMD_FILE, CMD_FILE_NAME
         integer CMD_FILE
         close (CMD_FILE)
       end
