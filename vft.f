@@ -1,11 +1,11 @@
 C--------------- FFT ---------------------------------------
       PARAMETER (NNX=120000,ND=15000)
       IMPLICIT REAL*8(A-H,O-Z)
-      REAL FF(NNX),F1(ND),F2(ND),F3(ND),TT(NNX)
+      REAL*8 FF(NNX),F1(ND),F2(ND),F3(ND),TT(NNX)
       CHARACTER*100 STR2
       CHARACTER*100 I_FILE
       CHARACTER*100 O_FILE
-      PI2=8.0*DATAN(1.0D0)             ! 2*PI
+      PI2=8.0D0*DATAN(1.0D0)             ! 2*PI
 
       OPEN(89,FILE='FFT.PAR')
       READ(89,*)I_FILE
@@ -42,27 +42,27 @@ C--------------- FFT ---------------------------------------
         stop
       endif
 
-      AA=0.0
+      AA=0.0D0
       do I=0,II-1
         AA=AA+FF(I)
       enddo
-      AA=AA/II
+      AA=AA/dfloat(II)
       do I=0,II-1
         FF(I)=FF(I)-AA
       enddo
 
-      FI=FC-DF*NF
+      FI=FC-DF*dfloat(NF)
       do K=1,2*NF+1
-        F1(K)=0.0
-        F2(K)=0.0
+        F1(K)=0.0D0
+        F2(K)=0.0D0
       enddo
-      FMAX=0
-      AMAX=0
+      FMAX=0D0
+      AMAX=0D0
       open(87,FILE=O_FILE)
       do K=1,2*NF+1
-        FCUR=FI+DF*(K-1)
+        FCUR=FI+DF*dfloat(K-1)
         do I=0,II
-          TI=DT*(I-1)
+          TI=DT*dfloat(I-1)
           F1(K)=F1(K)+FF(I)*DSIN(PI2*FCUR*TI)
           F2(K)=F2(K)+FF(I)*DCOS(PI2*FCUR*TI)
         enddo
@@ -75,6 +75,6 @@ C--------------- FFT ---------------------------------------
         endif
         write(87,101)FCUR,F3(K)
       enddo
-      write (*,'("MAX: "3(1PE15.6))') (T1+T2)/2, AMAX, FMAX
+      write (*,'("MAX: "3(1PE15.6))') (T1+T2)/2D0, AMAX, FMAX
   101 format(4(1PE25.16))
       end
