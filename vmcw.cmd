@@ -1,12 +1,15 @@
-SET_LP -0.2
-RESTORE state1.dat
-WRITE_M mfile.dat
+HR 3
+LP -0.18
+WAIT 0.05
+SAVE state1a.dat
 
-SET_LP_SWEEP 0.2
-WAIT 5
+LP_SWEEP_TO 0.1 0.4
 
-SET_LP_SWEEP 0
-WAIT 0.5
-SAVE state2.dat
+WAIT 1
+SAVE state1b.dat
 
-WRITE_M_STOP
+LP_SWEEP_TO 0.18 0.2
+
+WAIT 1
+SAVE state1c.dat
+

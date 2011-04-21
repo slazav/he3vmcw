@@ -1,18 +1,17 @@
-
 C---------------- CB=0.0 !!!!!!!!!!
         implicit real*8(A-H,O-Z)
         include 'par.fh'
         include 'he3_const.fh'
         common /TIMEP/ T, TSTEP, TEND
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
-        common /CH_PAR/ SLP,SWR,BETA,MJW,IBN
+        common /CH_PAR/ LP0,LP_SWR,BETA,IBN
+        real*8 LP0,LP_SWR,BETA
 
         common /CFG_AER/  AER, AER_LEN, AER_CNT, AER_TRW
         common /CFG_CELL/ CELL_LEN
         common /CFG_MESH/ XMESH_K,XMESH_ACC
 
-        common /BLK_UMU/ T11,GW,W,AA,TF,DIFF,WY,TW,AF0,TS,XS
-        dimension SCTCH(KORD*(NDERV+1)),WORK(IDIMWORK),IWORK(IDIMIWORK)
+        common /BLK_UMU/ T11,GRAD,H,AA,TF,DIFF,HR0,HR_SWR,AF0
         character*64 CFG_KEY
 
         integer FILES_MJ(NPTS) ! files for writing MJ along the cell
@@ -31,6 +30,14 @@ C---------------- CB=0.0 !!!!!!!!!!
         real*8 WRITEMJ_XSTEP
         common /CFG_WRITE/ WRITEMJ_XSTEP
 
+C       PDECOL parameters
+        common /PDECOL_DATA/ INDEX,MF,SCTCH, WORK,IWORK,
+     *    PDECOL_ACC, PDECOL_ACC_LOG2,T0,DT
+        integer INDEX,IWORK(IDIMIWORK)
+        real*8 SCTCH(KORD*(NDERV+1)),WORK(IDIMWORK)
+        real*8 PDECOL_ACC, PDECOL_ACC_LOG2,T0,DT
+
+
 C--------------- INITIALIZATION -------------------------------------
 
         WRITEMJ_XSTEP=0.1D0
@@ -39,8 +46,6 @@ C--------------- INITIALIZATION -------------------------------------
    11   read(54,*,END=12) CFG_KEY, CFG_VAL
         if (CFG_KEY.EQ.'BETA') then
           BETA=CFG_VAL ! INITIAL TIPPING ANGLE (DEGREES)
-        elseif (CFG_KEY.EQ.'SLP') then
-          SLP=CFG_VAL  ! STARTING LARMOR POSITION (CM) (-0.1)
 
         elseif (CFG_KEY.EQ.'T1C') then
           T1C=CFG_VAL  ! T1*T                     (1.0E-3)
@@ -48,7 +53,7 @@ C--------------- INITIALIZATION -------------------------------------
           PDECOL_ACC_LOG2=CFG_VAL ! RELATIVE TIME ERROR BOUND
 
         elseif (CFG_KEY.EQ.'TEMP') then
-          TEMP=CFG_VAL ! TEMPERATURE (mK)
+          TTC=CFG_VAL ! TEMPERATURE (T/TC)
         elseif (CFG_KEY.EQ.'PRESS') then
           PRESS=CFG_VAL ! PRESS (bar)
 
@@ -56,21 +61,11 @@ C--------------- INITIALIZATION -------------------------------------
           H=CFG_VAL    ! FIELD (OE)               (110)
         elseif (CFG_KEY.EQ.'GRAD') then
           GRAD=CFG_VAL ! GRADIENT H (OE/CM)       (-0.2)
-        elseif (CFG_KEY.EQ.'HY') then
-          HY=CFG_VAL   ! RF FIELD (OE)            (0.06)
+        elseif (CFG_KEY.EQ.'HR') then
+          HR0=CFG_VAL   ! RF FIELD (OE)            (0.06)
 
         elseif (CFG_KEY.EQ.'IBN') then
           IBN=INT(CFG_VAL)  ! TYPE OF BOUND. COND.: 1-OPEN CELL 2-CLOSED CELL
-        elseif (CFG_KEY.EQ.'MJW') then
-          MJW=INT(CFG_VAL)  ! WRITE TO MJ FILE:  0-DON'T  1-WRITE
-        elseif (CFG_KEY.EQ.'TW') then
-          TW=CFG_VAL   ! TIME TO WRITE MJ
-        elseif (CFG_KEY.EQ.'TS') then
-          TS=CFG_VAL   ! TIME OF X OSC
-        elseif (CFG_KEY.EQ.'XS') then
-          XS=CFG_VAL   ! AMPL OF X-OSC
-        elseif (CFG_KEY.EQ.'TIME_STEP') then
-          TSTEP=CFG_VAL ! STEP IN TIME FOR TIME DEPENDENCIES
 
 C       CFG_CELL parameter group:
         elseif (CFG_KEY.EQ.'CELL_LEN') then
@@ -94,70 +89,34 @@ C       CFG_AER parameter group:
           AER_TRW=CFG_VAL
 
         else
-          write(*,*) 'warning: unknown parameter in cfg-file: ', CFG_KEY
+          write(*,'(A,A20)')
+     *     'warning: unknown parameter in cfg-file: ', CFG_KEY
         endif
         goto 11
    12   close(54)
 
-        open(21,FILE='vmcw.mj')
-        open(24,FILE='vmcwx.mj')
+        T=0D0
+        TSTEP=5D-3
+        TEND=0D0
 
-C       PDECOL parameters:
-        INDEX=1                      ! TYPE OF CALL (FIRST CALL)
-        MF=22
-        IWORK(1)=IDIMWORK
-        IWORK(2)=IDIMIWORK
-        do I=1,IDIMWORK
-          WORK(I)=0.0D0
-        enddo
-        PDECOL_ACC = 2.0D0**(-PDECOL_ACC_LOG2)
+        LP0=0D0
+        HR0=1D-3
+        LP_SWR=0D0
+        HR_SWR=0D0
 
+        call PDECOL_INIT(T) ! set PDECOL parameters
 
         call SET_MESH()
-        TIME=0D0
-        SWR=0D0
-        TSTEP=5D-3
         call SET_ICOND()
-
-        T0=T                         ! STARTING TIME FOR PDECOL
-        DT=1.D-10                    ! INITIAL STEP SIZE IN T
-
 
         call WRITEMJ_OPEN()
 
 C--------------- COMPUTE PARAMETERS ----------------------------
         PI=4.0D0*DATAN(1.0D0)
-        W=GAM*H                    ! OMEGA (RAD/SEC)
-        WY=GAM*HY                  ! rf-OMEGA (RAD/SEC)
-        GW=GAM*GRAD                ! GRADIENT OMEGA (RAD/SEC/CM)
-        T1=T1C*TEMP/1000D0         ! RELAXATION TIME
-        T11=1.0D0/T1
-
-        TTC=TEMP/TCF(PRESS)             ! T/TC  19.5 BAR
-        TETC=DSQRT(1.0D0-TTC)
-C        FLEG=330460.0D0*TETC           ! LEGGETT FREQ.(HZ) 0 BAR
-        CPAR=CPARF(PRESS,TEMP)          ! SPIN WAVES VELOCITY
-        FLEG=DSQRT(LF2F(PRESS,TTC))     ! LEGGETT FREQ
-        DIFF=DF(PRESS,TEMP)             ! SPIN DIFFUSION
-
-        TF=1.2D-7/TETC                  ! TAU EFFECTIVE (L-T) SECONDS WV pic.10.5 20bar
-
-        AA=FLEG*FLEG/W*4.0D0*PI**2
-        AF0=-CPAR**2/W
-
-        write(*,'(" P: ",F5.2," bar (Tc = ",F5.3," mK, Tab = ",F5.3,
-     *            " mK), T: ",F5.3," mK = ",F5.3," Tc")'),
-     *    PRESS, TCF(PRESS), TABF(PRESS), TEMP, TTC
-        write(*,'(" F_legg: ", F9.3, " kHz,  ",
-     .            " D: ", E9.2, " cm^2/s, ",
-     .            " T_lt: ", E8.2, " s, ",
-     .            " C_par: ", F6.1, " cm/s ")'),
-     .    FLEG/1D3, DIFF, TF, CPAR
-
+        call SET_HE3PT(PRESS,TTC,T1C)
         call CMD_OPEN()
 C----------------MAIN LOOP -------------------------------------------
    2    CONTINUE
-
           if(T.GE.TEND) call CMD_READ()
           T=T+TSTEP
 
@@ -170,36 +129,29 @@ C----------------MAIN LOOP -------------------------------------------
 
           call VALUES(X,USOL,SCTCH,NPDE,NPTS,NPTS,2,WORK)
           call MONITOR()
-C          call STATE_DUMP()
         goto 2
-   68   format(F8.4, 4(1PE18.9))
       end
 C-- F ---------- EVALUATION OF F ------------------------------------
       subroutine F(T,X,U,UX,UXX,FV,NPDE)
         implicit real*8(A-H,O-Z)
         dimension U(NPDE),UX(NPDE),UXX(NPDE),FV(NPDE)
-        common /CH_PAR/ SLP,SWR,BETA,MJW,IBN
-        common /BLK_UMU/ T11,GW,W,AA,TF,DIFF,WY,TW,AF0,TS,XS
+        common /CH_PAR/ LP0,LP_SWR,BETA,IBN
+        real*8 LP0,LP_SWR,BETA
+        common /BLK_UMU/ T11,GRAD,H,AA,TF,DIFF,HR0,HR_SWR,AF0
+        common /HE3DATA/ PCP,TPCP,PA,ANA,PI1,HC,R,AKB,GAM,AM3
 C       T - time
 C       X - x-coord
 C       U   - Mx My Mz Nx Ny Nz T 
 C       UX  - dU/dx
 C       UXX - d2U/dx2
 C       FV  - result
-
-C       W = GAM H
-C       WY - RF-field
-
 C       calculate freq
-        WZ=GW*(SLP+SWR*T)
-        WR=W+X*GW
-        WZR=WZ+W
-        XZ=X*GW-WZ
 
-C       x-field step an TS
-C        if(T.GE.TS)THEN
-C          if (X.GE.0.09D0) XZ=XZ+XS
-C        endif
+        WY = GAM*(HR0+HR_SWR*T)
+        WZ = GAM*GRAD*(LP0+LP_SWR*T)
+        WR = GAM*(H+GRAD*X)
+        WZR= GAM*H + WZ
+        XZ=  GAM*GRAD*(X-LP0-LP_SWR*T)
 
 C       fix n vector length
         UN=DSQRT(U(4)**2+U(5)**2+U(6)**2)
@@ -270,8 +222,9 @@ C-- BNDRY ------ BOUNDARY CONDITIONS -- B(U,UX)=Z(T) ------------
         implicit real*8(A-H,O-Z)
         dimension U(NPDE),UX(NPDE),DZDT(NPDE),
      *   DBDU(NPDE,NPDE),DBDUX(NPDE,NPDE)
-        common /CH_PAR/ SLP,SWR,BETA,MJW,IBN
-        common /BLK_UMU/ T11,GW,W,AA,TF,DIFF,WY,TW,AF0,TS,XS
+        common /CH_PAR/ LP0,LP_SWR,BETA,IBN
+        real*8 LP0,LP_SWR,BETA
+        common /BLK_UMU/ T11,GRAD,H,AA,TF,DIFF,HR0,HR_SWR,AF0
         do I=1,NPDE
           DZDT(I)=0.0D0
           do J=1,NPDE
@@ -350,7 +303,8 @@ C-- SET_ICOND -- INITIAL CONDITIONS ---------------------------------
       subroutine SET_ICOND()
         implicit real*8(A-H,O-Z)
         include 'par.fh'
-        common /CH_PAR/ SLP,SWR,BETA,MJW,IBN
+        common /CH_PAR/ LP0,LP_SWR,BETA,IBN
+        real*8 LP0,LP_SWR,BETA
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
         PI=4.0D0*DATAN(1.0D0)
         BET=BETA*PI/180.0D0
@@ -397,7 +351,8 @@ C-- USP(X) ----- CSI OF SOLUTION ------------------------------------
         implicit real*8(A-H,O-Z)
         include 'par.fh'
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
-        common /CH_PAR/ SLP,SWR,BETA,MJW,IBN
+        common /CH_PAR/ LP0,LP_SWR,BETA,IBN
+        real*8 LP0,LP_SWR,BETA
         do K=1,NPTS
           USM=DSQRT(USOL(5,K,1)**2+USOL(6,K,1)**2+USOL(4,K,1)**2)
           USOL(4,K,1)=USOL(4,K,1)/USM
@@ -413,8 +368,7 @@ C-- USP(X) ----- CSI OF SOLUTION ------------------------------------
             IK=II
           endif
         enddo
-        J=IK
-        USP=USOL(I,J,1)
+        USP=USOL(I,IK,1)
         return
       end
 C-- UINIT ------ INITIAL CONDITIONS ---------------------------------
@@ -431,8 +385,9 @@ C-- DERIVF ----- SET UP DERIVATIVES ---------------------------------
         implicit real*8(A-H,O-Z)
         dimension U(NPDE),UX(NPDE),UXX(NPDE),
      *       DFDU(NPDE,NPDE),DFDUX(NPDE,NPDE),DFDUXX(NPDE,NPDE)
-        common /CH_PAR/ SLP,SWR,BETA,MJW,IBN
-        common /BLK_UMU/ T11,GW,W,AA,TF,DIFF,WY,TW,AF0,TS,XS
+        common /CH_PAR/ LP0,LP_SWR,BETA,IBN
+        real*8 LP0,LP_SWR,BETA
+        common /BLK_UMU/ T11,GRAD,H,AA,TF,DIFF,HR0,HR_SWR,AF0
         do I=1,NPDE
           do J=1,NPDE
             DFDU(I,J)=0.0D0
@@ -527,8 +482,10 @@ C-- MONITOR ---- MONITORING THE SOLUTION ----------------------------
         common /TIMEP/ T, TSTEP, TEND
         common /GEAR0/ DTUSED,NQUSED,NSTEP,NFE,NJE
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
-        common /CH_PAR/ SLP,SWR,BETA,MJW,IBN
-        common /BLK_UMU/ T11,GW,W,AA,TF,DIFF,WY,TW,AF0,TS,XS
+        common /CH_PAR/ LP0,LP_SWR,BETA,IBN
+        real*8 LP0,LP_SWR,BETA
+        common /BLK_UMU/ T11,GRAD,H,AA,TF,DIFF,HR0,HR_SWR,AF0
+        common /CFG_CELL/ CELL_LEN
 
         integer   M_FILE
         common /M_FILE/ M_FILE
@@ -536,7 +493,7 @@ C-- MONITOR ---- MONITORING THE SOLUTION ----------------------------
 C--------------- COMPUTE TIME DEPENDENCIES --------------------------
         TMMS=T*1000.0D0
 
-        TMLP=GW*(SLP+SWR*T)
+        TMLP=(LP0+LP_SWR*T)/CELL_LEN
         TMAB=0.0D0
         TMDS=0.0D0
         TMZ=0.0D0
@@ -545,70 +502,22 @@ C--------------- COMPUTE TIME DEPENDENCIES --------------------------
           TMDS=TMDS + USOL(2,I,1) * (X(I+1)-X(I))
           TMZ=TMZ   + USOL(3,I,1) * (X(I+1)-X(I))
         enddo
-        TMAB=TMAB/(X(NPTS)-X(1))
-        TMDS=TMDS/(X(NPTS)-X(1))
-        TMZ=TMZ/(X(NPTS)-X(1))
+        TMAB=TMAB/CELL_LEN
+        TMDS=TMDS/CELL_LEN
+        TMZ=TMZ/CELL_LEN
         TMPC=(DSQRT(TMAB**2+TMDS**2))
         write(M_FILE, 61)
      +   TMMS,TMLP,TMAB,TMDS,TMPC,TMZ
 C--------------- SHOW INFORMATION -----------------------------------
-        write(*,'(A,F6.1,A)') ' TIME=',TMMS,' ms'
-        if(MJW.EQ.1.OR.T.GE.TW) CALL WRITE_MJ()    !
+        write(*,'(A,F6.1,A,A,F6.3,A,F6.3,A,A,F6.3,A)')
+     *    ' TIME = ',TMMS,' ms, ',
+     *    'LP = ', LP0+LP_SWR*T , ' cm = ', TMLP , ' cell, ',
+     *    'HR = ',  1D3*(HR0+HR_SWR*T) , ' mOe'
         call WRITEMJ_DO()
-   61   format(F7.1, 6(1PE14.6))
+   61   format(F7.1, 6(F8.4))
    69   format(F9.2, 1PE25.16)
       end
 C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
-      subroutine WRITE_MJ()
-        implicit real*8(A-H,O-Z)
-        include 'par.fh'
-        common /BLK_UMU/ T11,GW,W,AA,TF,DIFF,WY,TW,AF0,TS,XS
-        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
-        common /TIMEP/ T, TSTEP, TEND
-        do I=1, NPTS, 128
-          CT=DCOS(USOL(7,I,1))
-          ST=DSIN(USOL(7,I,1))
-          CTM=1.0D0-CT
-          UNx=USOL(4,I,1)
-          UNy=USOL(5,I,1)
-          UNz=USOL(6,I,1)
-
-          UX1=USOL(1,I,2)
-          UX2=USOL(2,I,2)
-          UX3=USOL(3,I,2)
-          UX4=USOL(4,I,2)
-          UX5=USOL(5,I,2)
-          UX6=USOL(6,I,2)
-          UX7=USOL(7,I,2)
-
-          DD45 = UNx*UX5 - UX4*UNy
-          FTN = CTM*DD45 - ST*UX6 - UX7*UNz
-
-          UJX=2.0D0*(UX7*UNx+ST*UX4+CTM*(UNy*UX6-UX5*UNz))+
-     *     (CTM*UNx*UNz+UNy*ST)*FTN
-          UJY=2.0D0*(UX7*UNy+ST*UX5-CTM*(UNx*UX6-UX4*UNz))+
-     *     (CTM*UNy*UNz-UNx*ST)*FTN
-          UJZ=2.0D0*(UX7*UNz+ST*UX6+CTM*(UNx*UX5-UX4*UNy))+
-     *     (CTM*UNz**2+CT)*FTN
-          AF=AF0-AF0*0.5D0 * AER_STEP(X,0)
-          UFX=UJX*AF-DIFF*UX1
-          UFY=UJY*AF-DIFF*UX2
-          UFZ=UJZ*AF-DIFF*UX3
-
-          write(21,101) T*1000D0,X(I),
-     *      USOL(1,I,1),USOL(2,I,1),USOL(3,I,1),
-     *      USOL(4,I,1),USOL(5,I,1),USOL(6,I,1),USOL(7,I,1)
-          write(24,102) T*1000D0, X(I),
-     *      USOL(1,I,2),USOL(2,I,2),USOL(3,I,2),
-     *      USOL(4,I,2),USOL(5,I,2),USOL(6,I,2),USOL(7,I,2),
-     *      UFX,UFY,UFZ
-
-        enddo
-        write(24,*)''
-        write(21,*)''
-  101   format(F7.1 F10.6, 7(1PE15.6))
-  102   format(F7.1 F10.6, 10(1PE15.6))
-      end
 
       subroutine WRITEMJ_OPEN()
         include 'par.fh'
@@ -649,11 +558,14 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
       subroutine WRITEMJ_DO()
         implicit real*8(A-H,O-Z)
         include 'par.fh'
-        common /BLK_UMU/ T11,GW,W,AA,TF,DIFF,WY,TW,AF0,TS,XS
+        common /BLK_UMU/ T11,GRAD,H,AA,TF,DIFF,HR0,HR_SWR,AF0
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
         common /TIMEP/ T, TSTEP, TEND
         integer FILES_MJ(NPTS), FILE_MMJ
         common /FILES/ FILES_MJ, FILE_MMJ
+        common /CH_PAR/ LP0,LP_SWR,BETA,IBN
+        real*8 LP0,LP_SWR,BETA
+        common /CFG_CELL/ CELL_LEN
 
         do I=1, NPTS
           if (FILES_MJ(I).NE.0) then
@@ -684,7 +596,7 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
             UFY=UJY*AF-DIFF*UX2
             UFZ=UJZ*AF-DIFF*UX3
 
-            write(FILES_MJ(I),101) T*1000D0,
+            write(FILES_MJ(I),101) T*1000D0, (LP0+LP_SWR*T)/CELL_LEN,
      *        USOL(1,I,1),USOL(2,I,1),USOL(3,I,1),
      *        USOL(4,I,1),USOL(5,I,1),USOL(6,I,1),USOL(7,I,1)
 C            write(24,102) T*1000., X(I),
@@ -704,8 +616,9 @@ CCC   STATE DUMP/RESTORE
       subroutine STATE_DUMP(FNAME)
         implicit real*8(A-H,O-Z)
         include 'par.fh'
-        common /BLK_UMU/ T11,GW,W,AA,TF,DIFF,WY,TW,AF0,TS,XS
-        common /CH_PAR/ SLP,SWR,BETA,MJW,IBN
+        common /BLK_UMU/ T11,GRAD,H,AA,TF,DIFF,HR0,HR_SWR,AF0
+        common /CH_PAR/ LP0,LP_SWR,BETA,IBN
+        real*8 LP0,LP_SWR,BETA
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
         common /TIMEP/ T, TSTEP, TEND
         character FNAME*128
@@ -713,12 +626,13 @@ CCC   STATE DUMP/RESTORE
 
         open (NFILE, FILE=FNAME)
         write (NFILE, '("# T,s  LP,cm")')
-        write (NFILE, '(F8.5," ",F8.5)') T, SLP+T*SWR
+        write (NFILE, '(3(F10.5))') T,
+     *   LP0+T*LP_SWR, HR0+T*HR_SWR
         write (NFILE, '("# USOL(i,j,k):")')
         do I=1, NPTS
           do ID=1, NDERV
             do IP=1, NPDE
-              write (NFILE, '(E18.10E3) ',advance='no')
+              write (NFILE, '(E19.10E3)', advance='no')
      *                USOL(IP,I,ID)
             enddo
           enddo
@@ -730,8 +644,9 @@ CCC   STATE DUMP/RESTORE
       subroutine STATE_RESTORE(FNAME)
         implicit real*8(A-H,O-Z)
         include 'par.fh'
-        common /BLK_UMU/ T11,GW,W,AA,TF,DIFF,WY,TW,AF0,TS,XS
-        common /CH_PAR/ SLP,SWR,BETA,MJW,IBN
+        common /BLK_UMU/ T11,GRAD,H,AA,TF,DIFF,HR0,HR_SWR,AF0
+        common /CH_PAR/ LP0,LP_SWR,BETA,IBN
+        real*8 LP0,LP_SWR,BETA
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
         common /TIMEP/ T, TSTEP, TEND
         character FNAME*128
@@ -740,33 +655,43 @@ CCC   STATE DUMP/RESTORE
 
         open (NFILE, FILE=FNAME)
         read (NFILE, '(A)', END=201)
-        read (NFILE, *, END=202) T, SLP
-        SWR=0D0
+        read (NFILE, *, END=202) T, LP0, HR0
         read (NFILE, '(A)', END=202)
+        LP_SWR=0D0
+        HR_SWR=0D0
         do I=1, NPTS
           do ID=1, NDERV
             do IP=1, NPDE
-              read (NFILE, '(E18.10E3)',END=202,advance='no')
+              read (NFILE, '(E19.10E3)',
+     *                ERR=202, END=202, advance='no')
      *                USOL(IP,I,ID)
             enddo
           enddo
-          read (NFILE, '()',END=202)
+          read (NFILE, '()',ERR=202, END=202)
         enddo
         close (NFILE)
-        write(*,*) 'Resore state: T=', T
+        write(*,'("Restore state:", 3(A,F7.4,A))')
+     *   ' T = ', T, ' s',
+     *   ' LP = ', LP0, ' cm',
+     *   ' HR = ', HR0*1D3, ' mOe'
+        call PDECOL_INIT(T) ! reset PDECOL parameters
         return
 
- 202    write (*, '("Error: incomplete file vmcw_usol.dat")')
- 201    close (NFILE)
+ 202    write (*, '("Error: incomplete file: ",A)'), FNAME
+        close (NFILE)
         T=0D0
-        TIME=0D0
-        SWR=0D0
+        LP_SWR=0D0
+        HR_SWR=0D0
         call SET_ICOND()
+        return
+ 201    write (*, '("Error: skip file: ",A)'), FNAME
+        close (NFILE)
       end
 
 CCC   CMD PROCESSING
 
       subroutine CMD_OPEN()
+        implicit real*8(A-H,O-Z)
         common /CMD_FILE/ CMD_FILE, CMD_FILE_NAME
         integer CMD_FILE
         character CMD_FILE_NAME*20
@@ -774,6 +699,7 @@ CCC   CMD PROCESSING
       end
 
       subroutine CMD_READ()
+        implicit real*8(A-H,O-Z)
 
         integer CMD_FILE
         common /CMD_FILE/ CMD_FILE, CMD_FILE_NAME
@@ -783,35 +709,42 @@ CCC   CMD PROCESSING
 
         character CMD_LINE*128, CMD*128, FNAME*128
         common /TIMEP/ T, TSTEP, TEND
-        common /CH_PAR/ SLP,SWR,BETA,MJW,IBN
-        real*8 T,TSTEP,TEND,ARG1,ARG2,SWR,SLP
+        common /CH_PAR/ LP0,LP_SWR,BETA,IBN
+        real*8 LP0,LP_SWR,BETA
+        real*8 T,TSTEP,TEND,ARG1,ARG2
+        common /BLK_UMU/ T11,GRAD,H,AA,TF,DIFF,HR0,HR_SWR,AF0
+
+        real*8 LP,HR,STEPS
 
 
  303    read (CMD_FILE,'(A)', ERR=302,END=302) CMD_LINE
+
+        if (CMD_LINE(1:1).eq.'#') goto 303
+        if (CMD_LINE.eq.'') goto 303
 
 C       No args
         CMD=CMD_LINE
 
 CC command STOP -- stop program
         if (CMD.EQ.'STOP') then
-          write(*,*) 'Command: STOP'
+          write(*,*) '> STOP'
           close (CMD_FILE)
           stop
         endif
 
 CC command WRITE_M_STOP -- stop writing Mx,My,Mz to file
         if (CMD.eq.'WRITE_M_STOP') then
-          write(*,'(A)') 'Command: WRITE_M_STOP'
+          write(*,'(A)') '> WRITE_M_STOP'
           close(M_FILE)
           goto 303 ! next command
         endif
 
 C       1 str arg
-        read (CMD_LINE,*, ERR=302, END=303) CMD, FNAME
+        read (CMD_LINE,*, ERR=301, END=301) CMD, FNAME
 
 CC command SAVE/DUMP <filename> -- save state to file
         if (CMD.eq.'SAVE'.or.CMD.eq.'DUMP') then
-          write(*,'(A, A, A30)') 'Command: SAVE, ',
+          write(*,'(A, A, A30)') '> SAVE, ',
      *       ' FILE = ', FNAME
           call STATE_DUMP(FNAME)
           goto 303 ! next command
@@ -819,7 +752,7 @@ CC command SAVE/DUMP <filename> -- save state to file
 
 CC command RESTORE <filename> -- restore state from file
         if (CMD.eq.'RESTORE') then
-          write(*,'(A, A, A30)') 'Command: RESTORE, ',
+          write(*,'(A, A, A30)') '> RESTORE, ',
      *       ' FILE = ', FNAME
           call STATE_RESTORE(FNAME)
           goto 303 ! next command
@@ -827,7 +760,7 @@ CC command RESTORE <filename> -- restore state from file
 
 CC command WRITE_M <filename> -- write Mx,My,Mz to file
         if (CMD.eq.'WRITE_M') then
-          write(*,'(A, A, A30)') 'Command: WRITE_M, ',
+          write(*,'(A, A, A30)') '> WRITE_M, ',
      *       ' FILE = ', FNAME
           open(M_FILE,FILE=FNAME,ERR=310)
           goto 303 ! next command
@@ -836,51 +769,114 @@ CC command WRITE_M <filename> -- write Mx,My,Mz to file
         endif
 
 C       1 real arg
-        read (CMD_LINE,*, ERR=302, END=303) CMD, ARG1
+        read (CMD_LINE,*, ERR=301, END=301) CMD, ARG1
 
 CC command WAIT <time> -- wait
         if (CMD.EQ.'WAIT') then
-          write(*,'(A, A, F5.3,A)') 'Command: WAIT, ',
-     *       ' T = ', ARG1, 's'
+          write(*,'("> ", A12, F6.3, A)') CMD, ARG1, 's'
+          LP0=LP0+T*LP_SWR
+          LP_SWR=0D0
+          HR0=HR0+T*HR_SWR
+          HR_SWR=0D0
           TEND=T+ARG1
           return
         endif
 
-CC command SET_TSTEP <step> -- set time step
-        if (CMD.EQ.'SET_TSTEP') then
-          write(*,'(A, A, F5.3, A)') 'Command: SET_TSTEP, ',
-     *       ' dT = ', ARG1, 's'
+CC command TSTEP <step> -- set time step
+        if (CMD.EQ.'TSTEP') then
+          write(*,'("> ", A12, F5.3, A)') CMD, ARG1, ' s'
           TSTEP=ARG1
           goto 303 ! next command
         endif
 
-CC command SET_LP <position, cm> -- set larmor position
-        if (CMD.EQ.'SET_LP') then
-          write(*,'(A, F5.3, A)') 'Command: SET_LP, ',
-     *       ARG1, ' cm'
-          SLP=ARG1-T*SWR
+CC command LP <position, cm> -- set larmor position
+        if (CMD.EQ.'LP') then
+          write(*,'("> ", A12, F5.3, A)') CMD, ARG1, ' cm'
+          LP0=ARG1-T*LP_SWR
           goto 303 ! next command
         endif
 
-CC command SET_LP_SWEEP <rate, cm/s> -- set larmor position sweep rate
-        if (CMD.EQ.'SET_LP_SWEEP') then
-          write(*,'(A, F5.3, A)') 'Command: SET_LP_SWEEP, ',
-     *       ARG1, ' cm/s'
-          SLP=SLP+T*(SWR-ARG1)
-          SWR=ARG1
+CC command LP_ADD <distance, cm> -- add value to larmor position
+        if (CMD.EQ.'LP_ADD') then
+          write(*,'("> ", A12, F5.3, A)') CMD, ARG1, ' cm'
+          LP0=LP0+ARG1
           goto 303 ! next command
         endif
+
+CC command LP_RATE <rate, cm/s> -- set larmor position sweep rate
+C        if (CMD.EQ.'LP_RATE') then
+C          write(*,'("> ", A12, F5.3, A)') CMD, ARG1, ' cm/s'
+C          LP0=LP0+T*(LP_SWR-ARG1)
+C          LP_SWR=ARG1
+C          goto 303 ! next command
+C        endif
+
+CC command HR <mOe> -- set rf field
+        if (CMD.EQ.'HR') then
+          write(*,'("> ", A12, F5.3, A)') CMD, ARG1, ' mOe'
+          HR0=ARG1*1D-3 - T*HR_SWR
+          goto 303 ! next command
+        endif
+
+CC command HR_ADD <mOe> -- add value to RF-field
+        if (CMD.EQ.'HR_ADD') then
+          write(*,'("> ", A12, F5.3, A)') CMD, ARG1, ' mOe'
+          HR0=HR0+ARG1*1D-3
+          goto 303 ! next command
+        endif
+
+CC command HR_RATE <rate, mOe/s> -- set RF-field sweep rate
+C        if (CMD.EQ.'HR_RATE') then
+C          write(*,'("> ", A12, F5.3, A)') CMD, ARG1, ' mOe/s'
+C          ARG1=ARG1*1D-3
+C          HR0=HR0+T*(HR_SWR-ARG1)
+C          HR_SWR=ARG1
+C          goto 303 ! next command
+C        endif
 
 C       2 real args
-C        read (CMD_LINE,*, ERR=302) CMD, ARG1, ARG2
+        read (CMD_LINE,*, ERR=302) CMD, ARG1, ARG2
 
-        write(*,*) 'Unknown command: ', CMD_LINE
+
+CC command LP_SWEEP_TO <value, cm> <rate, mOe/s> -- sweep larmor position
+        if (CMD.EQ.'LP_SWEEP_TO') then
+          write(*,'("> ", A12, F5.3, A, F5.3, A)') CMD,
+     *       ARG1, ' cm with rate ', ARG2, 'cm/s'
+          LP = LP0 + T*LP_SWR
+          ARG2=dabs(ARG2)
+          STEPS = dabs(dfloat(int((ARG1-LP)/ARG2/TSTEP)))
+          write(*,*) ' do ', int(STEPS), ' time steps'
+          if (STEPS.eq.0) goto 303
+          LP_SWR = (ARG1-LP)/(STEPS*TSTEP)
+          write(*,'(A,F8.5,A)') ' real rate: ', LP_SWR,  ' cm/s'
+          LP0  = LP - T*LP_SWR
+          TEND = T + STEPS*TSTEP
+          return
+        endif
+
+CC command HR_SWEEP_TO <value, mOe> <rate, mOe/s> -- sweep RF-field
+        if (CMD.EQ.'HR_SWEEP_TO') then
+          write(*,'("> ", A12, F5.3, A, F5.3, A)') CMD,
+     *       ARG1, ' mOe with rate ', ARG2, ' mOe/s'
+          ARG1=ARG1*1D-3
+          ARG2=ARG2*1D-3
+          HR = HR0 + T*HR_SWR
+          ARG2=dabs(ARG2)
+          STEPS = dabs(dfloat(int((ARG1-HR)/ARG2/TSTEP)))
+          write(*,*) ' do ', int(STEPS), ' time steps'
+          if (STEPS.eq.0) goto 303
+          HR_SWR = (ARG1-HR)/(STEPS*TSTEP)
+          write(*,'(A,F8.5,A)') ' real rate: ', HR_SWR*1D3, ' mOe/s'
+          HR0  = HR - T*HR_SWR
+          TEND = T + STEPS*TSTEP
+          return
+        endif
+
+
+ 301    write(*,*) 'Unknown command: ', CMD_LINE
         goto 303
 
  302    write(*,*) 'All commands processed.'
-        close (CMD_FILE)
-        stop
- 301    write(*,*) 'Error in CMD file.'
         close (CMD_FILE)
         stop
       end
@@ -889,4 +885,57 @@ C        read (CMD_LINE,*, ERR=302) CMD, ARG1, ARG2
         common /CMD_FILE/ CMD_FILE, CMD_FILE_NAME
         integer CMD_FILE
         close (CMD_FILE)
+      end
+
+      subroutine PDECOL_INIT(T)
+        implicit real*8(A-H,O-Z)
+        real*8 T
+        include 'par.fh'
+        common /PDECOL_DATA/ INDEX,MF,SCTCH,WORK,IWORK,
+     *    PDECOL_ACC,PDECOL_ACC_LOG2,T0,DT
+        integer INDEX,IWORK(IDIMIWORK)
+        real*8 SCTCH(KORD*(NDERV+1)),WORK(IDIMWORK)
+        real*8 PDECOL_ACC, PDECOL_ACC_LOG2, T0, DT
+
+        INDEX=1  ! TYPE OF CALL (FIRST CALL)
+        MF=22
+        IWORK(1)=IDIMWORK
+        IWORK(2)=IDIMIWORK
+        do I=1,IDIMWORK
+          WORK(I)=0.0D0
+        enddo
+        PDECOL_ACC = 2.0D0**(-PDECOL_ACC_LOG2)
+        T0=T       ! STARTING TIME FOR PDECOL
+        DT=1.D-10  ! INITIAL STEP SIZE IN T
+      end
+
+
+      subroutine SET_HE3PT(PRESS, TTC, T1C)
+        implicit real*8(A-H,O-Z)
+        include 'he3_const.fh'
+        common /BLK_UMU/ T11,GRAD,H,AA,TF,DIFF,HR0,HR_SWR,AF0
+
+        W=GAM*H
+        TEMP=TTC*TCF(PRESS)
+        T1=T1C*TEMP/1000D0         ! RELAXATION TIME
+        T11=1.0D0/T1
+
+        TETC=DSQRT(1.0D0-TTC)
+        CPAR=CPARF(PRESS,TEMP)          ! SPIN WAVES VELOCITY
+        FLEG=DSQRT(LF2F(PRESS,TTC))     ! LEGGETT FREQ
+        DIFF=DF(PRESS,TEMP)             ! SPIN DIFFUSION
+
+        TF=1.2D-7/TETC                  ! TAU EFFECTIVE (L-T) SECONDS WV pic.10.5 20bar
+
+        AA=FLEG*FLEG/W*4.0D0*PI**2
+        AF0=-CPAR**2/W
+
+        write(*,'(" P: ",F5.2," bar (Tc = ",F5.3," mK, Tab = ",F5.3,
+     *            " mK), T: ",F5.3," mK = ",F5.3," Tc")'),
+     *    PRESS, TCF(PRESS), TABF(PRESS), TEMP, TTC
+        write(*,'(" F_legg: ", F9.3, " kHz,  ",
+     *            " D: ", E9.2, " cm^2/s, ",
+     *            " T_lt: ", E8.2, " s, ",
+     *            " C_par: ", F6.1, " cm/s ")'),
+     *              FLEG/1D3, DIFF, TF, CPAR
       end
