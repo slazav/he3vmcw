@@ -4,7 +4,7 @@ C---------------- CB=0.0 !!!!!!!!!!
         include 'he3_const.fh'
         common /TIMEP/ T, TSTEP, TEND
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
-        common /CH_PAR/ LP0,LP_SWR,BETA,IBN
+        common /CH_PAR/ LP0,LP_SWR,BETA,IBN, TTC, TTC_ST
         real*8 LP0,LP_SWR,BETA
 
         common /CFG_AER/  AER, AER_LEN, AER_CNT, AER_TRW
@@ -15,13 +15,12 @@ C---------------- CB=0.0 !!!!!!!!!!
         character*64 CFG_KEY
 
         integer FILES_MJ(NPTS) ! files for writing MJ along the cell
-        integer FILE_MMJ       ! file for writing mean values
-        common /FILES/ FILES_MJ, FILE_MMJ
+        common /FILES/ FILES_MJ
 
         character CMD_FILE_NAME*20  ! file for reading commands
         integer   CMD_FILE          ! file descriptor
-        common /CMD_FILE/ CMD_FILE, CMD_FILE_NAME
-        data CMD_FILE_NAME/'vmcw.cmd'/, CMD_FILE/200/
+        common /CMD_FILE/ CMD_FILE, INTERACTIVE, CMD_FILE_NAME
+        data CMD_FILE_NAME/'vmcw.cmd'/, CMD_FILE/200/,INTERACTIVE/0/
 
         integer   M_FILE ! file for writing Mx,My,Mz
         common /M_FILE/ M_FILE
@@ -87,6 +86,9 @@ C       CFG_AER parameter group:
           AER_CNT=CFG_VAL
         elseif (CFG_KEY.EQ.'AER_TRW') then
           AER_TRW=CFG_VAL
+        elseif (CFG_KEY.EQ.'INTERACTIVE') then
+          INTERACTIVE=int(CFG_VAL)
+
 
         else
           write(*,'(A,A20)')
@@ -113,10 +115,16 @@ C       CFG_AER parameter group:
 
 C--------------- COMPUTE PARAMETERS ----------------------------
         PI=4.0D0*DATAN(1.0D0)
-        call SET_HE3PT(PRESS,TTC,T1C)
         call CMD_OPEN()
+        call SET_HE3PT(PRESS,TTC,T1C)
 C----------------MAIN LOOP -------------------------------------------
    2    CONTINUE
+
+          if (dabs(TTC_ST).ge.1D-5) then
+            TTC=TTC+TTC_ST
+            call SET_HE3PT(PRESS,TTC,T1C)
+          endif
+
           if(T.GE.TEND) call CMD_READ()
           T=T+TSTEP
 
@@ -135,7 +143,7 @@ C-- F ---------- EVALUATION OF F ------------------------------------
       subroutine F(T,X,U,UX,UXX,FV,NPDE)
         implicit real*8(A-H,O-Z)
         dimension U(NPDE),UX(NPDE),UXX(NPDE),FV(NPDE)
-        common /CH_PAR/ LP0,LP_SWR,BETA,IBN
+        common /CH_PAR/ LP0,LP_SWR,BETA,IBN,TTC,TTC_ST
         real*8 LP0,LP_SWR,BETA
         common /BLK_UMU/ T11,GRAD,H,AA,TF,DIFF,HR0,HR_SWR,AF0
         common /HE3DATA/ PCP,TPCP,PA,ANA,PI1,HC,R,AKB,GAM,AM3
@@ -222,7 +230,7 @@ C-- BNDRY ------ BOUNDARY CONDITIONS -- B(U,UX)=Z(T) ------------
         implicit real*8(A-H,O-Z)
         dimension U(NPDE),UX(NPDE),DZDT(NPDE),
      *   DBDU(NPDE,NPDE),DBDUX(NPDE,NPDE)
-        common /CH_PAR/ LP0,LP_SWR,BETA,IBN
+        common /CH_PAR/ LP0,LP_SWR,BETA,IBN,TTC,TTC_ST
         real*8 LP0,LP_SWR,BETA
         common /BLK_UMU/ T11,GRAD,H,AA,TF,DIFF,HR0,HR_SWR,AF0
         do I=1,NPDE
@@ -303,7 +311,7 @@ C-- SET_ICOND -- INITIAL CONDITIONS ---------------------------------
       subroutine SET_ICOND()
         implicit real*8(A-H,O-Z)
         include 'par.fh'
-        common /CH_PAR/ LP0,LP_SWR,BETA,IBN
+        common /CH_PAR/ LP0,LP_SWR,BETA,IBN,TTC,TTC_ST
         real*8 LP0,LP_SWR,BETA
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
         PI=4.0D0*DATAN(1.0D0)
@@ -351,7 +359,7 @@ C-- USP(X) ----- CSI OF SOLUTION ------------------------------------
         implicit real*8(A-H,O-Z)
         include 'par.fh'
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
-        common /CH_PAR/ LP0,LP_SWR,BETA,IBN
+        common /CH_PAR/ LP0,LP_SWR,BETA,IBN,TTC,TTC_ST
         real*8 LP0,LP_SWR,BETA
         do K=1,NPTS
           USM=DSQRT(USOL(5,K,1)**2+USOL(6,K,1)**2+USOL(4,K,1)**2)
@@ -385,7 +393,7 @@ C-- DERIVF ----- SET UP DERIVATIVES ---------------------------------
         implicit real*8(A-H,O-Z)
         dimension U(NPDE),UX(NPDE),UXX(NPDE),
      *       DFDU(NPDE,NPDE),DFDUX(NPDE,NPDE),DFDUXX(NPDE,NPDE)
-        common /CH_PAR/ LP0,LP_SWR,BETA,IBN
+        common /CH_PAR/ LP0,LP_SWR,BETA,IBN,TTC,TTC_ST
         real*8 LP0,LP_SWR,BETA
         common /BLK_UMU/ T11,GRAD,H,AA,TF,DIFF,HR0,HR_SWR,AF0
         do I=1,NPDE
@@ -482,7 +490,7 @@ C-- MONITOR ---- MONITORING THE SOLUTION ----------------------------
         common /TIMEP/ T, TSTEP, TEND
         common /GEAR0/ DTUSED,NQUSED,NSTEP,NFE,NJE
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
-        common /CH_PAR/ LP0,LP_SWR,BETA,IBN
+        common /CH_PAR/ LP0,LP_SWR,BETA,IBN,TTC,TTC_ST
         real*8 LP0,LP_SWR,BETA
         common /BLK_UMU/ T11,GRAD,H,AA,TF,DIFF,HR0,HR_SWR,AF0
         common /CFG_CELL/ CELL_LEN
@@ -509,12 +517,13 @@ C--------------- COMPUTE TIME DEPENDENCIES --------------------------
         write(M_FILE, 61)
      +   TMMS,TMLP,TMAB,TMDS,TMPC,TMZ
 C--------------- SHOW INFORMATION -----------------------------------
-        write(*,'(A,F6.1,A,A,F6.3,A,F6.3,A,A,F6.3,A)')
-     *    ' TIME = ',TMMS,' ms, ',
-     *    'LP = ', LP0+LP_SWR*T , ' cm = ', TMLP , ' cell, ',
-     *    'HR = ',  1D3*(HR0+HR_SWR*T) , ' mOe'
+        write(*,'(A,F6.1,A,A,F6.3,A,F6.3,A,A,F6.3,A,A,F6.3)')
+     *    ' T=',TMMS,' ms, ',
+     *    'LP=', LP0+LP_SWR*T , ' cm = ', TMLP , ' cell, ',
+     *    'HR=',  1D3*(HR0+HR_SWR*T) , ' mOe, ',
+     *    'TTC=',  TTC
         call WRITEMJ_DO()
-   61   format(F7.1, 6(F8.4))
+   61   format(F7.1, 6(F12.8))
    69   format(F9.2, 1PE25.16)
       end
 C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
@@ -522,8 +531,8 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
       subroutine WRITEMJ_OPEN()
         include 'par.fh'
         implicit real*8(A-H,O-Z)
-        integer FILES_MJ(NPTS), FILE_MMJ
-        common /FILES/ FILES_MJ, FILE_MMJ
+        integer FILES_MJ(NPTS)
+        common /FILES/ FILES_MJ
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
         common /CFG_CELL/ CELL_LEN
         common /CFG_WRITE/ WRITEMJ_XSTEP
@@ -531,23 +540,13 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
         real*8 X0
         character*64 FNAME
         integer I
-        FILE_MMJ=1000
-        if (T.GT.1D-10)  then
-          open(FILE_MMJ, FILE='mj_mean.dat', ACCESS='APPEND')
-        else
-          open(FILE_MMJ, FILE='mj_mean.dat')
-        endif
         X0=0D0
         do I=1,NPTS
           if (X(I).GE.X0) then
             FILES_MJ(I)=1000+I
             write(FNAME,'(A,F6.4,A)') 'mj',X(I),'.dat'
-            if (T.GT.1D-10)  then
-              open(FILES_MJ(I),FILE=FNAME, ACCESS='APPEND')
-            else
-              open(FILES_MJ(I),FILE=FNAME)
-              write(FILES_MJ(I),'(A,F6.3AI4)') '# X= ', X(I), ' I = ', I
-            endif
+            open(FILES_MJ(I),FILE=FNAME)
+            write(FILES_MJ(I),'(A,F6.3AI4)') '# X= ', X(I), ' I = ', I
             X0 = X0 + WRITEMJ_XSTEP*CELL_LEN
           else
             FILES_MJ(I)=0
@@ -561,9 +560,9 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
         common /BLK_UMU/ T11,GRAD,H,AA,TF,DIFF,HR0,HR_SWR,AF0
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
         common /TIMEP/ T, TSTEP, TEND
-        integer FILES_MJ(NPTS), FILE_MMJ
-        common /FILES/ FILES_MJ, FILE_MMJ
-        common /CH_PAR/ LP0,LP_SWR,BETA,IBN
+        integer FILES_MJ(NPTS)
+        common /FILES/ FILES_MJ
+        common /CH_PAR/ LP0,LP_SWR,BETA,IBN,TTC,TTC_ST
         real*8 LP0,LP_SWR,BETA
         common /CFG_CELL/ CELL_LEN
 
@@ -617,7 +616,7 @@ CCC   STATE DUMP/RESTORE
         implicit real*8(A-H,O-Z)
         include 'par.fh'
         common /BLK_UMU/ T11,GRAD,H,AA,TF,DIFF,HR0,HR_SWR,AF0
-        common /CH_PAR/ LP0,LP_SWR,BETA,IBN
+        common /CH_PAR/ LP0,LP_SWR,BETA,IBN,TTC,TTC_ST
         real*8 LP0,LP_SWR,BETA
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
         common /TIMEP/ T, TSTEP, TEND
@@ -645,7 +644,7 @@ CCC   STATE DUMP/RESTORE
         implicit real*8(A-H,O-Z)
         include 'par.fh'
         common /BLK_UMU/ T11,GRAD,H,AA,TF,DIFF,HR0,HR_SWR,AF0
-        common /CH_PAR/ LP0,LP_SWR,BETA,IBN
+        common /CH_PAR/ LP0,LP_SWR,BETA,IBN,TTC,TTC_ST
         real*8 LP0,LP_SWR,BETA
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
         common /TIMEP/ T, TSTEP, TEND
@@ -692,32 +691,43 @@ CCC   CMD PROCESSING
 
       subroutine CMD_OPEN()
         implicit real*8(A-H,O-Z)
-        common /CMD_FILE/ CMD_FILE, CMD_FILE_NAME
+        common /CMD_FILE/ CMD_FILE,INTERACTIVE,CMD_FILE_NAME
         integer CMD_FILE
         character CMD_FILE_NAME*20
-        open (CMD_FILE, FILE=CMD_FILE_NAME)
+        if (INTERACTIVE.eq.0) open (CMD_FILE, FILE=CMD_FILE_NAME)
+      end
+
+      subroutine CMD_CLOSE()
+        common /CMD_FILE/ CMD_FILE,INTERACTIVE, CMD_FILE_NAME
+        integer CMD_FILE
+        if (INTERACTIVE.eq.0) close (CMD_FILE)
       end
 
       subroutine CMD_READ()
         implicit real*8(A-H,O-Z)
 
         integer CMD_FILE
-        common /CMD_FILE/ CMD_FILE, CMD_FILE_NAME
+        common /CMD_FILE/ CMD_FILE, INTERACTIVE, CMD_FILE_NAME
 
         integer   M_FILE
         common /M_FILE/ M_FILE
 
         character CMD_LINE*128, CMD*128, FNAME*128
         common /TIMEP/ T, TSTEP, TEND
-        common /CH_PAR/ LP0,LP_SWR,BETA,IBN
+        common /CH_PAR/ LP0,LP_SWR,BETA,IBN,TTC,TTC_ST
         real*8 LP0,LP_SWR,BETA
         real*8 T,TSTEP,TEND,ARG1,ARG2
         common /BLK_UMU/ T11,GRAD,H,AA,TF,DIFF,HR0,HR_SWR,AF0
 
         real*8 LP,HR,STEPS
 
-
- 303    read (CMD_FILE,'(A)', ERR=302,END=302) CMD_LINE
+ 303    continue
+        if (INTERACTIVE.eq.0) then
+          read (CMD_FILE,'(A)', ERR=302,END=302) CMD_LINE
+        else
+          write(*,'("> ")',advance='no')
+          read (*,'(A)', ERR=302,END=302) CMD_LINE
+        endif
 
         if (CMD_LINE(1:1).eq.'#') goto 303
         if (CMD_LINE.eq.'') goto 303
@@ -763,6 +773,7 @@ CC command WRITE_M <filename> -- write Mx,My,Mz to file
           write(*,'(A, A, A30)') '> WRITE_M, ',
      *       ' FILE = ', FNAME
           open(M_FILE,FILE=FNAME,ERR=310)
+          write(M_FILE,*), '# TIME  LP  TMAB  TMDS  TMPC  TMZ'
           goto 303 ! next command
  310      write (*,*) 'Error: can''t open file: ', FNAME
           goto 303 ! next command
@@ -771,34 +782,34 @@ CC command WRITE_M <filename> -- write Mx,My,Mz to file
 C       1 real arg
         read (CMD_LINE,*, ERR=301, END=301) CMD, ARG1
 
-CC command WAIT <time> -- wait
+CC command WAIT <time, ms> -- wait
         if (CMD.EQ.'WAIT') then
-          write(*,'("> ", A12, F6.3, A)') CMD, ARG1, 's'
+          write(*,'("> ", A12, F8.2, A)') CMD, ARG1, ' ms'
           LP0=LP0+T*LP_SWR
           LP_SWR=0D0
           HR0=HR0+T*HR_SWR
           HR_SWR=0D0
-          TEND=T+ARG1
+          TEND=T+ARG1*1D-3
           return
         endif
 
-CC command TSTEP <step> -- set time step
+CC command TSTEP <step, ms> -- set time step
         if (CMD.EQ.'TSTEP') then
-          write(*,'("> ", A12, F5.3, A)') CMD, ARG1, ' s'
-          TSTEP=ARG1
+          write(*,'("> ", A12, F8.5, A)') CMD, ARG1, ' ms'
+          TSTEP=ARG1*1D-3
           goto 303 ! next command
         endif
 
 CC command LP <position, cm> -- set larmor position
         if (CMD.EQ.'LP') then
-          write(*,'("> ", A12, F5.3, A)') CMD, ARG1, ' cm'
+          write(*,'("> ", A12, F8.5, A)') CMD, ARG1, ' cm'
           LP0=ARG1-T*LP_SWR
           goto 303 ! next command
         endif
 
 CC command LP_ADD <distance, cm> -- add value to larmor position
         if (CMD.EQ.'LP_ADD') then
-          write(*,'("> ", A12, F5.3, A)') CMD, ARG1, ' cm'
+          write(*,'("> ", A12, F8.5, A)') CMD, ARG1, ' cm'
           LP0=LP0+ARG1
           goto 303 ! next command
         endif
@@ -815,6 +826,13 @@ CC command HR <mOe> -- set rf field
         if (CMD.EQ.'HR') then
           write(*,'("> ", A12, F5.3, A)') CMD, ARG1, ' mOe'
           HR0=ARG1*1D-3 - T*HR_SWR
+          goto 303 ! next command
+        endif
+
+CC command TTC_CHANGE <Tstep/Tc> -- set TTC step
+        if (CMD.EQ.'TTC_CHANGE') then
+          write(*,'("> ", A12, F5.3, A)') CMD, ARG1, ' Tc'
+          TTC_ST=ARG1
           goto 303 ! next command
         endif
 
@@ -835,10 +853,10 @@ C          goto 303 ! next command
 C        endif
 
 C       2 real args
-        read (CMD_LINE,*, ERR=302) CMD, ARG1, ARG2
+        read (CMD_LINE,*, ERR=301, END=301) CMD, ARG1, ARG2
 
 
-CC command LP_SWEEP_TO <value, cm> <rate, mOe/s> -- sweep larmor position
+CC command LP_SWEEP_TO <value, cm> <rate, cm/s> -- sweep larmor position
         if (CMD.EQ.'LP_SWEEP_TO') then
           write(*,'("> ", A12, F5.3, A, F5.3, A)') CMD,
      *       ARG1, ' cm with rate ', ARG2, 'cm/s'
@@ -850,6 +868,8 @@ CC command LP_SWEEP_TO <value, cm> <rate, mOe/s> -- sweep larmor position
           LP_SWR = (ARG1-LP)/(STEPS*TSTEP)
           write(*,'(A,F8.5,A)') ' real rate: ', LP_SWR,  ' cm/s'
           LP0  = LP - T*LP_SWR
+          HR0=HR0+T*HR_SWR
+          HR_SWR=0D0
           TEND = T + STEPS*TSTEP
           return
         endif
@@ -868,6 +888,8 @@ CC command HR_SWEEP_TO <value, mOe> <rate, mOe/s> -- sweep RF-field
           HR_SWR = (ARG1-HR)/(STEPS*TSTEP)
           write(*,'(A,F8.5,A)') ' real rate: ', HR_SWR*1D3, ' mOe/s'
           HR0  = HR - T*HR_SWR
+          LP0=LP0+T*LP_SWR
+          LP_SWR=0D0
           TEND = T + STEPS*TSTEP
           return
         endif
@@ -881,11 +903,6 @@ CC command HR_SWEEP_TO <value, mOe> <rate, mOe/s> -- sweep RF-field
         stop
       end
 
-      subroutine CMD_CLOSE()
-        common /CMD_FILE/ CMD_FILE, CMD_FILE_NAME
-        integer CMD_FILE
-        close (CMD_FILE)
-      end
 
       subroutine PDECOL_INIT(T)
         implicit real*8(A-H,O-Z)
