@@ -864,7 +864,7 @@ CC command LP_SWEEP_TO <value, cm> <rate, cm/s> -- sweep larmor position
           ARG2=dabs(ARG2)
           STEPS = dabs(dfloat(int((ARG1-LP)/ARG2/TSTEP)))
           write(*,*) ' do ', int(STEPS), ' time steps'
-          if (STEPS.eq.0) goto 303
+          if (STEPS.eq.0D0) goto 303
           LP_SWR = (ARG1-LP)/(STEPS*TSTEP)
           write(*,'(A,F8.5,A)') ' real rate: ', LP_SWR,  ' cm/s'
           LP0  = LP - T*LP_SWR
@@ -884,7 +884,7 @@ CC command HR_SWEEP_TO <value, mOe> <rate, mOe/s> -- sweep RF-field
           ARG2=dabs(ARG2)
           STEPS = dabs(dfloat(int((ARG1-HR)/ARG2/TSTEP)))
           write(*,*) ' do ', int(STEPS), ' time steps'
-          if (STEPS.eq.0) goto 303
+          if (STEPS.eq.0D0) goto 303
           HR_SWR = (ARG1-HR)/(STEPS*TSTEP)
           write(*,'(A,F8.5,A)') ' real rate: ', HR_SWR*1D3, ' mOe/s'
           HR0  = HR - T*HR_SWR
