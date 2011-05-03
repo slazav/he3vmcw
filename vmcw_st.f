@@ -109,6 +109,7 @@ C       CFG_AER parameter group:
         call PDECOL_INIT(T) ! set PDECOL parameters
 
         call SET_MESH()
+        call SAVE_MESH('mesh.dat')
         call SET_ICOND()
 
         call WRITEMJ_OPEN()
@@ -122,7 +123,7 @@ C----------------MAIN LOOP -------------------------------------------
 
           if (dabs(TTC_ST).ge.1D-5) then
             TTC=TTC+TTC_ST
-            call SET_HE3PT(PRESS,TTC,T1C)
+            call SET_HE3PT1(PRESS,TTC,T1C)
           endif
 
           if(T.GE.TEND) call CMD_READ()
@@ -181,10 +182,15 @@ C       fix n vector length
         UT=ST*(1.0D0+4.0D0*CT)*0.2666666D0
         AUT0=AA*UT
 
-        AF=AF0 - AF0*0.5D0 * AER_STEP(X,0)
-        DAF=-AF0*0.5D0 * AER_STEP(X,1)
-        AUT=AUT0 - AUT0*0.835D0 * AER_STEP(X,0)
-        TF0=TF-TF*0.5D0 * AER_STEP(X,0)
+C        AF=AF0 - AF0*0.5D0 * AER_STEP(X,0)
+C        DAF=-AF0*0.5D0 * AER_STEP(X,1)
+C        AUT=AUT0 - AUT0*0.835D0 * AER_STEP(X,0)
+C        TF0=TF-TF*0.5D0 * AER_STEP(X,0)
+
+        AUT=AUT0 - AUT0*0.0D0 * AER_STEP(X,0)
+        AF=AF0
+        DAF=0D0
+        TF0=TF
 
         FTN=CTM*DD45-ST*UX(6)-UX(7)*UNz
         DFTN=CTM*(UNx*UXX(5)-UXX(4)*UNy)-ST*UXX(6)-UXX(7)*UNz-
@@ -469,6 +475,7 @@ C         scale the whole mesh to fit CELL_LEN
 
       subroutine SAVE_MESH(FNAME)
         include 'par.fh'
+        implicit real*8(A-H,O-Z)
         common /CFG_AER/  AER, AER_LEN, AER_CNT, AER_TRW
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
         character FNAME*128
@@ -772,7 +779,20 @@ CC command WRITE_M <filename> -- write Mx,My,Mz to file
         if (CMD.eq.'WRITE_M') then
           write(*,'(A, A, A30)') '> WRITE_M, ',
      *       ' FILE = ', FNAME
+          PI=3.1415926D0
+          W=20378D0*H
           open(M_FILE,FILE=FNAME,ERR=310)
+          write(M_FILE,*), '# AA:     ', AA
+          write(M_FILE,*), '# FLEGG:  ', dsqrt(W*AA/4.0D0/PI**2)
+          write(M_FILE,*), '# AF0:    ', AF0
+          write(M_FILE,*), '# CPAR:   ', dsqrt(-W*AF0)
+          write(M_FILE,*), '# Diff:   ', DIFF
+          write(M_FILE,*), '# TF:     ', TF
+          write(M_FILE,*), '# H:      ', H
+          write(M_FILE,*), '# GRAD:   ', GRAD
+          write(M_FILE,*), '# HR:     ', HR0+T*HR_SWR
+          write(M_FILE,*), '# LP:     ', LP0+T*LP_SWR
+
           write(M_FILE,*), '# TIME  LP  TMAB  TMDS  TMPC  TMZ'
           goto 303 ! next command
  310      write (*,*) 'Error: can''t open file: ', FNAME
@@ -955,4 +975,39 @@ CC command HR_SWEEP_TO <value, mOe> <rate, mOe/s> -- sweep RF-field
      *            " T_lt: ", E8.2, " s, ",
      *            " C_par: ", F6.1, " cm/s ")'),
      *              FLEG/1D3, DIFF, TF, CPAR
+
       end
+
+      subroutine SET_HE3PT1(PRESS, TTC, T1C)
+        implicit real*8(A-H,O-Z)
+        include 'he3_const.fh'
+        common /BLK_UMU/ T11,GRAD,H,AA,TF,DIFF,HR0,HR_SWR,AF0
+
+        W=GAM*H
+        TEMP=TTC*TCF(PRESS)
+        T1=T1C*TEMP/1000D0         ! RELAXATION TIME
+        T11=1.0D0/T1
+        TETC=DSQRT(1.0D0-TTC)
+
+C        CPAR=CPARF(PRESS,TEMP)          ! SPIN WAVES VELOCITY
+C        AF0=-CPAR**2/W
+
+        FLEG=DSQRT(LF2F(PRESS,TTC))     ! LEGGETT FREQ
+        AA=FLEG*FLEG/W*4.0D0*PI**2
+
+C        DIFF=DF(PRESS,TEMP)             ! SPIN DIFFUSION
+
+C        TF=1.2D-7/TETC                  ! TAU EFFECTIVE (L-T) SECONDS WV pic.10.5 20bar
+
+
+        write(*,'(" P: ",F5.2," bar (Tc = ",F5.3," mK, Tab = ",F5.3,
+     *            " mK), T: ",F5.3," mK = ",F5.3," Tc")'),
+     *    PRESS, TCF(PRESS), TABF(PRESS), TEMP, TTC
+        write(*,'(" F_legg: ", F9.3, " kHz,  ",
+     *            " D: ", E9.2, " cm^2/s, ",
+     *            " T_lt: ", E8.2, " s, ",
+     *            " C_par: ", F6.1, " cm/s ")'),
+     *              FLEG/1D3, DIFF, TF, CPAR
+
+      end
+
