@@ -1,0 +1,2 @@
+      implicit real*8(A-H,O-Z)
+      common /BLK_UMU/ T11,GRAD,H,AA,TF,DIFF,HR0,HR_SWR,AF0

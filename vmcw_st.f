@@ -1,5 +1,5 @@
 C---------------- CB=0.0 !!!!!!!!!!
-        implicit real*8(A-H,O-Z)
+        include 'vmcw_st.fh'
         include 'par.fh'
         include 'he3_const.fh'
         common /TIMEP/ T, TSTEP, TEND
@@ -11,7 +11,6 @@ C---------------- CB=0.0 !!!!!!!!!!
         common /CFG_CELL/ CELL_LEN
         common /CFG_MESH/ XMESH_K,XMESH_ACC
 
-        common /BLK_UMU/ T11,GRAD,H,AA,TF,DIFF,HR0,HR_SWR,AF0
         character*64 CFG_KEY
 
         integer FILES_MJ(NPTS) ! files for writing MJ along the cell
@@ -142,11 +141,11 @@ C----------------MAIN LOOP -------------------------------------------
       end
 C-- F ---------- EVALUATION OF F ------------------------------------
       subroutine F(T,X,U,UX,UXX,FV,NPDE)
-        implicit real*8(A-H,O-Z)
+        include 'vmcw_st.fh'
+
         dimension U(NPDE),UX(NPDE),UXX(NPDE),FV(NPDE)
         common /CH_PAR/ LP0,LP_SWR,BETA,IBN,TTC,TTC_ST
         real*8 LP0,LP_SWR,BETA
-        common /BLK_UMU/ T11,GRAD,H,AA,TF,DIFF,HR0,HR_SWR,AF0
         common /HE3DATA/ PCP,TPCP,PA,ANA,PI1,HC,R,AKB,GAM,AM3
 C       T - time
 C       X - x-coord
@@ -228,12 +227,11 @@ C       fix n vector length
 
 C-- BNDRY ------ BOUNDARY CONDITIONS -- B(U,UX)=Z(T) ------------
       subroutine BNDRY(T,X,U,UX,DBDU,DBDUX,DZDT,NPDE)
-        implicit real*8(A-H,O-Z)
+        include 'vmcw_st.fh'
         dimension U(NPDE),UX(NPDE),DZDT(NPDE),
      *   DBDU(NPDE,NPDE),DBDUX(NPDE,NPDE)
         common /CH_PAR/ LP0,LP_SWR,BETA,IBN,TTC,TTC_ST
         real*8 LP0,LP_SWR,BETA
-        common /BLK_UMU/ T11,GRAD,H,AA,TF,DIFF,HR0,HR_SWR,AF0
         do I=1,NPDE
           DZDT(I)=0.0D0
           do J=1,NPDE
@@ -310,7 +308,7 @@ C          DBDUX(7,6)=UNz         !!
       end
 C-- SET_ICOND -- INITIAL CONDITIONS ---------------------------------
       subroutine SET_ICOND()
-        implicit real*8(A-H,O-Z)
+        include 'vmcw_st.fh'
         include 'par.fh'
         common /CH_PAR/ LP0,LP_SWR,BETA,IBN,TTC,TTC_ST
         real*8 LP0,LP_SWR,BETA
@@ -357,7 +355,7 @@ C-- SET_ICOND -- INITIAL CONDITIONS ---------------------------------
       end
 C-- USP(X) ----- CSI OF SOLUTION ------------------------------------
       double precision function USP(XI,I)
-        implicit real*8(A-H,O-Z)
+        include 'vmcw_st.fh'
         include 'par.fh'
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
         common /CH_PAR/ LP0,LP_SWR,BETA,IBN,TTC,TTC_ST
@@ -382,7 +380,7 @@ C-- USP(X) ----- CSI OF SOLUTION ------------------------------------
       end
 C-- UINIT ------ INITIAL CONDITIONS ---------------------------------
       subroutine UINIT(XI,UI,NPDEI)
-        implicit real*8(A-H,O-Z)
+        include 'vmcw_st.fh'
         dimension UI(NPDEI)
         do I=1,NPDEI
           UI(I)=USP(XI,I)
@@ -391,12 +389,11 @@ C-- UINIT ------ INITIAL CONDITIONS ---------------------------------
       end
 C-- DERIVF ----- SET UP DERIVATIVES ---------------------------------
       subroutine DERIVF(T,X,U,UX,UXX,DFDU,DFDUX,DFDUXX,NPDE)
-        implicit real*8(A-H,O-Z)
+        include 'vmcw_st.fh'
         dimension U(NPDE),UX(NPDE),UXX(NPDE),
      *       DFDU(NPDE,NPDE),DFDUX(NPDE,NPDE),DFDUXX(NPDE,NPDE)
         common /CH_PAR/ LP0,LP_SWR,BETA,IBN,TTC,TTC_ST
         real*8 LP0,LP_SWR,BETA
-        common /BLK_UMU/ T11,GRAD,H,AA,TF,DIFF,HR0,HR_SWR,AF0
         do I=1,NPDE
           do J=1,NPDE
             DFDU(I,J)=0.0D0
@@ -419,7 +416,7 @@ C         AER_LEN  -- aerogel length / cell length
 C         AER_CNT  -- center of aerogel area / cell length
 C         AER_TRW  -- transition width / cell length
       double precision function AER_STEP(X,D)
-        implicit real*8(A-H,O-Z)
+        include 'vmcw_st.fh'
         integer D
         common /CFG_AER/  AER, AER_LEN, AER_CNT, AER_TRW
         common /CFG_CELL/ CELL_LEN
@@ -446,8 +443,8 @@ C         AER_TRW  -- transition width / cell length
 C-- SET_MESH --- SET UP THE MESH ------------------------------------
       subroutine SET_MESH()
 C       Set mesh according with AER_STEP function
-        implicit real*8(A-H,O-Z)
         include 'par.fh'
+        include 'vmcw_st.fh'
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
         common /CFG_CELL/ CELL_LEN
         common /CFG_MESH/ XMESH_K,XMESH_ACC
@@ -470,7 +467,7 @@ C         scale the whole mesh to fit CELL_LEN
 
       subroutine SAVE_MESH(FNAME)
         include 'par.fh'
-        implicit real*8(A-H,O-Z)
+        include 'vmcw_st.fh'
         common /CFG_AER/  AER, AER_LEN, AER_CNT, AER_TRW
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
         character FNAME*128
@@ -487,14 +484,13 @@ C         scale the whole mesh to fit CELL_LEN
 
 C-- MONITOR ---- MONITORING THE SOLUTION ----------------------------
       subroutine MONITOR()
-        implicit real*8(A-H,O-Z)
         include 'par.fh'
+        include 'vmcw_st.fh'
         common /TIMEP/ T, TSTEP, TEND
         common /GEAR0/ DTUSED,NQUSED,NSTEP,NFE,NJE
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
         common /CH_PAR/ LP0,LP_SWR,BETA,IBN,TTC,TTC_ST
         real*8 LP0,LP_SWR,BETA
-        common /BLK_UMU/ T11,GRAD,H,AA,TF,DIFF,HR0,HR_SWR,AF0
         common /CFG_CELL/ CELL_LEN
 
         integer   M_FILE
@@ -532,7 +528,7 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
 
       subroutine WRITEMJ_OPEN()
         include 'par.fh'
-        implicit real*8(A-H,O-Z)
+        include 'vmcw_st.fh'
         integer FILES_MJ(NPTS)
         common /FILES/ FILES_MJ
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
@@ -557,9 +553,8 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
       end
 
       subroutine WRITEMJ_DO()
-        implicit real*8(A-H,O-Z)
+        include 'vmcw_st.fh'
         include 'par.fh'
-        common /BLK_UMU/ T11,GRAD,H,AA,TF,DIFF,HR0,HR_SWR,AF0
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
         common /TIMEP/ T, TSTEP, TEND
         integer FILES_MJ(NPTS)
@@ -615,9 +610,8 @@ C       write(24,*)''
 CCC   STATE DUMP/RESTORE
 
       subroutine STATE_DUMP(FNAME)
-        implicit real*8(A-H,O-Z)
+        include 'vmcw_st.fh'
         include 'par.fh'
-        common /BLK_UMU/ T11,GRAD,H,AA,TF,DIFF,HR0,HR_SWR,AF0
         common /CH_PAR/ LP0,LP_SWR,BETA,IBN,TTC,TTC_ST
         real*8 LP0,LP_SWR,BETA
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
@@ -643,9 +637,8 @@ CCC   STATE DUMP/RESTORE
       end
 
       subroutine STATE_RESTORE(FNAME)
-        implicit real*8(A-H,O-Z)
+        include 'vmcw_st.fh'
         include 'par.fh'
-        common /BLK_UMU/ T11,GRAD,H,AA,TF,DIFF,HR0,HR_SWR,AF0
         common /CH_PAR/ LP0,LP_SWR,BETA,IBN,TTC,TTC_ST
         real*8 LP0,LP_SWR,BETA
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
@@ -692,7 +685,7 @@ CCC   STATE DUMP/RESTORE
 CCC   CMD PROCESSING
 
       subroutine CMD_OPEN()
-        implicit real*8(A-H,O-Z)
+        include 'vmcw_st.fh'
         common /CMD_FILE/ CMD_FILE,INTERACTIVE,CMD_FILE_NAME
         integer CMD_FILE
         character CMD_FILE_NAME*20
@@ -700,13 +693,14 @@ CCC   CMD PROCESSING
       end
 
       subroutine CMD_CLOSE()
+        include 'vmcw_st.fh'
         common /CMD_FILE/ CMD_FILE,INTERACTIVE, CMD_FILE_NAME
         integer CMD_FILE
         if (INTERACTIVE.eq.0) close (CMD_FILE)
       end
 
       subroutine CMD_READ()
-        implicit real*8(A-H,O-Z)
+        include 'vmcw_st.fh'
 
         integer CMD_FILE
         common /CMD_FILE/ CMD_FILE, INTERACTIVE, CMD_FILE_NAME
@@ -719,7 +713,6 @@ CCC   CMD PROCESSING
         common /CH_PAR/ LP0,LP_SWR,BETA,IBN,TTC,TTC_ST
         real*8 LP0,LP_SWR,BETA
         real*8 T,TSTEP,TEND,ARG1,ARG2
-        common /BLK_UMU/ T11,GRAD,H,AA,TF,DIFF,HR0,HR_SWR,AF0
 
         real*8 LP,HR,STEPS
 
@@ -920,7 +913,7 @@ CC command HR_SWEEP_TO <value, mOe> <rate, mOe/s> -- sweep RF-field
 
 
       subroutine PDECOL_INIT(T)
-        implicit real*8(A-H,O-Z)
+        include 'vmcw_st.fh'
         real*8 T
         include 'par.fh'
         common /PDECOL_DATA/ INDEX,MF,SCTCH,WORK,IWORK,
@@ -943,9 +936,8 @@ CC command HR_SWEEP_TO <value, mOe> <rate, mOe/s> -- sweep RF-field
 
 
       subroutine SET_HE3PT(PRESS, TTC, T1C)
-        implicit real*8(A-H,O-Z)
+        include 'vmcw_st.fh'
         include 'he3_const.fh'
-        common /BLK_UMU/ T11,GRAD,H,AA,TF,DIFF,HR0,HR_SWR,AF0
 
         W=GAM*H
         TEMP=TTC*TCF(PRESS)
