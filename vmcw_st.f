@@ -4,8 +4,6 @@ C---------------- CB=0.0 !!!!!!!!!!
         include 'he3_const.fh'
         common /TIMEP/ T, TSTEP, TEND
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
-        common /CH_PAR/ LP0,LP_SWR,BETA,IBN, TTC, TTC_ST
-        real*8 LP0,LP_SWR,BETA
 
         common /CFG_AER/  AER, AER_LEN, AER_CNT, AER_TRW
         common /CFG_CELL/ CELL_LEN
@@ -144,8 +142,6 @@ C-- F ---------- EVALUATION OF F ------------------------------------
         include 'vmcw_st.fh'
 
         dimension U(NPDE),UX(NPDE),UXX(NPDE),FV(NPDE)
-        common /CH_PAR/ LP0,LP_SWR,BETA,IBN,TTC,TTC_ST
-        real*8 LP0,LP_SWR,BETA
         common /HE3DATA/ PCP,TPCP,PA,ANA,PI1,HC,R,AKB,GAM,AM3
 C       T - time
 C       X - x-coord
@@ -179,8 +175,12 @@ C       fix n vector length
         CT1=1.0D0+CT
         CTG=ST/CTM      ! ctg(T/2) = sin(T)/(1-cos(T))
         UT=ST*(1.0D0+4.0D0*CT)*0.2666666D0
-        AUT0=AA*UT
 
+        W=GAM*H
+        AA=FLEG*FLEG/W*4.0D0*PI1**2
+        AF0=-CPAR**2/W
+
+        AUT0=AA*UT
         AF=AF0 - AF0*0.5D0 * AER_STEP(X,0)
         DAF=-AF0*0.5D0 * AER_STEP(X,1)
         AUT=AUT0 - AUT0*0.835D0 * AER_STEP(X,0)
@@ -228,10 +228,9 @@ C       fix n vector length
 C-- BNDRY ------ BOUNDARY CONDITIONS -- B(U,UX)=Z(T) ------------
       subroutine BNDRY(T,X,U,UX,DBDU,DBDUX,DZDT,NPDE)
         include 'vmcw_st.fh'
+        common /HE3DATA/ PCP,TPCP,PA,ANA,PI1,HC,R,AKB,GAM,AM3
         dimension U(NPDE),UX(NPDE),DZDT(NPDE),
      *   DBDU(NPDE,NPDE),DBDUX(NPDE,NPDE)
-        common /CH_PAR/ LP0,LP_SWR,BETA,IBN,TTC,TTC_ST
-        real*8 LP0,LP_SWR,BETA
         do I=1,NPDE
           DZDT(I)=0.0D0
           do J=1,NPDE
@@ -266,7 +265,11 @@ C         fix n vector length
           C56=CTM*UNy*UNz-UNx*ST             !!!!!!!!!!!
           C66=CTM*UNz**2+CT
           C266=2.0D0-C66
+
+          W=GAM*H
+          AF0=-CPAR**2/W
           AF=AF0-AF0*0.5D0 * AER_STEP(X,0)
+
           DA=-DIFF/AF
           DBDUX(4,1)=DA
           DBDUX(5,2)=DA
@@ -310,8 +313,6 @@ C-- SET_ICOND -- INITIAL CONDITIONS ---------------------------------
       subroutine SET_ICOND()
         include 'vmcw_st.fh'
         include 'par.fh'
-        common /CH_PAR/ LP0,LP_SWR,BETA,IBN,TTC,TTC_ST
-        real*8 LP0,LP_SWR,BETA
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
         PI=4.0D0*DATAN(1.0D0)
         BET=BETA*PI/180.0D0
@@ -358,8 +359,6 @@ C-- USP(X) ----- CSI OF SOLUTION ------------------------------------
         include 'vmcw_st.fh'
         include 'par.fh'
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
-        common /CH_PAR/ LP0,LP_SWR,BETA,IBN,TTC,TTC_ST
-        real*8 LP0,LP_SWR,BETA
         do K=1,NPTS
           USM=DSQRT(USOL(5,K,1)**2+USOL(6,K,1)**2+USOL(4,K,1)**2)
           USOL(4,K,1)=USOL(4,K,1)/USM
@@ -392,8 +391,6 @@ C-- DERIVF ----- SET UP DERIVATIVES ---------------------------------
         include 'vmcw_st.fh'
         dimension U(NPDE),UX(NPDE),UXX(NPDE),
      *       DFDU(NPDE,NPDE),DFDUX(NPDE,NPDE),DFDUXX(NPDE,NPDE)
-        common /CH_PAR/ LP0,LP_SWR,BETA,IBN,TTC,TTC_ST
-        real*8 LP0,LP_SWR,BETA
         do I=1,NPDE
           do J=1,NPDE
             DFDU(I,J)=0.0D0
@@ -489,8 +486,6 @@ C-- MONITOR ---- MONITORING THE SOLUTION ----------------------------
         common /TIMEP/ T, TSTEP, TEND
         common /GEAR0/ DTUSED,NQUSED,NSTEP,NFE,NJE
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
-        common /CH_PAR/ LP0,LP_SWR,BETA,IBN,TTC,TTC_ST
-        real*8 LP0,LP_SWR,BETA
         common /CFG_CELL/ CELL_LEN
 
         integer   M_FILE
@@ -518,8 +513,7 @@ C--------------- SHOW INFORMATION -----------------------------------
         write(*,'(A,F6.1,A,A,F6.3,A,F6.3,A,A,F6.3,A,A,F6.3)')
      *    ' T=',TMMS,' ms, ',
      *    'LP=', LP0+LP_SWR*T , ' cm = ', TMLP , ' cell, ',
-     *    'HR=',  1D3*(HR0+HR_SWR*T) , ' mOe, ',
-     *    'TTC=',  TTC
+     *    'HR=',  1D3*(HR0+HR_SWR*T) , ' mOe, '
         call WRITEMJ_DO()
    61   format(F7.1, 6(F12.8))
    69   format(F9.2, 1PE25.16)
@@ -559,8 +553,6 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
         common /TIMEP/ T, TSTEP, TEND
         integer FILES_MJ(NPTS)
         common /FILES/ FILES_MJ
-        common /CH_PAR/ LP0,LP_SWR,BETA,IBN,TTC,TTC_ST
-        real*8 LP0,LP_SWR,BETA
         common /CFG_CELL/ CELL_LEN
 
         do I=1, NPTS
@@ -612,8 +604,6 @@ CCC   STATE DUMP/RESTORE
       subroutine STATE_DUMP(FNAME)
         include 'vmcw_st.fh'
         include 'par.fh'
-        common /CH_PAR/ LP0,LP_SWR,BETA,IBN,TTC,TTC_ST
-        real*8 LP0,LP_SWR,BETA
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
         common /TIMEP/ T, TSTEP, TEND
         character FNAME*128
@@ -639,8 +629,6 @@ CCC   STATE DUMP/RESTORE
       subroutine STATE_RESTORE(FNAME)
         include 'vmcw_st.fh'
         include 'par.fh'
-        common /CH_PAR/ LP0,LP_SWR,BETA,IBN,TTC,TTC_ST
-        real*8 LP0,LP_SWR,BETA
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
         common /TIMEP/ T, TSTEP, TEND
         character FNAME*128
@@ -710,8 +698,6 @@ CCC   CMD PROCESSING
 
         character CMD_LINE*128, CMD*128, FNAME*128
         common /TIMEP/ T, TSTEP, TEND
-        common /CH_PAR/ LP0,LP_SWR,BETA,IBN,TTC,TTC_ST
-        real*8 LP0,LP_SWR,BETA
         real*8 T,TSTEP,TEND,ARG1,ARG2
 
         real*8 LP,HR,STEPS
@@ -770,9 +756,7 @@ CC command WRITE_M <filename> -- write Mx,My,Mz to file
           PI=3.1415926D0
           W=20378D0*H
           open(M_FILE,FILE=FNAME,ERR=310)
-          write(M_FILE,*), '# AA:     ', AA
           write(M_FILE,*), '# FLEGG:  ', dsqrt(W*AA/4.0D0/PI**2)
-          write(M_FILE,*), '# AF0:    ', AF0
           write(M_FILE,*), '# CPAR:   ', dsqrt(-W*AF0)
           write(M_FILE,*), '# Diff:   ', DIFF
           write(M_FILE,*), '# TF:     ', TF
@@ -939,7 +923,6 @@ CC command HR_SWEEP_TO <value, mOe> <rate, mOe/s> -- sweep RF-field
         include 'vmcw_st.fh'
         include 'he3_const.fh'
 
-        W=GAM*H
         TEMP=TTC*TCF(PRESS)
         T1=T1C*TEMP/1000D0         ! RELAXATION TIME
         T11=1.0D0/T1
@@ -950,9 +933,6 @@ CC command HR_SWEEP_TO <value, mOe> <rate, mOe/s> -- sweep RF-field
         DIFF=DF(PRESS,TEMP)             ! SPIN DIFFUSION
 
         TF=1.2D-7/TETC                  ! TAU EFFECTIVE (L-T) SECONDS WV pic.10.5 20bar
-
-        AA=FLEG*FLEG/W*4.0D0*PI**2
-        AF0=-CPAR**2/W
 
         write(*,'(" P: ",F5.2," bar (Tc = ",F5.3," mK, Tab = ",F5.3,
      *            " mK), T: ",F5.3," mK = ",F5.3," Tc")'),

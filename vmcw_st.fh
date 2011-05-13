@@ -1,2 +1,5 @@
       implicit real*8(A-H,O-Z)
-      common /BLK_UMU/ T11,GRAD,H,AA,TF,DIFF,HR0,HR_SWR,AF0
+
+      common /BLK_UMU/ T11,GRAD,H,TF,DIFF,HR0,HR_SWR,FLEG,CPAR
+      common /CH_PAR/ LP0,LP_SWR,BETA,IBN,TTC_ST
+      real*8 LP0,LP_SWR,BETA
