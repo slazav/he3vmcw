@@ -97,6 +97,7 @@ C       CFG_AER parameter group:
         T=0D0
         TSTEP=5D-3
         TEND=0D0
+        NSTEP=0
 
         LP0=0D0
         HR0=1D-3
@@ -125,6 +126,7 @@ C----------------MAIN LOOP -------------------------------------------
 
           if(T.GE.TEND) call CMD_READ()
           T=T+TSTEP
+          NSTEP=NSTEP+1
 
           call PDECOL(T0,T,DT,X,PDECOL_ACC,NINT,KORD,NCC,NPDE,MF,
      +                INDEX,WORK,IWORK)
@@ -177,14 +179,16 @@ C       fix n vector length
         UT=ST*(1.0D0+4.0D0*CT)*0.2666666D0
 
         W=GAM*H
-        AA=FLEG*FLEG/W*4.0D0*PI1**2
-        AF0=-CPAR**2/W
+        AUT=UT*(LF0+LF_SWR*T)**2/W*4.0D0*PI1**2
+        AF=-(CPAR0+CPAR_SWR*T)**2/W
+        TF1=TF0+TF_SWR*T
+        DIFF=DF0+DF_SWR*T
 
-        AUT0=AA*UT
-        AF=AF0 - AF0*0.5D0 * AER_STEP(X,0)
-        DAF=-AF0*0.5D0 * AER_STEP(X,1)
-        AUT=AUT0 - AUT0*0.835D0 * AER_STEP(X,0)
-        TF0=TF-TF*0.5D0 * AER_STEP(X,0)
+
+        AF=AF*(1D0 - 0.5D0 * AER_STEP(X,0))
+        DAF=-AF*0.5D0 * AER_STEP(X,1)
+        AUT=AUT*(1D0 - 0.835D0 * AER_STEP(X,0))
+        TF1=TF1*(1D0 - 0.5D0 * AER_STEP(X,0))
 
         FTN=CTM*DD45-ST*UX(6)-UX(7)*UNz
         DFTN=CTM*(UNx*UXX(5)-UXX(4)*UNy)-ST*UXX(6)-UXX(7)*UNz-
@@ -221,7 +225,7 @@ C       fix n vector length
         FV(4)= - WZR*UNy - WR2*(UMzm*UNy-UMym*UNz+CTG*(B*UNx-UMxm))
         FV(5)=   WZR*UNx - WR2*(UMxm*UNz-UMzm*UNx+CTG*(B*UNy-UMym))
         FV(6)=           - WR2*(UMym*UNx-UMxm*UNy+CTG*(B*UNz-UMzm))
-        FV(7)= WR*B + UT/TF0
+        FV(7)= WR*B + UT/TF1
         return
       end
 
@@ -267,35 +271,43 @@ C         fix n vector length
           C266=2.0D0-C66
 
           W=GAM*H
-          AF0=-CPAR**2/W
-          AF=AF0-AF0*0.5D0 * AER_STEP(X,0)
+          AF=-(CPAR0+CPAR_SWR*T)**2/W
 
-          DA=-DIFF/AF
+          AF=AF*(1D0 - 0.5D0 * AER_STEP(X,0))
+
+          DA=-(DF0+DF_SWR*T)/AF
+
           DBDUX(4,1)=DA
           DBDUX(5,2)=DA
           DBDUX(6,3)=DA
+
           DBDU(4,4)=2.0D0*UX(7)+CTF*UNz+C46*FTN4
           DBDU(4,5)=CTM2*UX(6)+STF+C46*FTN5
           DBDU(4,6)=-CTM2*UX(5)+CTF*UNx-C46*UX(7)
           DBDU(4,7)=2.0D0*(CT*UX(4)+ST*(UNy*UX(6)-UX(5)*UNz))+
      *     STF*UNx*UNz+UNy*CT*FTN+C46*FTN7
+
           DBDU(5,4)=-CTM2*UX(6)-STF+C56*FTN4
           DBDU(5,5)=2.0D0*UX(7)+CTF*UNz+C56*FTN5
           DBDU(5,6)=CTM2*UX(4)+CTF*UNy-C56*UX(7)
           DBDU(5,7)=2.0D0*(CT*UX(5)-ST*(UNx*UX(6)-UX(4)*UNz))+
      *     STF*UNy*UNz-UNx*CT*FTN+C56*FTN7
+
           DBDU(6,4)=CTM2*UX(5)+C66*FTN4
           DBDU(6,5)=-CTM2*UX(4)+C66*FTN5
           DBDU(6,6)=2.0D0*UNz*CTF+C266*UX(7)
           DBDU(6,7)=2.0D0*(CT*UX(6)+ST*DD45)+STF*(UNz**2-1.0D0)+C66*FTN7
+
           DBDUX(4,4)=ST2+C46*FTNX4
           DBDUX(4,5)=-CTM2*UNz+C46*FTNX5
           DBDUX(4,6)=CTM2*UNy-C46*ST
           DBDUX(4,7)=2.0D0*UNx-C46*UNz
+
           DBDUX(5,4)=CTM2*UNz+C56*FTNX4
           DBDUX(5,5)=ST2+C56*FTNX5
           DBDUX(5,6)=-CTM2*UNx-C56*ST
           DBDUX(5,7)=2.0D0*UNy-C56*UNz
+
           DBDUX(6,4)=-CTM2*UNy+C66*FTNX4
           DBDUX(6,5)=CTM2*UNx+C66*FTNX5
           DBDUX(6,6)=C266*ST
@@ -510,10 +522,14 @@ C--------------- COMPUTE TIME DEPENDENCIES --------------------------
         write(M_FILE, 61)
      +   TMMS,TMLP,TMAB,TMDS,TMPC,TMZ
 C--------------- SHOW INFORMATION -----------------------------------
-        write(*,'(A,F6.1,A,A,F6.3,A,F6.3,A,A,F6.3,A,A,F6.3)')
+        write(*,'(7(A,F8.3,A))')
      *    ' T=',TMMS,' ms, ',
-     *    'LP=', LP0+LP_SWR*T , ' cm = ', TMLP , ' cell, ',
-     *    'HR=',  1D3*(HR0+HR_SWR*T) , ' mOe, '
+     *    'LP=', LP0+LP_SWR*T , ' cm, ',
+     *    'HR=',  1D3*(HR0+HR_SWR*T) , ' mOe, ',
+     *    'TF=',  1D6*(TF0+TF_SWR*T) , ' mks, ',
+     *    'LF=',  1D-3*(LF0+LF_SWR*T) , ' kHz, ',
+     *    'DF=',  (DF0+DF_SWR*T) , ' cm^2/s, ',
+     *    'CPAR=',  (CPAR0+CPAR_SWR*T) , ' cm/s, '
         call WRITEMJ_DO()
    61   format(F7.1, 6(F12.8))
    69   format(F9.2, 1PE25.16)
@@ -554,6 +570,8 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
         integer FILES_MJ(NPTS)
         common /FILES/ FILES_MJ
         common /CFG_CELL/ CELL_LEN
+
+        DIFF=DF0+DF_SWR*T
 
         do I=1, NPTS
           if (FILES_MJ(I).NE.0) then
@@ -687,6 +705,23 @@ CCC   CMD PROCESSING
         if (INTERACTIVE.eq.0) close (CMD_FILE)
       end
 
+      subroutine STOP_SWEEP()
+        include 'vmcw_st.fh'
+        common /TIMEP/ T, TSTEP, TEND
+        HR0=HR0+T*HR_SWR
+        HR_SWR=0D0
+        LP0=LP0+T*LP_SWR
+        LP_SWR=0D0
+        DF0=DF0+T*DF_SWR
+        DF_SWR=0D0
+        TF0=TF0+T*TF_SWR
+        TF_SWR=0D0
+        LF0=LF0+T*LF_SWR
+        LF_SWR=0D0
+        CPAR0=CPAR0+T*CPAR_SWR
+        CPAR_SWR=0D0
+      end
+
       subroutine CMD_READ()
         include 'vmcw_st.fh'
 
@@ -701,6 +736,8 @@ CCC   CMD PROCESSING
         real*8 T,TSTEP,TEND,ARG1,ARG2
 
         real*8 LP,HR,STEPS
+
+        call STOP_SWEEP !!!
 
  303    continue
         if (INTERACTIVE.eq.0) then
@@ -753,17 +790,15 @@ CC command WRITE_M <filename> -- write Mx,My,Mz to file
         if (CMD.eq.'WRITE_M') then
           write(*,'(A, A, A30)') '> WRITE_M, ',
      *       ' FILE = ', FNAME
-          PI=3.1415926D0
-          W=20378D0*H
           open(M_FILE,FILE=FNAME,ERR=310)
-          write(M_FILE,*), '# FLEGG:  ', dsqrt(W*AA/4.0D0/PI**2)
-          write(M_FILE,*), '# CPAR:   ', dsqrt(-W*AF0)
-          write(M_FILE,*), '# Diff:   ', DIFF
-          write(M_FILE,*), '# TF:     ', TF
+          write(M_FILE,*), '# FLEGG:  ', LF0 + LF_SWR
+          write(M_FILE,*), '# CPAR:   ', CPAR0 + CPAR_SWR*T
+          write(M_FILE,*), '# Diff:   ', DF0 + DF_SWR*T
+          write(M_FILE,*), '# TF:     ', TF0 + TF_SWR*T
           write(M_FILE,*), '# H:      ', H
           write(M_FILE,*), '# GRAD:   ', GRAD
-          write(M_FILE,*), '# HR:     ', HR0+T*HR_SWR
-          write(M_FILE,*), '# LP:     ', LP0+T*LP_SWR
+          write(M_FILE,*), '# HR:     ', HR0 + T*HR_SWR
+          write(M_FILE,*), '# LP:     ', LP0 + T*LP_SWR
 
           write(M_FILE,*), '# TIME  LP  TMAB  TMDS  TMPC  TMZ'
           goto 303 ! next command
@@ -777,10 +812,6 @@ C       1 real arg
 CC command WAIT <time, ms> -- wait
         if (CMD.EQ.'WAIT') then
           write(*,'("> ", A12, F8.2, A)') CMD, ARG1, ' ms'
-          LP0=LP0+T*LP_SWR
-          LP_SWR=0D0
-          HR0=HR0+T*HR_SWR
-          HR_SWR=0D0
           TEND=T+ARG1*1D-3
           return
         endif
@@ -818,6 +849,30 @@ CC command HR <mOe> -- set rf field
         if (CMD.EQ.'HR') then
           write(*,'("> ", A12, F5.3, A)') CMD, ARG1, ' mOe'
           HR0=ARG1*1D-3 - T*HR_SWR
+           goto 303 ! next command
+         endif
+CC command DF <cm^2/s> -- set diffusion
+        if (CMD.EQ.'DF') then
+          write(*,'("> ", A12, F5.3, A)') CMD, ARG1, ' cm^2/s'
+          DF0=ARG1 - T*DF_SWR
+          goto 303 ! next command
+        endif
+CC command TF <s> -- set T_eff
+        if (CMD.EQ.'TF') then
+          write(*,'("> ", A12, F5.3, A)') CMD, ARG1, ' s'
+          TF0=ARG1 - T*TF_SWR
+          goto 303 ! next command
+        endif
+CC command LF <s> -- set leggett freq
+        if (CMD.EQ.'LF') then
+          write(*,'("> ", A12, F5.3, A)') CMD, ARG1, ' Hz'
+          LF0=ARG1 - T*LF_SWR
+          goto 303 ! next command
+        endif
+CC command CPAR <s> -- set C_par
+        if (CMD.EQ.'CPAR') then
+          write(*,'("> ", A12, F5.3, A)') CMD, ARG1, ' cm/s'
+          CPAR0=ARG1 - T*CPAR_SWR
           goto 303 ! next command
         endif
 
@@ -852,16 +907,13 @@ CC command LP_SWEEP_TO <value, cm> <rate, cm/s> -- sweep larmor position
         if (CMD.EQ.'LP_SWEEP_TO') then
           write(*,'("> ", A12, F5.3, A, F5.3, A)') CMD,
      *       ARG1, ' cm with rate ', ARG2, 'cm/s'
-          LP = LP0 + T*LP_SWR
           ARG2=dabs(ARG2)
-          STEPS = dabs(dfloat(int((ARG1-LP)/ARG2/TSTEP)))
+          STEPS = dabs(dfloat(int((ARG1-LP0)/ARG2/TSTEP)))
           write(*,*) ' do ', int(STEPS), ' time steps'
           if (STEPS.eq.0D0) goto 303
-          LP_SWR = (ARG1-LP)/(STEPS*TSTEP)
+          LP_SWR = (ARG1-LP0)/(STEPS*TSTEP)
           write(*,'(A,F8.5,A)') ' real rate: ', LP_SWR,  ' cm/s'
-          LP0  = LP - T*LP_SWR
-          HR0=HR0+T*HR_SWR
-          HR_SWR=0D0
+          LP0  = LP0 - T*LP_SWR
           TEND = T + STEPS*TSTEP
           return
         endif
@@ -872,18 +924,83 @@ CC command HR_SWEEP_TO <value, mOe> <rate, mOe/s> -- sweep RF-field
      *       ARG1, ' mOe with rate ', ARG2, ' mOe/s'
           ARG1=ARG1*1D-3
           ARG2=ARG2*1D-3
-          HR = HR0 + T*HR_SWR
           ARG2=dabs(ARG2)
-          STEPS = dabs(dfloat(int((ARG1-HR)/ARG2/TSTEP)))
+          STEPS = dabs(dfloat(int((ARG1-HR0)/ARG2/TSTEP)))
           write(*,*) ' do ', int(STEPS), ' time steps'
           if (STEPS.eq.0D0) goto 303
-          HR_SWR = (ARG1-HR)/(STEPS*TSTEP)
+          HR_SWR = (ARG1-HR0)/(STEPS*TSTEP)
           write(*,'(A,F8.5,A)') ' real rate: ', HR_SWR*1D3, ' mOe/s'
-          HR0  = HR - T*HR_SWR
-          LP0=LP0+T*LP_SWR
-          LP_SWR=0D0
+          HR0  = HR0 - T*HR_SWR
           TEND = T + STEPS*TSTEP
           return
+        endif
+
+CC command DF_SWEEP_TO <diff value, cm^2/s> <rate, cm^2/s^2> -- sweep Diff
+        if (CMD.EQ.'DF_SWEEP_TO') then
+          write(*,'("> ", A12, F5.3, A, F5.3, A)') CMD,
+     *       ARG1, ' cm^2/s with rate ', ARG2, ' cm^2/s^2'
+          ARG2=dabs(ARG2)
+          STEPS = dabs(dfloat(int((ARG1-DF0)/ARG2/TSTEP)))
+          write(*,*) ' do ', int(STEPS), ' time steps'
+          if (STEPS.eq.0D0) goto 303
+          DF_SWR = (ARG1-DF0)/(STEPS*TSTEP)
+          write(*,'(A,F8.5,A)') ' real rate: ', DF_SWR, ' cm^2/s^2'
+          DF0  = DF0 - T*DF_SWR
+          TEND = T + STEPS*TSTEP
+          return
+        endif
+
+CC command TF_SWEEP_TO <t_eff value, s> <rate> -- sweep t_eff
+        if (CMD.EQ.'TF_SWEEP_TO') then
+          write(*,'("> ", A12, F5.3, A, F5.3, A)') CMD,
+     *       ARG1, ' s with rate ', ARG2, ' s/s'
+          ARG2=dabs(ARG2)
+          STEPS = dabs(dfloat(int((ARG1-TF0)/ARG2/TSTEP)))
+          write(*,*) ' do ', int(STEPS), ' time steps'
+          if (STEPS.eq.0D0) goto 303
+          TF_SWR = (ARG1-TF0)/(STEPS*TSTEP)
+          write(*,'(A,F8.5,A)') ' real rate: ', TF_SWR, ' s/s'
+          TF0  = TF0 - T*TF_SWR
+          TEND = T + STEPS*TSTEP
+          return
+        endif
+
+CC command LF_SWEEP_TO <legg value, Hz> <rate, Hz/s> -- sweep leggett freq
+        if (CMD.EQ.'LF_SWEEP_TO') then
+          write(*,'("> ", A12, F5.3, A, F5.3, A)') CMD,
+     *       ARG1, ' Hz with rate ', ARG2, ' Hz/s'
+          ARG2=dabs(ARG2)
+          STEPS = dabs(dfloat(int((ARG1-LF0)/ARG2/TSTEP)))
+          write(*,*) ' do ', int(STEPS), ' time steps'
+          if (STEPS.eq.0D0) goto 303
+          TF_SWR = (ARG1-LF0)/(STEPS*TSTEP)
+          write(*,'(A,F8.5,A)') ' real rate: ', LF_SWR, ' s/s'
+          LF0  = LF0 - T*LF_SWR
+          TEND = T + STEPS*TSTEP
+          return
+        endif
+
+CC command CPAR_SWEEP_TO <legg value, Hz> <rate, Hz/s> -- sweep leggett freq
+        if (CMD.EQ.'CPAR_SWEEP_TO') then
+          write(*,'("> ", A12, F5.3, A, F5.3, A)') CMD,
+     *       ARG1, ' cm/s with rate ', ARG2, ' cm/s^2'
+          ARG2=dabs(ARG2)
+          STEPS = dabs(dfloat(int((ARG1-CPAR0)/ARG2/TSTEP)))
+          write(*,*) ' do ', int(STEPS), ' time steps'
+          if (STEPS.eq.0D0) goto 303
+          TF_SWR = (ARG1-CPAR0)/(STEPS*TSTEP)
+          write(*,'(A,F8.5,A)') ' real rate: ', CPAR_SWR, ' cm/s^2'
+          CPAR0  = CPAR0 - T*CPAR_SWR
+          TEND = T + STEPS*TSTEP
+          return
+        endif
+
+CC command T_P <t> <p> -- set T/P
+        if (CMD.EQ.'P_T') then
+          write(*,'("> ", A12, F5.3, A, F5.3, A)')
+     +      CMD, ARG1, ' bar, ' , ARG2, ' Tc'
+          call SET_HE3PT(ARG1, ARG2, 6.0D+14)
+          goto 303 ! next command
         endif
 
 
@@ -923,16 +1040,22 @@ CC command HR_SWEEP_TO <value, mOe> <rate, mOe/s> -- sweep RF-field
         include 'vmcw_st.fh'
         include 'he3_const.fh'
 
+        call STOP_SWEEP
+
         TEMP=TTC*TCF(PRESS)
         T1=T1C*TEMP/1000D0         ! RELAXATION TIME
         T11=1.0D0/T1
 
-        TETC=DSQRT(1.0D0-TTC)
-        CPAR=CPARF(PRESS,TEMP)          ! SPIN WAVES VELOCITY
-        FLEG=DSQRT(LF2F(PRESS,TTC))     ! LEGGETT FREQ
-        DIFF=DF(PRESS,TEMP)             ! SPIN DIFFUSION
+        CPAR0=CPARF(PRESS,TEMP)          ! SPIN WAVES VELOCITY
+        LF0  =DSQRT(LF2F(PRESS,TTC))     ! LEGGETT FREQ
+        DF0  =DF(PRESS,TEMP)             ! SPIN DIFFUSION
 
-        TF=1.2D-7/TETC                  ! TAU EFFECTIVE (L-T) SECONDS WV pic.10.5 20bar
+        TETC=DSQRT(1.0D0-TTC)
+        TR=1.2D-7/TETC                  !
+
+C        TR=1.2D-7/DSQRT(1.0D0-0.94D0)!!!
+
+        TF0=1D0/ (4D0*PI**2 *LF2F(PRESS,TTC)*TR)       ! TAU EFFECTIVE (L-T) SECONDS WV pic.10.5 20bar
 
         write(*,'(" P: ",F5.2," bar (Tc = ",F5.3," mK, Tab = ",F5.3,
      *            " mK), T: ",F5.3," mK = ",F5.3," Tc")'),
@@ -941,7 +1064,7 @@ CC command HR_SWEEP_TO <value, mOe> <rate, mOe/s> -- sweep RF-field
      *            " D: ", E9.2, " cm^2/s, ",
      *            " T_lt: ", E8.2, " s, ",
      *            " C_par: ", F6.1, " cm/s ")'),
-     *              FLEG/1D3, DIFF, TF, CPAR
+     *              LF0/1D3, DF0, TF0, CPAR0
 
       end
 
