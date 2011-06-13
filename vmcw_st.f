@@ -124,7 +124,11 @@ C----------------MAIN LOOP -------------------------------------------
             call SET_HE3PT(PRESS,TTC,T1C)
           endif
 
-          if(T.GE.TEND) call CMD_READ()
+          if (INDEX.eq.0.and.T.ge.TEND) then
+            call CMD_READ()
+            INDEX=2
+          endif
+
           T=T+TSTEP
           NSTEP=NSTEP+1
 
@@ -656,6 +660,7 @@ CCC   STATE DUMP/RESTORE
         open (NFILE, FILE=FNAME)
         read (NFILE, '(A)', END=201)
         read (NFILE, *, END=202) T, LP0, HR0
+        T=0D0
         read (NFILE, '(A)', END=202)
         LP_SWR=0D0
         HR_SWR=0D0
@@ -812,6 +817,7 @@ C       1 real arg
 CC command WAIT <time, ms> -- wait
         if (CMD.EQ.'WAIT') then
           write(*,'("> ", A12, F8.2, A)') CMD, ARG1, ' ms'
+          if (ARG1.eq.0D0) goto 303 ! next command
           TEND=T+ARG1*1D-3
           return
         endif
@@ -914,7 +920,7 @@ CC command LP_SWEEP_TO <value, cm> <rate, cm/s> -- sweep larmor position
           LP_SWR = (ARG1-LP0)/(STEPS*TSTEP)
           write(*,'(A,F8.5,A)') ' real rate: ', LP_SWR,  ' cm/s'
           LP0  = LP0 - T*LP_SWR
-          TEND = T + STEPS*TSTEP
+          TEND = T + (STEPS - 1D-4)*TSTEP
           return
         endif
 
@@ -931,7 +937,7 @@ CC command HR_SWEEP_TO <value, mOe> <rate, mOe/s> -- sweep RF-field
           HR_SWR = (ARG1-HR0)/(STEPS*TSTEP)
           write(*,'(A,F8.5,A)') ' real rate: ', HR_SWR*1D3, ' mOe/s'
           HR0  = HR0 - T*HR_SWR
-          TEND = T + STEPS*TSTEP
+          TEND = T + (STEPS - 1D-4)*TSTEP
           return
         endif
 
@@ -946,7 +952,7 @@ CC command DF_SWEEP_TO <diff value, cm^2/s> <rate, cm^2/s^2> -- sweep Diff
           DF_SWR = (ARG1-DF0)/(STEPS*TSTEP)
           write(*,'(A,F8.5,A)') ' real rate: ', DF_SWR, ' cm^2/s^2'
           DF0  = DF0 - T*DF_SWR
-          TEND = T + STEPS*TSTEP
+          TEND = T + (STEPS - 1D-4)*TSTEP
           return
         endif
 
@@ -961,7 +967,7 @@ CC command TF_SWEEP_TO <t_eff value, s> <rate> -- sweep t_eff
           TF_SWR = (ARG1-TF0)/(STEPS*TSTEP)
           write(*,'(A,F8.5,A)') ' real rate: ', TF_SWR, ' s/s'
           TF0  = TF0 - T*TF_SWR
-          TEND = T + STEPS*TSTEP
+          TEND = T + (STEPS - 1D-4)*TSTEP
           return
         endif
 
@@ -973,10 +979,10 @@ CC command LF_SWEEP_TO <legg value, Hz> <rate, Hz/s> -- sweep leggett freq
           STEPS = dabs(dfloat(int((ARG1-LF0)/ARG2/TSTEP)))
           write(*,*) ' do ', int(STEPS), ' time steps'
           if (STEPS.eq.0D0) goto 303
-          TF_SWR = (ARG1-LF0)/(STEPS*TSTEP)
+          LF_SWR = (ARG1-LF0)/(STEPS*TSTEP)
           write(*,'(A,F8.5,A)') ' real rate: ', LF_SWR, ' s/s'
           LF0  = LF0 - T*LF_SWR
-          TEND = T + STEPS*TSTEP
+          TEND = T + (STEPS - 1D-4)*TSTEP
           return
         endif
 
@@ -988,10 +994,10 @@ CC command CPAR_SWEEP_TO <legg value, Hz> <rate, Hz/s> -- sweep leggett freq
           STEPS = dabs(dfloat(int((ARG1-CPAR0)/ARG2/TSTEP)))
           write(*,*) ' do ', int(STEPS), ' time steps'
           if (STEPS.eq.0D0) goto 303
-          TF_SWR = (ARG1-CPAR0)/(STEPS*TSTEP)
+          CPAR_SWR = (ARG1-CPAR0)/(STEPS*TSTEP)
           write(*,'(A,F8.5,A)') ' real rate: ', CPAR_SWR, ' cm/s^2'
           CPAR0  = CPAR0 - T*CPAR_SWR
-          TEND = T + STEPS*TSTEP
+          TEND = T + (STEPS - 1D-4)*TSTEP
           return
         endif
 
@@ -1053,16 +1059,19 @@ CC command T_P <t> <p> -- set T/P
         TETC=DSQRT(1.0D0-TTC)
         TR=1.2D-7/TETC                  !
 
+
 C        TR=1.2D-7/DSQRT(1.0D0-0.94D0)!!!
 
         TF0=1D0/ (4D0*PI**2 *LF2F(PRESS,TTC)*TR)       ! TAU EFFECTIVE (L-T) SECONDS WV pic.10.5 20bar
+
+
 
         write(*,'(" P: ",F5.2," bar (Tc = ",F5.3," mK, Tab = ",F5.3,
      *            " mK), T: ",F5.3," mK = ",F5.3," Tc")'),
      *    PRESS, TCF(PRESS), TABF(PRESS), TEMP, TTC
         write(*,'(" F_legg: ", F9.3, " kHz,  ",
      *            " D: ", E9.2, " cm^2/s, ",
-     *            " T_lt: ", E8.2, " s, ",
+     *            " T_lt: ", E12.6, " s, ",
      *            " C_par: ", F6.1, " cm/s ")'),
      *              LF0/1D3, DF0, TF0, CPAR0
 
