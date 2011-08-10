@@ -11,8 +11,8 @@ C---------------- CB=0.0 !!!!!!!!!!
 
         character*64 CFG_KEY
 
-        integer FILES_MJ(NPTS) ! files for writing MJ along the cell
-        common /FILES/ FILES_MJ
+        integer FILES_MJ(NPTS), FILES_MJ0
+        common /FILES/ FILES_MJ, FILES_MJ0
 
         character CMD_FILE_NAME*20  ! file for reading commands
         integer   CMD_FILE          ! file descriptor
@@ -543,8 +543,8 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
       subroutine WRITEMJ_OPEN()
         include 'par.fh'
         include 'vmcw_st.fh'
-        integer FILES_MJ(NPTS)
-        common /FILES/ FILES_MJ
+        integer FILES_MJ(NPTS), FILES_MJ0
+        common /FILES/ FILES_MJ, FILES_MJ0
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
         common /CFG_CELL/ CELL_LEN
         common /CFG_WRITE/ WRITEMJ_XSTEP
@@ -564,6 +564,8 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
             FILES_MJ(I)=0
           endif
         enddo
+        FILES_MJ0=1000
+        open(FILES_MJ0,FILE='mj_all.dat')
       end
 
       subroutine WRITEMJ_DO()
@@ -571,8 +573,8 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
         include 'par.fh'
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
         common /TIMEP/ T, TSTEP, TEND
-        integer FILES_MJ(NPTS)
-        common /FILES/ FILES_MJ
+        integer FILES_MJ(NPTS), FILES_MJ0
+        common /FILES/ FILES_MJ, FILES_MJ0
         common /CFG_CELL/ CELL_LEN
 
         DIFF=DF0+DF_SWR*T
@@ -609,16 +611,25 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
             write(FILES_MJ(I),101) T*1000D0, (LP0+LP_SWR*T)/CELL_LEN,
      *        USOL(1,I,1),USOL(2,I,1),USOL(3,I,1),
      *        USOL(4,I,1),USOL(5,I,1),USOL(6,I,1),USOL(7,I,1)
+
+            write(FILES_MJ0,103) X(I), T*1000D0,
+     *        (LP0+LP_SWR*T)/CELL_LEN,
+     *        USOL(1,I,1),USOL(2,I,1),USOL(3,I,1),
+     *        USOL(4,I,1),USOL(5,I,1),USOL(6,I,1),USOL(7,I,1)
+
 C            write(24,102) T*1000., X(I),
 C     *        USOL(1,I,2),USOL(2,I,2),USOL(3,I,2),
 C     *        USOL(4,I,2),USOL(5,I,2),USOL(6,I,2),USOL(7,I,2),
 C     *        UFX,UFY,UFZ
-            flush(FILES_MJ(I))
           endif
         enddo
+        write(FILES_MJ0,*)
+        flush(FILES_MJ0)
+        flush(FILES_MJ(I))
 C       write(24,*)''
   101   format(F7.1 F10.6, 7(1PE15.6))
   102   format(F7.1 F10.6, 10(1PE15.6))
+  103   format(10(1PE15.6))
       end
 
 CCC   STATE DUMP/RESTORE
