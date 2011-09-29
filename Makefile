@@ -6,5 +6,4 @@ FFLAGS= -Werror -Wconversion\
 
 all: vmcw vmcw_st he3
 vmcw: vmcw.f libs/pde_dp.f he3_funcs.f
-vmcw_st: vmcw_st.f libs/pde_dp.f he3_funcs.f
 he3: he3.f he3_funcs.f
