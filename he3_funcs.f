@@ -86,9 +86,9 @@ C     Least squares 2-D fitting. From fil:: YOM3
 C     F= vs. T= & P=
 C     Polinmms of the orders : 4,  1
       function LF2F(P,T)
-        real*8 LF2F,P,T,TABF,TCF
+        real*8 LF2F,P,T,TABF,TCF, TT(1)
         real*8 WORK(5),A(10)
-        real*8 XMIN,XMAX,YMIN,YMAX,F
+        real*8 XMIN,XMAX,YMIN,YMAX,F(1)
         DATA XMIN/0.266D0/,XMAX/1.000D0/
         DATA YMIN/0.000D0/,YMAX/34.36D0/
         DATA K/4/,L/1/,NA/10/,NWORK/5/
@@ -99,9 +99,10 @@ C     Polinmms of the orders : 4,  1
      .          -6.9788020D+07,  2.0270360D+08/
         if (T.LT.TABF(P)/TCF(P)) THEN
           IFAIL=1
-          call E02CBE(1,1,K,L,T,XMIN,XMAX,P,YMIN,YMAX,F,
+          TT(1)=T
+          call E02CBE(1,1,K,L,TT,XMIN,XMAX,P,YMIN,YMAX,F,
      ,                A,NA,WORK,NWORK,IFAIL)
-          LF2F=F
+          LF2F=F(1)
           if (IFAIL.EQ.2) THEN
             print *,'P out of range:',YMIN,YMAX
             LF2F=0D0
@@ -183,9 +184,9 @@ C     Least squares 2-D fitting. From fil:: MUHLR1
 C     D/C= vs. T= & P=
 C     Polinoms of the orders : 4,  4
       function DSUPF(P,T)
-        real*8 DSUPF,P,T,CPARF,TCF,TR
+        real*8 DSUPF,P,T,CPARF,TCF,TR(1)
         real*8 WORK(5),A(25)
-        real*8 XMIN,XMAX,YMIN,YMAX,F
+        real*8 XMIN,XMAX,YMIN,YMAX,F(1)
         DATA XMIN/0.440D0/,XMAX/0.9400001D0/
         DATA YMIN/0.000D0/,YMAX/29.00000D0/
         DATA K/4/, L/4/, NA/25/, NWORK/5/
@@ -196,7 +197,7 @@ C     Polinoms of the orders : 4,  4
      ,  ,  1.2244173D-04,  3.2786340D-05,  6.5047061D-08, -3.2710520D-05
      ,  , -6.1170401D-05,  3.7204154D-05,  9.9630890D-06,  1.2296370D-08
      ,  , -9.9427400D-06, -1.8589210D-05/
-        TR=T/TCF(P)
+        TR(1)=T/TCF(P)
         IFAIL=1
         call E02CBE(1,1,K,L,TR,XMIN,XMAX,P,YMIN,YMAX,F,
      ,              A,NA,WORK,NWORK,IFAIL)
@@ -207,7 +208,7 @@ C     Polinoms of the orders : 4,  4
         else if (IFAIL.NE.0) THEN
           print *,'Error:',IFAIL
         end if
-        DSUPF=F*CPARF(P,T)**(.6666666666666D0)
+        DSUPF=F(1)*CPARF(P,T)**(.6666666666666D0)
       end
 C--
 

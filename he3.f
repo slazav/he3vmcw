@@ -12,12 +12,14 @@ CLIBR=NAF: E02AEE, E02CBE, M01AGE.
 C     LOGICAL RUNST
       common BUFF
       common /OUTB/ OUT(20),NOUT,IOUT(20,2)
+      real*8 OUT
       real*8 MV,MC,MA,LF2,LF
       DATA PNAM/'/HE3:'/
       DATA BUFF2/',,'/
 C     LBUFF=LEN*2
 C     RUNST=LBUFF.NE.0
 C     if (RUNST) GOTO 2
+      MT=.FALSE.
  1    continue
       rewind(101)
 C     if (RUNST) then
@@ -362,7 +364,7 @@ C--  Output of a table
 
 C--  Help message
         if (BUFF.EQ.'H'.OR.BUFF.EQ.'?') then
-          open (49,FILE='HE3.HLP',STATUS='OLD')
+          open (49,FILE='he3.hlp',STATUS='OLD')
           do 1201 J=1,10000
             read(49,'(A)',end=55)BUFF
 c           LENB=ITLOG()
@@ -454,6 +456,7 @@ C       print *,'I,IS1,IS2,IL,IE,NOUT',I,IS1,IS2,IL,IE,NOUT
 
       subroutine OUTS(OUTV)
         common /OUTB/ OUT(20),NOUT,IOUT(20,2)
+        real*8 OUT,OUTV
         if (NOUT.LE.20)OUT(NOUT)=OUTV
       end
 
