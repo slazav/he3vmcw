@@ -10,7 +10,7 @@ all: $(TARGETS)
 clean:
 	rm -f $(TARGETS)
 
-vmcw: vmcw.f libs/pde_dp.f he3_funcs.f
+vmcw: vmcw.f libs/pde_dp.f he3_funcs.f mesh.f
 he3: he3.f he3_funcs.f
 vft: vft.f
 
