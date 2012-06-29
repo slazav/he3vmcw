@@ -1,6 +1,6 @@
 C--------------- PARAMETERS LIST ------------------------------------
       PARAMETER( NPDE=7,         ! NUMBER OF EQUATIONS
-     +           NPTS=1025,      ! NUMBER OF GRID POINTS (NPTS=8N+4)
+     +           NPTS=257,      ! NUMBER OF GRID POINTS (NPTS=8N+4)
      +           NINT=NPTS-1,    ! NUMBER OF SUBINTERVALS
      +           KORD=4,         ! POLYNOMIAL ORDER
      +           NCC=3,          ! NUMBER OF CONTINUITY COND.
