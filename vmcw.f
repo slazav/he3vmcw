@@ -155,8 +155,8 @@ C       U   - Mx My Mz Nx Ny Nz T
 C       UX  - dU/dx
 C       UXX - d2U/dx2
 C       FV  - result
-C       calculate freq
 
+C       calculate freq
         WY = GAM*(HR0+HR_SWR*T)
         WZ = GAM*GRAD*(LP0+LP_SWR*T)
         WR = GAM*(H+GRAD*X)
@@ -461,7 +461,7 @@ C       Set mesh according with AER_STEP function
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
         common /CFG_CELL/ CELL_LEN
         common /CFG_MESH/ XMESH_K,XMESH_ACC
-        X(1)=0D0
+        X(1)=-CELL_LEN/2D0
 C       start with homogenious mesh with DX intervals
         DX=CELL_LEN/DFLOAT(NPTS-1)
         do I=1,100
@@ -471,7 +471,7 @@ C         build mesh with scaled intervals
      +        DX/(1.0D0+XMESH_K*ABS(AER_STEP(X(J),1)))
           enddo
 C         scale the whole mesh to fit CELL_LEN
-          DELTA=CELL_LEN - X(NPTS)
+          DELTA=CELL_LEN - (X(NPTS)-X(1))
           DX = DX + DELTA/DFLOAT(NPTS+1)
           if (ABS(DELTA).LT.XMESH_ACC) return
         enddo
