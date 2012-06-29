@@ -14,7 +14,7 @@ C---------------- CB=0.0 !!!!!!!!!!
         integer FILES_MJ(NPTS), FILES_MJ0
         common /FILES/ FILES_MJ, FILES_MJ0
 
-        character CMD_FILE_NAME*20  ! file for reading commands
+        character CMD_FILE_NAME*8  ! file for reading commands
         integer   CMD_FILE          ! file descriptor
         common /CMD_FILE/ CMD_FILE, INTERACTIVE, CMD_FILE_NAME
         data CMD_FILE_NAME/'vmcw.cmd'/, CMD_FILE/200/,INTERACTIVE/0/
@@ -483,7 +483,7 @@ C         scale the whole mesh to fit CELL_LEN
         include 'vmcw.fh'
         common /CFG_AER/  AER, AER_LEN, AER_CNT, AER_TRW
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
-        character FNAME*128
+        character*(*) FNAME
         integer FILE_AER
         FILE_AER=54
         open(FILE_AER,FILE=FNAME)
@@ -710,7 +710,7 @@ CCC   CMD PROCESSING
         include 'vmcw.fh'
         common /CMD_FILE/ CMD_FILE,INTERACTIVE,CMD_FILE_NAME
         integer CMD_FILE
-        character CMD_FILE_NAME*20
+        character CMD_FILE_NAME*8
         if (INTERACTIVE.eq.0) open (CMD_FILE, FILE=CMD_FILE_NAME)
       end
 
