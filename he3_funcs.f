@@ -1,7 +1,8 @@
 CC    T_c [mK] vs P [bars] -- TCF(P)
 C     Greywall. Phys. Rev.B v.33 #11 p.7520
       function TCF(P)
-        real*8 TCF,MCF,P
+        include 'he3_const.fh'
+        real*8 P
         TCF=   .92938375D0
      .       + .13867188D0*P
      .       - .69302185D-2*P**2
@@ -17,9 +18,8 @@ C     Greywall. Phys. Rev.B v.33 #11 p.7520
 CC    T_ab [mK] vs P [bars] -- TABF(P)
 C     Greywall. Phys. Rev.B v.33 #11 p.7520
       function TABF(P)
-        real*8 TABF,MCF,P,PR,TCF
-        common /HE3DATA/ PCP,TPCP,PA,ANA,PI,HC,R,AKB,GAM,AM3
-        real*8 PCP,TPCP,PA,ANA,PI,HC,R,AKB,GAM,AM3
+        include 'he3_const.fh'
+        real*8 P,PR
         PR=P-PCP
         if (PR.LT.0D0) then
           TABF=TCF(P)
@@ -41,7 +41,8 @@ CC    MOLAR VOLUME V[cm**3/mole] vs P [bars] -- MVF(P)
 C     Greywall. Phys. Rev.B v.33 #11 p.7520 ref. 27
 C     That is Wheatley Rev.Mod.Phys. 47,415(1975).
       function MVF(P)
-        real*8 MVF,P
+        include 'he3_const.fh'
+        real*8 P
         MVF=   36.837231D0
      .       - 1.1803474D0*P
      .       + 0.0834214D0*P**2
@@ -54,9 +55,8 @@ C     That is Wheatley Rev.Mod.Phys. 47,415(1975).
 CC    MELTING PRESSURE P [bars] vs T [mK] -- MCF(T)
 C     Greywall. Phys. Rev.B v.33 #11 p.7520
       function MCF(T)
-        real*8 MCF,T
-        common /HE3DATA/ PCP,TPCP,PA,ANA,PI,HC,R,AKB,GAM,AM3
-        real*8 PCP,TPCP,PA,ANA,PI,HC,R,AKB,GAM,AM3
+        include 'he3_const.fh'
+        real*8 T
         MCF=PA-.19652970D-1*T**(-3)-.61880268D-1*T**(-2)-
      .      .78803055D-1*T**(-1)+.13050600D0-.43519381D-1*T+
      .      .13752791D-3*T**2-.17180436D-6*T**3-
@@ -67,7 +67,8 @@ C     Greywall. Phys. Rev.B v.33 #11 p.7520
 CC    R-Gas constant GAMMA=C/RT [1/(K*mol)] vs P [bar] -- GAMMAF(P)
 C     Greywall. Phys. Rev.B v.33 #11 p.7520
       function GAMMAF(P)
-        real*8 GAMMAF,P
+        include 'he3_const.fh'
+        real*8 P
         GAMMAF =  .27840464D+1
      .          + .69575243D-1*P
      .          - .14738303D-2*P**2
@@ -86,7 +87,8 @@ C     Least squares 2-D fitting. From fil:: YOM3
 C     F= vs. T= & P=
 C     Polinmms of the orders : 4,  1
       function LF2F(P,T)
-        real*8 LF2F,P,T,TABF,TCF, TT(1)
+        include 'he3_const.fh'
+        real*8 P,T,TT(1)
         real*8 WORK(5),A(10)
         real*8 XMIN,XMAX,YMIN,YMAX,F(1)
         DATA XMIN/0.266D0/,XMAX/1.000D0/
@@ -123,16 +125,16 @@ C     Polinmms of the orders : 4,  1
 
 C--   Attention density of state must be multiplyied by ANA later.
       function DNDEF(P)
-        real*8 DNDEF,P,GAMMAF
-        common /HE3DATA/ PCP,TPCP,PA,ANA,PI,HC,R,AKB,GAM,AM3
-        real*8 PCP,TPCP,PA,ANA,PI,HC,R,AKB,GAM,AM3
+        include 'he3_const.fh'
+        real*8 P
         DNDEF=3D0*GAMMAF(P)/AKB/PI**2
         return
       end
 
 CC    EFFECTIVE MASS [g] vs P [bar] -- MAF(P)
       function MAF(P)
-        real*8 MAF,P,MVF,DNDEF,PF,PFF
+        include 'he3_const.fh'
+        real*8 P,PF
         PF=PFF(P)
 C       MAF=GAMMAF(P)*R*HC*MVF(P)*(HC/PF)*3
 C       print *,GAMMAF(P),GAMMAF(P)*R*HC,R
@@ -143,16 +145,16 @@ C       MAF=DNDEF(P)*PF/3./MVF(P)*PF
 
 CC    FERMI MOMENTUM [sgs] vs P [bar] -- PFF(P)
       function PFF(P)
-        common /HE3DATA/ PCP,TPCP,PA,ANA,PI,HC,R,AKB,GAM,AM3
-        real*8 PCP,TPCP,PA,ANA,PI,HC,R,AKB,GAM,AM3
-        real*8 PFF,P,MVF
+        include 'he3_const.fh'
+        real*8 P
         PFF=HC*(3D0*PI**2*ANA/MVF(P))**.3333333D0
         return
       end
 
 CC    FERMI VELOSITY [cm/s] vs P [bar] -- VFF(P)
       function VFF(P)
-        real*8 VFF,P,PFF,MAF
+        include 'he3_const.fh'
+        real*8 P
         VFF=PFF(P)/MAF(P)
         return
       end
@@ -162,18 +164,21 @@ C     Osheroff's spin wave velocity if recalculated to arbitrary pressure
 C     by taking value of Osheroff for melting pressure (1100 cm/sek)
 C     and assuming S is proportional to Fermi velocity.
       function SF(P,T)
-        real*8 SF,P,T,VFF,TCF
+        include 'he3_const.fh'
+        real*8 P,T
         SF=1100D0/VFF(34.3D0)*VFF(P)*SQRT(1D0-T/TCF(P))
       end
 
 CC    Parallel Fomin spin wave velocity. Cpar [cm/c] vs P [bar], T [mK] -- CPARF(P,T)
       function CPARF(P,T)
-        real*8 CPARF,P,T,SF
+        include 'he3_const.fh'
+        real*8 P,T
         CPARF=SF(P,T)*SQRT(2.0D0)
       end
 CC    Perp Fomin spin wave velocity. Cper [cm/c] vs P [bar], T [mK] -- CPERF(P,T)
       function CPERF(P,T)
-        real*8 CPERF,P,T,SF
+        include 'he3_const.fh'
+        real*8 P,T
         CPERF=SF(P,T)*SQRT(1.5D0)
       end
 
@@ -184,7 +189,8 @@ C     Least squares 2-D fitting. From fil:: MUHLR1
 C     D/C= vs. T= & P=
 C     Polinoms of the orders : 4,  4
       function DSUPF(P,T)
-        real*8 DSUPF,P,T,CPARF,TCF,TR(1)
+        include 'he3_const.fh'
+        real*8 P,T,TR(1)
         real*8 WORK(5),A(25)
         real*8 XMIN,XMAX,YMIN,YMAX,F(1)
         DATA XMIN/0.440D0/,XMAX/0.9400001D0/
@@ -220,7 +226,8 @@ C     DT2=                  vs.  P=
 C     Polinom of the order : 4
 C     Residual: 0.000
       function DNORF(P,T)
-        real*8 DNORF,P,T,DT2F, XCAP,F
+        include 'he3_const.fh'
+        real*8 P,T,DT2F, XCAP,F
         DATA M1/4/
         real*8 XMAX, XMIN
         DATA XMIN/0.0D0/,XMAX/27.75999D0/
@@ -239,7 +246,8 @@ C       .89 accounts fo Grewall scale.
 
 CC    SPIN DIFFUSION COEFF D [cm**2/sec] vs P [bar], T[mk] -- DF(P,T)
       function DF(P,T)
-        real*8 DF, P,T, DNORF,DSUPF,TCF
+        include 'he3_const.fh'
+        real*8 P,T
         if (T.GT.TCF(P)) THEN
           DF=DNORF(P,T)
         else
@@ -251,9 +259,8 @@ C          print *,'Superflow region. Check if data out range.'
 
 CC    SUSEPTIBILITY [sgs] vs P [bar], T [mK] -- HIF(P,T)
       function HIF(P,T)
-        real*8 HIF,P,T,MVF,Y,YOSHIDF,TTC,TCF,DNDEF,Z0F,Z0
-        common /HE3DATA/ PCP,TPCP,PA,ANA,PI,HC,R,AKB,GAM,AM3
-        real*8 PCP,TPCP,PA,ANA,PI,HC,R,AKB,GAM,AM3
+        include 'he3_const.fh'
+        real*8 P,T,Y,TTC,Z0
         HIF=0.25D0*GAM**2*HC*DNDEF(P)*HC*ANA/(1D0+Z0F(P)/4D0)/MVF(P)
         TTC=T/TCF(P)
         if (TTC.LT.1D0) then
@@ -271,13 +278,13 @@ C     Least squares fitting. From file: YOSHID
 C     Polinom of the order : 5
 C     Residual: 0.000
       function YOSHIDF(TTC)
-        real*8 YOSHIDF,TTC
-        real*8 A(5)
+        include 'he3_const.fh'
+        real*8 TTC, A(5)
         DATA M1/5/
         real*8 XMIN,XMAX,XCAP
         DATA XMIN/9.9999994D-02/,XMAX/1.000000D0/
         DATA A/.7349111D0, .5123515D0, .1371038D0,
-     ,         -1.4855450D-02, -4.5979050D-03/
+     .         -1.4855450D-02, -4.5979050D-03/
         if (TTC.GE.0.1D0) then
           IFAIL=1
           XCAP=((TTC-XMIN)-(XMAX-TTC))/(XMAX-XMIN)
@@ -295,13 +302,13 @@ C     Least squares fitting. From file: YZ0
 C     Polinom of the order : 5
 C     Residual: 0.000
       function Z0F(P)
-        real*8 Z0F,P
-        real*8 A(5)
+        include 'he3_const.fh'
+        real*8 P, A(5)
         DATA M1/ 5/
         real*8 XMIN,XMAX,XCAP
         DATA XMIN/0.000000D0/,XMAX/34.36000D0/
         DATA A/-5.762472D0, -0.1136529D0, 5.5511940D-02,
-     *       -1.7914600D-02, 4.0055060D-03/
+     .         -1.7914600D-02, 4.0055060D-03/
         IFAIL=1
         XCAP=((P-XMIN)-(XMAX-P))/(XMAX-XMIN)
         call E02AEE(M1,A,XCAP,Z0F,IFAIL)
@@ -314,8 +321,8 @@ C     Least squares fitting. From file: YF0A
 C     Polinom of the order : 7
 C     Residual: 0.000
       function F0AF(P)
-        real*8 F0AF,P
-        real*8 A(7)
+        include 'he3_const.fh'
+        real*8 P, A(7)
         DATA M1/7/
         real*8 XMIN,XMAX,XCAP
         DATA XMIN/0.000000D0/,XMAX/34.36000D0/
@@ -325,7 +332,7 @@ C     Residual: 0.000
         IFAIL=1
         XCAP=((P-XMIN)-(XMAX-P))/(XMAX-XMIN)
         call E02AEE(M1,A,XCAP,F0AF,IFAIL)
-        if (IFAIL.NE.0)print *,'Error in E02AEE :',IFAIL
+        if (IFAIL.NE.0) print *,'Error in E02AEE :',IFAIL
       end
 
 
