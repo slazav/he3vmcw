@@ -37,7 +37,6 @@ C       PDECOL parameters
 C--------------- INITIALIZATION -------------------------------------
 
         WRITEMJ_XSTEP=0.1D0
-        PI1=4.0D0*DATAN(1.0D0)
 
         open(54,FILE='vmcw.cfg')
    11   read(54,*,END=12) CFG_KEY, CFG_VAL
@@ -146,9 +145,9 @@ C----------------MAIN LOOP -------------------------------------------
 C-- F ---------- EVALUATION OF F ------------------------------------
       subroutine F(T,X,U,UX,UXX,FV,NPDE)
         include 'vmcw.fh'
+        include 'he3_const.fh'
 
         dimension U(NPDE),UX(NPDE),UXX(NPDE),FV(NPDE)
-        common /HE3DATA/ PCP,TPCP,PA,ANA,PI1,HC,R,AKB,GAM,AM3
 C       T - time
 C       X - x-coord
 C       U   - Mx My Mz Nx Ny Nz T 
@@ -182,7 +181,7 @@ C       fix n vector length
         CTG=ST/CTM      ! ctg(T/2) = sin(T)/(1-cos(T))
         UT=ST*(1.0D0+4.0D0*CT)*0.2666666D0
 
-        AUT=UT*(LF0+LF_SWR*T)**2/WL*4.0D0*PI1**2
+        AUT=UT*(LF0+LF_SWR*T)**2/WL*4.0D0*PI**2
         AF=-(CPAR0+CPAR_SWR*T)**2/WL
         TF1=TF0+TF_SWR*T
         DIFF=DF0+DF_SWR*T
@@ -235,7 +234,7 @@ C       fix n vector length
 C-- BNDRY ------ BOUNDARY CONDITIONS -- B(U,UX)=Z(T) ------------
       subroutine BNDRY(T,X,U,UX,DBDU,DBDUX,DZDT,NPDE)
         include 'vmcw.fh'
-        common /HE3DATA/ PCP,TPCP,PA,ANA,PI1,HC,R,AKB,GAM,AM3
+        include 'he3_const.fh'
         dimension U(NPDE),UX(NPDE),DZDT(NPDE),
      *   DBDU(NPDE,NPDE),DBDUX(NPDE,NPDE)
         do I=1,NPDE
@@ -992,7 +991,7 @@ CC command T_P <t> <p> -- set T/P
 
         TR=1.2D-7/DSQRT(1.0D0-TTC)                  !
 C        TR=1.2D-7/DSQRT(1.0D0-0.94D0)!!!
-        TF0=1D0/ (4D0*PI1**2 *LF2F(PRESS,TTC)*TR)   ! TAU EFFECTIVE (L-T) SECONDS WV pic.10.5 20bar
+        TF0=1D0/ (4D0*PI**2 *LF2F(PRESS,TTC)*TR)   ! TAU EFFECTIVE (L-T) SECONDS WV pic.10.5 20bar
 
 
 
