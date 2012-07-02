@@ -37,6 +37,7 @@ C       PDECOL parameters
 C--------------- INITIALIZATION -------------------------------------
 
         WRITEMJ_XSTEP=0.1D0
+        PI1=4.0D0*DATAN(1.0D0)
 
         open(54,FILE='vmcw.cfg')
    11   read(54,*,END=12) CFG_KEY, CFG_VAL
@@ -113,7 +114,6 @@ C       CFG_AER parameter group:
         call WRITEMJ_OPEN()
 
 C--------------- COMPUTE PARAMETERS ----------------------------
-        PI=4.0D0*DATAN(1.0D0)
         call CMD_OPEN()
         call SET_HE3PT(PRESS,TTC,T1C)
 C----------------MAIN LOOP -------------------------------------------
@@ -991,13 +991,9 @@ CC command T_P <t> <p> -- set T/P
         LF0  =DSQRT(LF2F(PRESS,TTC))     ! LEGGETT FREQ
         DF0  =DF(PRESS,TEMP)             ! SPIN DIFFUSION
 
-        TETC=DSQRT(1.0D0-TTC)
-        TR=1.2D-7/TETC                  !
-
-
+        TR=1.2D-7/DSQRT(1.0D0-TTC)                  !
 C        TR=1.2D-7/DSQRT(1.0D0-0.94D0)!!!
-
-        TF0=1D0/ (4D0*PI**2 *LF2F(PRESS,TTC)*TR)       ! TAU EFFECTIVE (L-T) SECONDS WV pic.10.5 20bar
+        TF0=1D0/ (4D0*PI1**2 *LF2F(PRESS,TTC)*TR)   ! TAU EFFECTIVE (L-T) SECONDS WV pic.10.5 20bar
 
 
 

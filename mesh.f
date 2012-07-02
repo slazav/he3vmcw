@@ -39,6 +39,7 @@ C       Set mesh according with AER_STEP function
         common /CFG_CELL/ CELL_LEN
         common /CFG_MESH/ XMESH_K,XMESH_ACC
         real*8 DELTA,DX,X, AER_STEP
+        real*8 CELL_LEN, XMESH_K,XMESH_ACC
         dimension X(N)
         X(1)=-CELL_LEN/2D0
 C       start with homogenious mesh with DX intervals
