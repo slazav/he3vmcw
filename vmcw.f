@@ -158,10 +158,10 @@ C       FV  - result
 
 C       calculate freq
         WY = GAM*(HR0+HR_SWR*T)
-        WZ = GAM*GRAD*(LP0+LP_SWR*T)
-        WR = GAM*(H+GRAD*X)
-        WZR= GAM*H + WZ
-        XZ=  GAM*GRAD*(X-LP0-LP_SWR*T)
+
+        WL = GAM*(H + GRAD*X)
+        W0= GAM*(H + GRAD*(LP0+LP_SWR*T))
+        DW = WL-W0
 
 C       fix n vector length
         UN=DSQRT(U(4)**2+U(5)**2+U(6)**2)
@@ -169,11 +169,11 @@ C       fix n vector length
         UNy = U(5)/UN
         UNz = U(6)/UN
 
-        UMxm = U(1)-WY/WR
+        UMxm = U(1)-WY/WL
         UMym = U(2)
         UMzm = U(3)-1.0D0
 
-        WR2 = 0.5D0*WR
+        WL2 = 0.5D0*WL
         DD45=UNx*UX(5)-UX(4)*UNy       ! Nx Ny` - Nx` Ny
         ST=DSIN(U(7))
         CT=DCOS(U(7))
@@ -182,9 +182,8 @@ C       fix n vector length
         CTG=ST/CTM      ! ctg(T/2) = sin(T)/(1-cos(T))
         UT=ST*(1.0D0+4.0D0*CT)*0.2666666D0
 
-        W=GAM*H
-        AUT=UT*(LF0+LF_SWR*T)**2/W*4.0D0*PI1**2
-        AF=-(CPAR0+CPAR_SWR*T)**2/W
+        AUT=UT*(LF0+LF_SWR*T)**2/WL*4.0D0*PI1**2
+        AF=-(CPAR0+CPAR_SWR*T)**2/WL
         TF1=TF0+TF_SWR*T
         DIFF=DF0+DF_SWR*T
 
@@ -222,14 +221,14 @@ C       fix n vector length
 
         B = UNx*UMxm + UMym*UNy + UMzm*UNz
 
-        FV(1)=   XZ*U(2)           + AUT*UNx - DJX
-        FV(2)= - XZ*U(1) + WY*U(3) + AUT*UNy - DJY
+        FV(1)=   DW*U(2)           + AUT*UNx - DJX
+        FV(2)= - DW*U(1) + WY*U(3) + AUT*UNy - DJY
         FV(3)=           - WY*U(2) + AUT*UNz - DJZ - UMzm*T11
 
-        FV(4)= - WZR*UNy - WR2*(UMzm*UNy-UMym*UNz+CTG*(B*UNx-UMxm))
-        FV(5)=   WZR*UNx - WR2*(UMxm*UNz-UMzm*UNx+CTG*(B*UNy-UMym))
-        FV(6)=           - WR2*(UMym*UNx-UMxm*UNy+CTG*(B*UNz-UMzm))
-        FV(7)= WR*B + UT/TF1
+        FV(4)= - W0*UNy - WL2*(UMzm*UNy-UMym*UNz+CTG*(B*UNx-UMxm))
+        FV(5)=   W0*UNx - WL2*(UMxm*UNz-UMzm*UNx+CTG*(B*UNy-UMym))
+        FV(6)=           - WL2*(UMym*UNx-UMxm*UNy+CTG*(B*UNz-UMzm))
+        FV(7)= WL*B + UT/TF1
         return
       end
 
