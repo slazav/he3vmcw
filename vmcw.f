@@ -22,13 +22,11 @@ C---------------- CB=0.0 !!!!!!!!!!
         real*8 WRITEMJ_XSTEP
         common /CFG_WRITE/ WRITEMJ_XSTEP
 
-C       PDECOL parameters
-        common /PDECOL_DATA/ INDEX,MF,SCTCH, WORK,IWORK,
-     *    PDECOL_ACC, PDECOL_ACC_LOG2,T0,DT
+        common /PDECOL_DATA/ INDEX,MF,SCTCH,WORK,IWORK,
+     *    PDECOL_ACC,PDECOL_ACC_LOG2,T0,DT
         integer INDEX,IWORK(IDIMIWORK)
         real*8 SCTCH(KORD*(NDERV+1)),WORK(IDIMWORK)
-        real*8 PDECOL_ACC, PDECOL_ACC_LOG2,T0,DT
-
+        real*8 PDECOL_ACC, PDECOL_ACC_LOG2, T0, DT
 
 C--------------- INITIALIZATION -------------------------------------
 
@@ -92,8 +90,6 @@ C       CFG_AER parameter group:
 
         T=0D0
         TSTEP=5D-3
-        TEND=0D0
-        NSTEP=0
 
         LP0=0D0
         HR0=1D-3
@@ -112,32 +108,65 @@ C--------------- COMPUTE PARAMETERS ----------------------------
         call CMD_OPEN()
         call SET_HE3PT(PRESS,TTC,T1C)
 C----------------MAIN LOOP -------------------------------------------
+        TEND=T
    2    CONTINUE
-
           if (dabs(TTC_ST).ge.1D-5) then
             TTC=TTC+TTC_ST
             call SET_HE3PT(PRESS,TTC,T1C)
           endif
-
-          if (INDEX.eq.0.and.T.ge.TEND) then
-            call CMD_READ()
-            INDEX=2
-          endif
-
+          if (T.ge.TEND) call CMD_READ()
           T=T+TSTEP
-          NSTEP=NSTEP+1
-
-          call PDECOL(T0,T,DT,XSOL,PDECOL_ACC,NINT,KORD,NCC,NPDE,MF,
-     +                INDEX,WORK,IWORK)
-          if(INDEX.NE.0) THEN
-            write(*,*) 'INTEGRATION FAILED; INDEX=', INDEX
-            stop
-          endif
-
-          call VALUES(XSOL,USOL,SCTCH,NPDE,NPTS,NPTS,2,WORK)
+          call pdecol_run(T)
           call MONITOR()
         goto 2
       end
+
+      subroutine pdecol_init(T)
+        include 'vmcw.fh'
+        include 'par.fh'
+        real*8 T
+
+        common /PDECOL_DATA/ INDEX,MF,SCTCH,WORK,IWORK,
+     *    PDECOL_ACC,PDECOL_ACC_LOG2,T0,DT
+        integer INDEX,IWORK(IDIMIWORK)
+        real*8 SCTCH(KORD*(NDERV+1)),WORK(IDIMWORK)
+        real*8 PDECOL_ACC, PDECOL_ACC_LOG2, T0, DT
+
+        INDEX=1  ! TYPE OF CALL (FIRST CALL)
+        MF=22
+        IWORK(1)=IDIMWORK
+        IWORK(2)=IDIMIWORK
+        do I=1,IDIMWORK
+          WORK(I)=0.0D0
+        enddo
+        PDECOL_ACC = 2.0D0**(-PDECOL_ACC_LOG2)
+        T0=T       ! STARTING TIME FOR PDECOL
+        DT=1.D-10  ! INITIAL STEP SIZE IN T
+      end
+
+      subroutine pdecol_run(T)
+        include 'vmcw.fh'
+        include 'par.fh'
+        real*8 T
+
+        common /PDECOL_DATA/ INDEX,MF,SCTCH,WORK,IWORK,
+     *    PDECOL_ACC,PDECOL_ACC_LOG2,T0,DT
+        integer INDEX,IWORK(IDIMIWORK)
+        real*8 SCTCH(KORD*(NDERV+1)),WORK(IDIMWORK)
+        real*8 PDECOL_ACC, PDECOL_ACC_LOG2, T0, DT
+
+        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),XSOL(NPTS)
+
+        call PDECOL(T0,T,DT,XSOL,PDECOL_ACC,NINT,KORD,NCC,NPDE,MF,
+     +              INDEX,WORK,IWORK)
+        if(INDEX.NE.0) THEN
+          write(*,*) 'INTEGRATION FAILED; INDEX=', INDEX
+          stop
+        endif
+
+        call VALUES(XSOL,USOL,SCTCH,NPDE,NPTS,NPTS,2,WORK)
+      end
+
 C-- F ---------- EVALUATION OF F ------------------------------------
       subroutine F(T,X,U,UX,UXX,FV,NPDE)
         include 'vmcw.fh'
@@ -738,27 +767,6 @@ CC command T_P <t> <p> -- set T/P
       end
 
 
-      subroutine PDECOL_INIT(T)
-        include 'vmcw.fh'
-        real*8 T
-        include 'par.fh'
-        common /PDECOL_DATA/ INDEX,MF,SCTCH,WORK,IWORK,
-     *    PDECOL_ACC,PDECOL_ACC_LOG2,T0,DT
-        integer INDEX,IWORK(IDIMIWORK)
-        real*8 SCTCH(KORD*(NDERV+1)),WORK(IDIMWORK)
-        real*8 PDECOL_ACC, PDECOL_ACC_LOG2, T0, DT
-
-        INDEX=1  ! TYPE OF CALL (FIRST CALL)
-        MF=22
-        IWORK(1)=IDIMWORK
-        IWORK(2)=IDIMIWORK
-        do I=1,IDIMWORK
-          WORK(I)=0.0D0
-        enddo
-        PDECOL_ACC = 2.0D0**(-PDECOL_ACC_LOG2)
-        T0=T       ! STARTING TIME FOR PDECOL
-        DT=1.D-10  ! INITIAL STEP SIZE IN T
-      end
 
 
       subroutine SET_HE3PT(PRESS, TTC, T1C)
