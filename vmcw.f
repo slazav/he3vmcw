@@ -3,7 +3,7 @@ C---------------- CB=0.0 !!!!!!!!!!
         include 'par.fh'
         include 'he3_const.fh'
         common /TIMEP/ T, TSTEP, TEND
-        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
+        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),XSOL(NPTS)
 
         character*64 CFG_KEY
 
@@ -102,8 +102,8 @@ C       CFG_AER parameter group:
 
         call pdecol_init(T) ! set PDECOL parameters
 
-        call SET_MESH(X, NPTS)
-        call SAVE_MESH(X, NPTS, 'mesh.dat')
+        call SET_MESH(XSOL, NPTS)
+        call SAVE_MESH(XSOL, NPTS, 'mesh.dat')
         call SET_ICOND()
 
         call WRITEMJ_OPEN()
@@ -127,14 +127,14 @@ C----------------MAIN LOOP -------------------------------------------
           T=T+TSTEP
           NSTEP=NSTEP+1
 
-          call PDECOL(T0,T,DT,X,PDECOL_ACC,NINT,KORD,NCC,NPDE,MF,
+          call PDECOL(T0,T,DT,XSOL,PDECOL_ACC,NINT,KORD,NCC,NPDE,MF,
      +                INDEX,WORK,IWORK)
           if(INDEX.NE.0) THEN
             write(*,*) 'INTEGRATION FAILED; INDEX=', INDEX
             stop
           endif
 
-          call VALUES(X,USOL,SCTCH,NPDE,NPTS,NPTS,2,WORK)
+          call VALUES(XSOL,USOL,SCTCH,NPDE,NPTS,NPTS,2,WORK)
           call MONITOR()
         goto 2
       end
@@ -368,7 +368,7 @@ C-- USP(X) ----- CSI OF SOLUTION ------------------------------------
       double precision function USP(XI,I)
         include 'vmcw.fh'
         include 'par.fh'
-        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
+        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),XSOL(NPTS)
         do K=1,NPTS
           USM=DSQRT(USOL(5,K,1)**2+USOL(6,K,1)**2+USOL(4,K,1)**2)
           USOL(4,K,1)=USOL(4,K,1)/USM
@@ -378,7 +378,7 @@ C-- USP(X) ----- CSI OF SOLUTION ------------------------------------
         AA=1.0D20
         IK=1
         do II=1,NPTS
-          BB=(X(II)-XI)**2
+          BB=(XSOL(II)-XI)**2
           if(BB.LE.AA)THEN
             AA=BB
             IK=II

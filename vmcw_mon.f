@@ -4,7 +4,7 @@ C-- MONITOR ---- MONITORING THE SOLUTION ----------------------------
         include 'par.fh'
         common /TIMEP/ T, TSTEP, TEND
         common /GEAR0/ DTUSED,NQUSED,NSTEP,NFE,NJE
-        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
+        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),XSOL(NPTS)
 
         integer   M_FILE
         common /M_FILE/ M_FILE
@@ -17,9 +17,9 @@ C--------------- COMPUTE TIME DEPENDENCIES --------------------------
         TMDS=0.0D0
         TMZ=0.0D0
         do I=1,NPTS-1
-          TMAB=TMAB + USOL(1,I,1) * (X(I+1)-X(I))
-          TMDS=TMDS + USOL(2,I,1) * (X(I+1)-X(I))
-          TMZ=TMZ   + USOL(3,I,1) * (X(I+1)-X(I))
+          TMAB=TMAB + USOL(1,I,1) * (XSOL(I+1)-XSOL(I))
+          TMDS=TMDS + USOL(2,I,1) * (XSOL(I+1)-XSOL(I))
+          TMZ=TMZ   + USOL(3,I,1) * (XSOL(I+1)-XSOL(I))
         enddo
         TMAB=TMAB/CELL_LEN
         TMDS=TMDS/CELL_LEN
@@ -45,7 +45,7 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
       subroutine WRITEMJ_OPEN()
         include 'vmcw.fh'
         include 'par.fh'
-        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
+        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),XSOL(NPTS)
         integer FILES_MJ(NPTS), FILES_MJ0
         common /FILES/ FILES_MJ, FILES_MJ0
         common /CFG_WRITE/ WRITEMJ_XSTEP
@@ -55,11 +55,12 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
         integer I
         X0=0D0
         do I=1,NPTS
-          if (X(I).GE.X0) then
+          if (XSOL(I).GE.X0) then
             FILES_MJ(I)=1000+I
-            write(FNAME,'(A,F6.4,A)') 'mj',X(I),'.dat'
+            write(FNAME,'(A,F6.4,A)') 'mj',XSOL(I),'.dat'
             open(FILES_MJ(I),FILE=FNAME)
-            write(FILES_MJ(I),'(A,F6.3AI4)') '# X= ', X(I), ' I = ', I
+            write(FILES_MJ(I),
+     .           '(A,F6.3AI4)') '# X= ', XSOL(I), ' I = ', I
             X0 = X0 + WRITEMJ_XSTEP*CELL_LEN
           else
             FILES_MJ(I)=0
@@ -75,7 +76,7 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
         common /TIMEP/ T, TSTEP, TEND
         integer FILES_MJ(NPTS), FILES_MJ0
         common /FILES/ FILES_MJ, FILES_MJ0
-        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
+        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),XSOL(NPTS)
 
         DIFF=DF0+DF_SWR*T
 
@@ -112,12 +113,12 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
      *        USOL(1,I,1),USOL(2,I,1),USOL(3,I,1),
      *        USOL(4,I,1),USOL(5,I,1),USOL(6,I,1),USOL(7,I,1)
 
-            write(FILES_MJ0,103) X(I), T*1000D0,
+            write(FILES_MJ0,103) XSOL(I), T*1000D0,
      *        (LP0+LP_SWR*T)/CELL_LEN,
      *        USOL(1,I,1),USOL(2,I,1),USOL(3,I,1),
      *        USOL(4,I,1),USOL(5,I,1),USOL(6,I,1),USOL(7,I,1)
 
-C            write(24,102) T*1000., X(I),
+C            write(24,102) T*1000., XSOL(I),
 C     *        USOL(1,I,2),USOL(2,I,2),USOL(3,I,2),
 C     *        USOL(4,I,2),USOL(5,I,2),USOL(6,I,2),USOL(7,I,2),
 C     *        UFX,UFY,UFZ
