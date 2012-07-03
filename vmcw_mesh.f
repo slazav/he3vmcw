@@ -3,6 +3,7 @@ C       Aerogel density function. Returns 1 in the central
 C       part of the cell with fermi steps to 0 on edges.
 C         X        -- coord, cm
 C         D        -- derivative order (0|1)
+C 
 C         CELL_LEN -- cell length, cm
 C         AER      -- if >0 then do step
 C         AER_LEN  -- aerogel length / cell length
@@ -11,8 +12,6 @@ C         AER_TRW  -- transition width / cell length
       double precision function AER_STEP(X,D)
         include 'vmcw.fh'
         integer D
-        common /CFG_AER/  AER, AER_LEN, AER_CNT, AER_TRW
-        common /CFG_CELL/ CELL_LEN
         if (AER.LE.0D0) then
           AER_STEP=0D0
           return
@@ -35,11 +34,9 @@ C         AER_TRW  -- transition width / cell length
       end
 C-- SET_MESH --- SET UP THE MESH ------------------------------------
       subroutine SET_MESH(X, N)
+        include 'vmcw.fh'
 C       Set mesh according with AER_STEP function
-        common /CFG_CELL/ CELL_LEN
-        common /CFG_MESH/ XMESH_K,XMESH_ACC
         real*8 DELTA,DX,X, AER_STEP
-        real*8 CELL_LEN, XMESH_K,XMESH_ACC
         dimension X(N)
         X(1)=-CELL_LEN/2D0
 C       start with homogenious mesh with DX intervals
@@ -60,15 +57,14 @@ C         scale the whole mesh to fit CELL_LEN
 
       subroutine SAVE_MESH(X, N, FNAME)
         character*(*) FNAME
-        integer FILE_AER
+        integer fid/54/, N
         real*8 X, AER_STEP
         dimension X(N)
-        FILE_AER=54
-        open(FILE_AER,FILE=FNAME)
-        write(FILE_AER,*), '#  I    X(I) STEP(X) STEP''(X)'
+        open(fid,FILE=FNAME)
+        write(fid,*), '#  I    X(I) STEP(X) STEP''(X)'
         do J=1,N
-          write(FILE_AER,'(I4," ",F7.5," ",F7.5," ",e12.5e2)')
+          write(fid,'(I4," ",F7.5," ",F7.5," ",e12.5e2)')
      +     J, X(J), AER_STEP(X(J),0), AER_STEP(X(J),1)
         enddo
-        close(FILE_AER)
+        close(fid)
       end

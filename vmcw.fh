@@ -12,3 +12,10 @@
       real*8 LP0,LP_SWR,BETA
       real*8 LF0,LF_SWR
 
+      common /CFG_AER/  AER, AER_LEN, AER_CNT, AER_TRW
+      common /CFG_CELL/ CELL_LEN
+      common /CFG_MESH/ XMESH_K,XMESH_ACC
+
+      real*8 AER, AER_LEN, AER_CNT, AER_TRW
+      real*8 CELL_LEN
+      real*8 XMESH_K,XMESH_ACC

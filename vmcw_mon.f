@@ -4,7 +4,6 @@ C-- MONITOR ---- MONITORING THE SOLUTION ----------------------------
         include 'par.fh'
         common /TIMEP/ T, TSTEP, TEND
         common /GEAR0/ DTUSED,NQUSED,NSTEP,NFE,NJE
-        common /CFG_CELL/ CELL_LEN
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
 
         integer   M_FILE
@@ -49,7 +48,6 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
         integer FILES_MJ(NPTS), FILES_MJ0
         common /FILES/ FILES_MJ, FILES_MJ0
-        common /CFG_CELL/ CELL_LEN
         common /CFG_WRITE/ WRITEMJ_XSTEP
         common /TIMEP/ T, TSTEP, TEND
         real*8 X0
@@ -77,7 +75,6 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
         common /TIMEP/ T, TSTEP, TEND
         integer FILES_MJ(NPTS), FILES_MJ0
         common /FILES/ FILES_MJ, FILES_MJ0
-        common /CFG_CELL/ CELL_LEN
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
 
         DIFF=DF0+DF_SWR*T

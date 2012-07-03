@@ -5,10 +5,6 @@ C---------------- CB=0.0 !!!!!!!!!!
         common /TIMEP/ T, TSTEP, TEND
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
 
-        common /CFG_AER/  AER, AER_LEN, AER_CNT, AER_TRW
-        common /CFG_CELL/ CELL_LEN
-        common /CFG_MESH/ XMESH_K,XMESH_ACC
-
         character*64 CFG_KEY
 
         integer FILES_MJ(NPTS), FILES_MJ0
