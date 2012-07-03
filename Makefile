@@ -11,7 +11,8 @@ clean:
 	rm -f $(TARGETS)
 
 vmcw: vmcw.f libs/pde_dp.f he3_funcs.f\
-      vmcw_mesh.f vmcw_mon.f vmcw_state.f vmcw_pdecol.f
+      vmcw_mesh.f vmcw_mon.f vmcw_state.f vmcw_pdecol.f\
+      vmcw_cmd.f vmcw_func.f
 he3: he3.f he3_funcs.f
 vft: vft.f
 

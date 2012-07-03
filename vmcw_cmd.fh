@@ -1,0 +1,4 @@
+        character CMD_FILE_NAME*8   ! file for reading commands
+        integer   CMD_FILE          ! file descriptor
+        integer INTERACTIVE
+        common /CMD_FILE/ CMD_FILE, INTERACTIVE, CMD_FILE_NAME

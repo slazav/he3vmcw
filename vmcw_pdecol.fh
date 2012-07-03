@@ -1,0 +1,8 @@
+c Parameters used in pdecol_init and pdecol_run only
+
+        include 'par.fh'
+
+        integer INDEX, IWORK(IDIMIWORK)
+        real*8 SCTCH(KORD*(NDERV+1)),WORK(IDIMWORK),T0,DT
+        common /PDECOL_DATA/ INDEX,MF,SCTCH,WORK,IWORK,T0,DT
+

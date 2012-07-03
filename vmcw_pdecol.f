@@ -1,8 +1,9 @@
+C --  Init pdecol parameters
       subroutine pdecol_init(T)
         include 'vmcw_pdecol.fh'
         real*8 T
 
-        INDEX=1  ! TYPE OF CALL (FIRST CALL)
+        INDEX=1  ! type of call (first call)
         MF=22
         IWORK(1)=IDIMWORK
         IWORK(2)=IDIMIWORK
@@ -13,6 +14,7 @@
         DT=1.D-10  ! INITIAL STEP SIZE IN T
       end
 
+C --  Run pdecol to the time T and fill solution vector USOL
       subroutine pdecol_run(T,USOL,XSOL)
         include 'vmcw_pdecol.fh'
         real*8 T,USOL(NPDE,NPTS,NDERV),XSOL(NPTS)
