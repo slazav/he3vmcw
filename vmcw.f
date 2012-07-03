@@ -22,12 +22,6 @@ C---------------- CB=0.0 !!!!!!!!!!
         real*8 WRITEMJ_XSTEP
         common /CFG_WRITE/ WRITEMJ_XSTEP
 
-        common /PDECOL_DATA/ INDEX,MF,SCTCH,WORK,IWORK,
-     *    PDECOL_ACC,PDECOL_ACC_LOG2,T0,DT
-        integer INDEX,IWORK(IDIMIWORK)
-        real*8 SCTCH(KORD*(NDERV+1)),WORK(IDIMWORK)
-        real*8 PDECOL_ACC, PDECOL_ACC_LOG2, T0, DT
-
 C--------------- INITIALIZATION -------------------------------------
 
         WRITEMJ_XSTEP=0.1D0
@@ -39,8 +33,6 @@ C--------------- INITIALIZATION -------------------------------------
 
         elseif (CFG_KEY.EQ.'T1C') then
           T1C=CFG_VAL  ! T1*T                     (1.0E-3)
-        elseif (CFG_KEY.EQ.'PDECOL_ACC_LOG2') then
-          PDECOL_ACC_LOG2=CFG_VAL ! RELATIVE TIME ERROR BOUND
 
         elseif (CFG_KEY.EQ.'TEMP') then
           TTC=CFG_VAL ! TEMPERATURE (T/TC)
@@ -119,52 +111,6 @@ C----------------MAIN LOOP -------------------------------------------
           call pdecol_run(T)
           call MONITOR()
         goto 2
-      end
-
-      subroutine pdecol_init(T)
-        include 'vmcw.fh'
-        include 'par.fh'
-        real*8 T
-
-        common /PDECOL_DATA/ INDEX,MF,SCTCH,WORK,IWORK,
-     *    PDECOL_ACC,PDECOL_ACC_LOG2,T0,DT
-        integer INDEX,IWORK(IDIMIWORK)
-        real*8 SCTCH(KORD*(NDERV+1)),WORK(IDIMWORK)
-        real*8 PDECOL_ACC, PDECOL_ACC_LOG2, T0, DT
-
-        INDEX=1  ! TYPE OF CALL (FIRST CALL)
-        MF=22
-        IWORK(1)=IDIMWORK
-        IWORK(2)=IDIMIWORK
-        do I=1,IDIMWORK
-          WORK(I)=0.0D0
-        enddo
-        PDECOL_ACC = 2.0D0**(-PDECOL_ACC_LOG2)
-        T0=T       ! STARTING TIME FOR PDECOL
-        DT=1.D-10  ! INITIAL STEP SIZE IN T
-      end
-
-      subroutine pdecol_run(T)
-        include 'vmcw.fh'
-        include 'par.fh'
-        real*8 T
-
-        common /PDECOL_DATA/ INDEX,MF,SCTCH,WORK,IWORK,
-     *    PDECOL_ACC,PDECOL_ACC_LOG2,T0,DT
-        integer INDEX,IWORK(IDIMIWORK)
-        real*8 SCTCH(KORD*(NDERV+1)),WORK(IDIMWORK)
-        real*8 PDECOL_ACC, PDECOL_ACC_LOG2, T0, DT
-
-        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),XSOL(NPTS)
-
-        call PDECOL(T0,T,DT,XSOL,PDECOL_ACC,NINT,KORD,NCC,NPDE,MF,
-     +              INDEX,WORK,IWORK)
-        if(INDEX.NE.0) THEN
-          write(*,*) 'INTEGRATION FAILED; INDEX=', INDEX
-          stop
-        endif
-
-        call VALUES(XSOL,USOL,SCTCH,NPDE,NPTS,NPTS,2,WORK)
       end
 
 C-- F ---------- EVALUATION OF F ------------------------------------
