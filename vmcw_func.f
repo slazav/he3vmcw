@@ -41,16 +41,18 @@ C       fix n vector length
         TF1=TF0+TF_SWR*T
         DIFF=DF0+DF_SWR*T
 
-
+C       spatial modulation
         AF=AF*(1D0 - 0.5D0 * AER_STEP(X,0))
         DAF=-AF*0.5D0 * AER_STEP(X,1)
         AUT=AUT*(1D0 - 0.835D0 * AER_STEP(X,0))
         TF1=TF1*(1D0 - 0.5D0 * AER_STEP(X,0))
 
+C       something..
         FTN=CTM*DD45-ST*UX(6)-UX(7)*UNz
         DFTN=CTM*(UNx*UXX(5)-UXX(4)*UNy)-ST*UXX(6)-UXX(7)*UNz-
-     *   CT1*UX(7)*UX(6)+ST*UX(7)*DD45
+     *   CT1*UX(7)*UX(6)+ST*UX(7)*DD45   !!! dFTN/dz
 
+C       components of spin current, Ji
         UJX=2.0D0*(UX(7)*UNx+ST*UX(4)+CTM*(UNy*UX(6)-UX(5)*UNz))+
      *   (CTM*UNx*UNz+UNy*ST)*FTN
         UJY=2.0D0*(UX(7)*UNy+ST*UX(5)-CTM*(UNx*UX(6)-UX(4)*UNz))+
@@ -58,6 +60,7 @@ C       fix n vector length
         UJZ=2.0D0*(UX(7)*UNz+ST*UX(6)+CTM*(UNx*UX(5)-UX(4)*UNy))+
      *   (CTM*UNz**2+CT)*FTN
 
+C       dJi/dz
         DJX=AF*(2.0D0*(UXX(7)*UNx+CT1*UX(7)*UX(4)+ST*UXX(4)+
      *   ST*UX(7)*(UNy*UX(6)-UX(5)*UNz)+CTM*(UNy*UXX(6)-UXX(5)*UNz))+
      *   (CTM*UNx*UNz+UNy*ST)*DFTN+(ST*UX(7)*UNx*UNz+
@@ -75,10 +78,10 @@ C       fix n vector length
 
         B = UNx*UMxm + UMym*UNy + UMzm*UNz
 
+C       Leggett equations
         FV(1)=   DW*U(2)           + AUT*UNx - DJX
         FV(2)= - DW*U(1) + WY*U(3) + AUT*UNy - DJY
         FV(3)=           - WY*U(2) + AUT*UNz - DJZ - UMzm*T11
-
         FV(4)= - W0*UNy - WL2*(UMzm*UNy-UMym*UNz+CTG*(B*UNx-UMxm))
         FV(5)=   W0*UNx - WL2*(UMxm*UNz-UMzm*UNx+CTG*(B*UNy-UMym))
         FV(6)=           - WL2*(UMym*UNx-UMxm*UNy+CTG*(B*UNz-UMzm))

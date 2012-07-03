@@ -3,7 +3,6 @@ C-- MONITOR ---- MONITORING THE SOLUTION ----------------------------
         include 'vmcw.fh'
         include 'par.fh'
         common /TIMEP/ T, TSTEP, TEND
-        common /GEAR0/ DTUSED,NQUSED,NSTEP,NFE,NJE
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),XSOL(NPTS)
 
         integer   M_FILE
