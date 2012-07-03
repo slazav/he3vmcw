@@ -1,4 +1,8 @@
 C--------------- PARAMETERS LIST ------------------------------------
+      double precision ACC2, ACC
+      integer NPTS, NINT, NPDE, KORD, NCC, NDERV, MAXDER, ML, NCPTS,
+     +  IDIMWORK, IDIMIWORK
+
       PARAMETER(
      +  ACC2 = 20,        ! log2 of pdecol accuracy
      +  ACC = 2.0D0**(-ACC2),
@@ -15,5 +19,4 @@ C--------------- PARAMETERS LIST ------------------------------------
      +             NPDE*NCPTS*(3*ML+MAXDER+7),
      +  IDIMIWORK = NCPTS*(NPDE+1) ! PRECISION OF INTEGRATION
      +)
-
 

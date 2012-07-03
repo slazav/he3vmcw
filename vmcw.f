@@ -2,18 +2,21 @@ C---------------- CB=0.0 !!!!!!!!!!
         include 'vmcw.fh'
         include 'par.fh'
         include 'he3_const.fh'
+
+        include 'vmcw_cmd.fh'
+        data CMD_FILE_NAME/'vmcw.cmd'/, CMD_FILE/200/,INTERACTIVE/0/
+
+        real*8 T, TSTEP, TEND
         common /TIMEP/ T, TSTEP, TEND
+
+        real*8 USOL, XSOL
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),XSOL(NPTS)
 
         character*64 CFG_KEY
+        real*8 CFG_VAL
 
         integer FILES_MJ(NPTS), FILES_MJ0
         common /FILES/ FILES_MJ, FILES_MJ0
-
-        character CMD_FILE_NAME*8  ! file for reading commands
-        integer   CMD_FILE          ! file descriptor
-        common /CMD_FILE/ CMD_FILE, INTERACTIVE, CMD_FILE_NAME
-        data CMD_FILE_NAME/'vmcw.cmd'/, CMD_FILE/200/,INTERACTIVE/0/
 
         integer   M_FILE ! file for writing Mx,My,Mz
         common /M_FILE/ M_FILE
@@ -21,6 +24,8 @@ C---------------- CB=0.0 !!!!!!!!!!
 
         real*8 WRITEMJ_XSTEP
         common /CFG_WRITE/ WRITEMJ_XSTEP
+
+        real*8 PRESS, TTC, T1C
 
 C--------------- INITIALIZATION -------------------------------------
 
@@ -117,7 +122,6 @@ C-- F ---------- EVALUATION OF F ------------------------------------
       subroutine F(T,X,U,UX,UXX,FV,NPDE)
         include 'vmcw.fh'
         include 'he3_const.fh'
-
         dimension U(NPDE),UX(NPDE),UXX(NPDE),FV(NPDE)
 C       T - time
 C       X - x-coord
@@ -134,7 +138,7 @@ C       calculate freq
         DW = WL-W0
 
 C       fix n vector length
-        UN=DSQRT(U(4)**2+U(5)**2+U(6)**2)
+        UN=dsqrt(U(4)**2+U(5)**2+U(6)**2)
         UNx = U(4)/UN
         UNy = U(5)/UN
         UNz = U(6)/UN
@@ -145,8 +149,8 @@ C       fix n vector length
 
         WL2 = 0.5D0*WL
         DD45=UNx*UX(5)-UX(4)*UNy       ! Nx Ny` - Nx` Ny
-        ST=DSIN(U(7))
-        CT=DCOS(U(7))
+        ST=dsin(U(7))
+        CT=dcos(U(7))
         CTM=1.0D0-CT
         CT1=1.0D0+CT
         CTG=ST/CTM      ! ctg(T/2) = sin(T)/(1-cos(T))
@@ -206,6 +210,7 @@ C-- BNDRY ------ BOUNDARY CONDITIONS -- B(U,UX)=Z(T) ------------
       subroutine BNDRY(T,X,U,UX,DBDU,DBDUX,DZDT,NPDE)
         include 'vmcw.fh'
         include 'he3_const.fh'
+
         dimension U(NPDE),UX(NPDE),DZDT(NPDE),
      *   DBDU(NPDE,NPDE),DBDUX(NPDE,NPDE)
         do I=1,NPDE
@@ -219,14 +224,14 @@ C-- BNDRY ------ BOUNDARY CONDITIONS -- B(U,UX)=Z(T) ------------
         if(IBN.EQ.2)THEN       ! CLOSED CELL
 
 C         fix n vector length
-          UN=DSQRT(U(4)**2+U(5)**2+U(6)**2)
+          UN=dsqrt(U(4)**2+U(5)**2+U(6)**2)
           UNx=U(4)/UN
           UNy=U(5)/UN
           UNz=U(6)/UN
 
-          ST=DSIN(U(7))
+          ST=dsin(U(7))
           ST2=2.0D0*ST
-          CT=DCOS(U(7))
+          CT=dcos(U(7))
           CTM=1.0D0-CT
           CTM2=2.0D0*CTM
           DD45=UNx*UX(5)-UX(4)*UNy
@@ -298,27 +303,34 @@ C-- SET_ICOND -- INITIAL CONDITIONS ---------------------------------
       subroutine SET_ICOND()
         include 'vmcw.fh'
         include 'par.fh'
-        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
-        PI=4.0D0*DATAN(1.0D0)
+        include 'he3_const.fh'
+        real*8 USOL, XSOL
+        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),XSOL(NPTS)
+
+        real*8 BET, DELTA, DELTAX, DELTAY,
+     .         UCTG, UNX,UNY,UNZ, UMX,UMY,UMZ,
+     .         UNZ2
+        integer I,J,K
+
         BET=BETA*PI/180.0D0
-        UMZ=DCOS(BET)
-        UMX=DSIN(BET)*DSQRT(0.5D0)
+        UMZ=dcos(BET)
+        UMX=dsin(BET)*dsqrt(0.5D0)
         UMY=UMX
         if(UMZ.GE.-0.25D0)THEN
-          UNZ2=0.8D0*(0.25D0+DCOS(BET))
-          UNZ=DSQRT(UNZ2)
+          UNZ2=0.8D0*(0.25D0+dcos(BET))
+          UNZ=dsqrt(UNZ2)
           DELTA=(25.0D0*UNZ2+15.0D0)/16.0D0
-          DELTAX=DSIN(BET)*DSQRT(0.5D0)*
-     *     (UNZ*1.25D0-DSQRT(15.0D0)*0.25D0)
-          DELTAY=DSIN(BET)*DSQRT(0.5D0)*
-     *     (UNZ*1.25D0+DSQRT(15.0D0)*0.25D0)
+          DELTAX=dsin(BET)*dsqrt(0.5D0)*
+     *     (UNZ*1.25D0-dsqrt(15.0D0)*0.25D0)
+          DELTAY=dsin(BET)*dsqrt(0.5D0)*
+     *     (UNZ*1.25D0+dsqrt(15.0D0)*0.25D0)
           UNX=DELTAX/DELTA
           UNY=DELTAY/DELTA
-          UCTG=DACOS(-0.25D0)
+          UCTG=dacos(-0.25D0)
         else
           UNZ=0.0D0
-          UNX=-DSQRT(0.5D0)
-          UNY=DSQRT(0.5D0)
+          UNX=-dsqrt(0.5D0)
+          UNY=dsqrt(0.5D0)
           UCTG=BET
         endif
         do I=1,NPTS
@@ -343,9 +355,10 @@ C-- USP(X) ----- CSI OF SOLUTION ------------------------------------
       double precision function USP(XI,I)
         include 'vmcw.fh'
         include 'par.fh'
+        real*8 USOL, XSOL
         common /ARRAYS/ USOL(NPDE,NPTS,NDERV),XSOL(NPTS)
         do K=1,NPTS
-          USM=DSQRT(USOL(5,K,1)**2+USOL(6,K,1)**2+USOL(4,K,1)**2)
+          USM=dsqrt(USOL(5,K,1)**2+USOL(6,K,1)**2+USOL(4,K,1)**2)
           USOL(4,K,1)=USOL(4,K,1)/USM
           USOL(5,K,1)=USOL(5,K,1)/USM
           USOL(6,K,1)=USOL(6,K,1)/USM
@@ -391,21 +404,19 @@ CCC   CMD PROCESSING
 
       subroutine CMD_OPEN()
         include 'vmcw.fh'
-        common /CMD_FILE/ CMD_FILE,INTERACTIVE,CMD_FILE_NAME
-        integer CMD_FILE
-        character CMD_FILE_NAME*8
+        include 'vmcw_cmd.fh'
         if (INTERACTIVE.eq.0) open (CMD_FILE, FILE=CMD_FILE_NAME)
       end
 
       subroutine CMD_CLOSE()
         include 'vmcw.fh'
-        common /CMD_FILE/ CMD_FILE,INTERACTIVE, CMD_FILE_NAME
-        integer CMD_FILE
+        include 'vmcw_cmd.fh'
         if (INTERACTIVE.eq.0) close (CMD_FILE)
       end
 
       subroutine STOP_SWEEP()
         include 'vmcw.fh'
+        real*8 T, TSTEP, TEND
         common /TIMEP/ T, TSTEP, TEND
         HR0=HR0+T*HR_SWR
         HR_SWR=0D0
@@ -423,17 +434,15 @@ CCC   CMD PROCESSING
 
       subroutine CMD_READ()
         include 'vmcw.fh'
-
-        integer CMD_FILE
-        common /CMD_FILE/ CMD_FILE, INTERACTIVE, CMD_FILE_NAME
+        include 'vmcw_cmd.fh'
 
         integer   M_FILE
         common /M_FILE/ M_FILE
 
         character CMD_LINE*128, CMD*128, FNAME*128
         common /TIMEP/ T, TSTEP, TEND
-        real*8 T,TSTEP,TEND,ARG1,ARG2
 
+        real*8 T,TSTEP,TEND,ARG1,ARG2
         real*8 LP,HR,STEPS
 
         call STOP_SWEEP !!!
@@ -718,6 +727,8 @@ CC command T_P <t> <p> -- set T/P
       subroutine SET_HE3PT(PRESS, TTC, T1C)
         include 'vmcw.fh'
         include 'he3_const.fh'
+        real*8 PRESS, TTC, T1C
+        real*8 TEMP, T1, TR
 
         call STOP_SWEEP
 
@@ -726,11 +737,11 @@ CC command T_P <t> <p> -- set T/P
         T11=1.0D0/T1
 
         CPAR0=CPARF(PRESS,TEMP)          ! SPIN WAVES VELOCITY
-        LF0  =DSQRT(LF2F(PRESS,TTC))     ! LEGGETT FREQ
+        LF0  =dsqrt(LF2F(PRESS,TTC))     ! LEGGETT FREQ
         DF0  =DF(PRESS,TEMP)             ! SPIN DIFFUSION
 
-        TR=1.2D-7/DSQRT(1.0D0-TTC)                  !
-C        TR=1.2D-7/DSQRT(1.0D0-0.94D0)!!!
+        TR=1.2D-7/dsqrt(1.0D0-TTC)                  !
+C        TR=1.2D-7/dsqrt(1.0D0-0.94D0)!!!
         TF0=1D0/ (4D0*PI**2 *LF2F(PRESS,TTC)*TR)   ! TAU EFFECTIVE (L-T) SECONDS WV pic.10.5 20bar
 
 

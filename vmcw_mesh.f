@@ -9,9 +9,10 @@ C         AER      -- if >0 then do step
 C         AER_LEN  -- aerogel length / cell length
 C         AER_CNT  -- center of aerogel area / cell length
 C         AER_TRW  -- transition width / cell length
-      double precision function AER_STEP(X,D)
+      real*8 function AER_STEP(X,D)
         include 'vmcw.fh'
         integer D
+        real*8  X
         if (AER.LE.0D0) then
           AER_STEP=0D0
           return
