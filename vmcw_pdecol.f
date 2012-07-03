@@ -1,10 +1,6 @@
       subroutine pdecol_init(T)
-        include 'par.fh'
+        include 'vmcw_pdecol.fh'
         real*8 T
-
-        common /PDECOL_DATA/ INDEX,MF,SCTCH,WORK,IWORK,T0,DT
-        integer INDEX, IWORK(IDIMIWORK)
-        real*8 SCTCH(KORD*(NDERV+1)),WORK(IDIMWORK),T0,DT
 
         INDEX=1  ! TYPE OF CALL (FIRST CALL)
         MF=22
@@ -17,17 +13,9 @@
         DT=1.D-10  ! INITIAL STEP SIZE IN T
       end
 
-      subroutine pdecol_run(T)
-        include 'vmcw.fh'
-        include 'par.fh'
-        real*8 T
-
-        common /PDECOL_DATA/ INDEX,MF,SCTCH,WORK,IWORK,T0,DT
-        integer INDEX,IWORK(IDIMIWORK)
-        real*8 SCTCH(KORD*(NDERV+1)),WORK(IDIMWORK),T0,DT
-
-        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),XSOL(NPTS)
-        real*8 USOL,XSOL
+      subroutine pdecol_run(T,USOL,XSOL)
+        include 'vmcw_pdecol.fh'
+        real*8 T,USOL(NPDE,NPTS,NDERV),XSOL(NPTS)
 
         call PDECOL(T0,T,DT,XSOL,ACC,NINT,KORD,NCC,NPDE,MF,
      +              INDEX,WORK,IWORK)

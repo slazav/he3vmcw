@@ -113,7 +113,7 @@ C----------------MAIN LOOP -------------------------------------------
           endif
           if (T.ge.TEND) call CMD_READ()
           T=T+TSTEP
-          call pdecol_run(T)
+          call pdecol_run(T,USOL, XSOL)
           call MONITOR()
         goto 2
       end
