@@ -59,13 +59,13 @@ CCC   STATE DUMP/RESTORE (does not work?)
         call PDECOL_INIT(T) ! reset PDECOL parameters
         return
 
- 202    write (*, '("Error: incomplete file: ",A)'), FNAME
+ 202    write (*, '("Error: incomplete file: ",A)') FNAME
         close (NFILE)
         T=0D0
         LP_SWR=0D0
         HR_SWR=0D0
         call SET_ICOND()
         return
- 201    write (*, '("Error: skip file: ",A)'), FNAME
+ 201    write (*, '("Error: skip file: ",A)') FNAME
         close (NFILE)
       end

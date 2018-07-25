@@ -98,8 +98,8 @@ C       CFG_AER parameter group:
         call SET_MESH(XSOL, NPTS)
         call SAVE_MESH(XSOL, NPTS, 'mesh.dat')
         call SET_ICOND()
-
         call WRITEMJ_OPEN()
+
 
 C--------------- COMPUTE PARAMETERS ----------------------------
         call CMD_OPEN()
@@ -143,12 +143,12 @@ C        TR=1.2D-7/dsqrt(1.0D0-0.94D0)!!!
 
 
         write(*,'(" P: ",F5.2," bar (Tc = ",F5.3," mK, Tab = ",F5.3,
-     *            " mK), T: ",F5.3," mK = ",F5.3," Tc")'),
+     *            " mK), T: ",F5.3," mK = ",F5.3," Tc")')
      *    PRESS, TCF(PRESS), TABF(PRESS), TEMP, TTC
         write(*,'(" F_legg: ", F9.3, " kHz,  ",
      *            " D: ", E9.2, " cm^2/s, ",
      *            " T_lt: ", E12.6, " s, ",
-     *            " C_par: ", F6.1, " cm/s ")'),
+     *            " C_par: ", F6.1, " cm/s ")')
      *              LF0/1D3, DF0, TF0, CPAR0
 
       end

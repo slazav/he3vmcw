@@ -62,7 +62,7 @@ C         scale the whole mesh to fit CELL_LEN
         real*8 X, AER_STEP
         dimension X(N)
         open(fid,FILE=FNAME)
-        write(fid,*), '#  I    X(I) STEP(X) STEP''(X)'
+        write(fid,*) '#  I    X(I) STEP(X) STEP''(X)'
         do J=1,N
           write(fid,'(I4," ",F7.5," ",F7.5," ",e12.5e2)')
      +     J, X(J), AER_STEP(X(J),0), AER_STEP(X(J),1)

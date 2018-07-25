@@ -97,16 +97,16 @@ CC command WRITE_M <filename> -- write Mx,My,Mz to file
           write(*,'(A, A, A30)') '> WRITE_M, ',
      *       ' FILE = ', FNAME
           open(M_FILE,FILE=FNAME,ERR=310)
-          write(M_FILE,*), '# FLEGG:  ', LF0 + LF_SWR
-          write(M_FILE,*), '# CPAR:   ', CPAR0 + CPAR_SWR*T
-          write(M_FILE,*), '# Diff:   ', DF0 + DF_SWR*T
-          write(M_FILE,*), '# TF:     ', TF0 + TF_SWR*T
-          write(M_FILE,*), '# H:      ', H
-          write(M_FILE,*), '# GRAD:   ', GRAD
-          write(M_FILE,*), '# HR:     ', HR0 + T*HR_SWR
-          write(M_FILE,*), '# LP:     ', LP0 + T*LP_SWR
+          write(M_FILE,*) '# FLEGG:  ', LF0 + LF_SWR
+          write(M_FILE,*) '# CPAR:   ', CPAR0 + CPAR_SWR*T
+          write(M_FILE,*) '# Diff:   ', DF0 + DF_SWR*T
+          write(M_FILE,*) '# TF:     ', TF0 + TF_SWR*T
+          write(M_FILE,*) '# H:      ', H
+          write(M_FILE,*) '# GRAD:   ', GRAD
+          write(M_FILE,*) '# HR:     ', HR0 + T*HR_SWR
+          write(M_FILE,*) '# LP:     ', LP0 + T*LP_SWR
 
-          write(M_FILE,*), '# TIME  LP  TMAB  TMDS  TMPC  TMZ'
+          write(M_FILE,*) '# TIME  LP  TMAB  TMDS  TMPC  TMZ'
           goto 303 ! next command
  310      write (*,*) 'Error: can''t open file: ', FNAME
           goto 303 ! next command
