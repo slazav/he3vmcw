@@ -5,13 +5,21 @@ FFLAGS= -Werror -Wconversion\
   -Wno-unused-parameter -Wno-align-commons
 
 TARGETS=vmcw vft
+LDLIBS=-lhe3 -lgfortran
+FFLAGS=-I/usr/include -fno-range-check
 
 all: $(TARGETS)
 clean:
-	rm -f $(TARGETS)
+	rm -f $(TARGETS) *.o
 
-vmcw: vmcw.f libs/pde_dp.f he3_funcs.f\
-      vmcw_mesh.f vmcw_mon.f vmcw_state.f vmcw_pdecol.f\
-      vmcw_cmd.f vmcw_func.f
+FOBJ=vmcw_f.o libs/pde_dp.o\
+     vmcw_mesh.o vmcw_mon.o vmcw_state.o vmcw_pdecol.o\
+     vmcw_cmd.o vmcw_func.o he3_funcs.o
+
+$(FOBJ): %.o: %.f vmcw.fh
+vmcw_pdecol.o: vmcw_pdecol.fh
+
+vmcw: $(FOBJ) vmcw.cpp
+
 vft: vft.f
 

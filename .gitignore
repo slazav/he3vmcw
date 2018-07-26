@@ -1,6 +1,8 @@
 *.bak
 *.dat
-vmcw
-vmcw_st
-vft
+*.png
 *.fig
+vmcw
+vft
+*.o
+fort.*

@@ -1,9 +1,12 @@
 C---------------- CB=0.0 !!!!!!!!!!
+      function VMCW_F()
         include 'vmcw.fh'
         include 'par.fh'
         include 'he3_const.fh'
 
         include 'vmcw_cmd.fh'
+        integer VMCW_F
+
         data CMD_FILE_NAME/'vmcw.cmd'/, CMD_FILE/200/,INTERACTIVE/0/
 
         real*8 T, TSTEP, TEND
@@ -29,6 +32,7 @@ C---------------- CB=0.0 !!!!!!!!!!
 
 C--------------- INITIALIZATION -------------------------------------
 
+        VMCW_F=0
         WRITEMJ_XSTEP=0.1D0
 
         open(54,FILE='vmcw.cfg')
@@ -93,6 +97,7 @@ C       CFG_AER parameter group:
         LP_SWR=0D0
         HR_SWR=0D0
 
+          write(*,'(A,A20)') 'init'
         call pdecol_init(T) ! set PDECOL parameters
 
         call SET_MESH(XSOL, NPTS)
