@@ -1,4 +1,4 @@
-HR 3
+HR 5
 LP -0.27
 
 LP_SWEEP_TO 0.06 0.2

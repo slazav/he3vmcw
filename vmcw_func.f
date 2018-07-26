@@ -1,3 +1,5 @@
+c Leggett equations for using in pdecol
+
 C-- F ---------- EVALUATION OF F ------------------------------------
       subroutine F(T,X,U,UX,UXX,FV,NPDE)
         include 'vmcw.fh'
@@ -12,6 +14,9 @@ C       FV  - result
 
 C       calculate freq
         WY = GAM*(HR0+HR_SWR*T)
+!     *   *(1D0+(2.0*X/CELL_LEN-1.0)*0.6)
+!     *   *(1D0-(2.0*X/CELL_LEN-1.0)*(2.0*X/CELL_LEN-1.0)*0.6)
+
 
         WL = GAM*(H + GRAD*X)
         W0= GAM*(H + GRAD*(LP0+LP_SWR*T))

@@ -122,13 +122,24 @@ C     *        USOL(1,I,2),USOL(2,I,2),USOL(3,I,2),
 C     *        USOL(4,I,2),USOL(5,I,2),USOL(6,I,2),USOL(7,I,2),
 C     *        UFX,UFY,UFZ
           endif
+          flush(FILES_MJ(I))
         enddo
         write(FILES_MJ0,*)
         flush(FILES_MJ0)
-        flush(FILES_MJ(I))
 C       write(24,*)''
   101   format(F7.1 F10.6, 7(1PE15.6))
   102   format(F7.1 F10.6, 10(1PE15.6))
   103   format(10(1PE15.6))
       end
 
+      subroutine WRITEMJ_CLOSE()
+        include 'vmcw.fh'
+        include 'par.fh'
+        integer FILES_MJ(NPTS), FILES_MJ0
+        common /FILES/ FILES_MJ, FILES_MJ0
+        do I=1,NPTS
+            close(FILES_MJ(I))
+        enddo
+        FILES_MJ0=1000
+        close(FILES_MJ0)
+      end

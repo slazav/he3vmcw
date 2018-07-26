@@ -316,5 +316,6 @@ CC command T_P <t> <p> -- set T/P
 
  302    write(*,*) 'All commands processed.'
         close (CMD_FILE)
-        stop
+        call WRITEMJ_CLOSE()
+        stop 'DONE'
       end

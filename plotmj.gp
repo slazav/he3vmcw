@@ -15,186 +15,118 @@ set title "Mx, My, Mz"
 
 cell_len=0.18
 
-plot [] [-0.4:1.1]\
-1 ls 2,\
-  "mj0.0000.dat" using 1:3 ls 1 lw 1.5,\
-  "mj0.0181.dat" using 1:3 ls 1,\
-  "mj0.0360.dat" using 1:3 ls 1,\
-  "mj0.0541.dat" using 1:3 ls 1,\
-  "mj0.0721.dat" using 1:3 ls 1,\
-  "mj0.0900.dat" using 1:3 ls 1,\
-  "mj0.1081.dat" using 1:3 ls 1,\
-  "mj0.1260.dat" using 1:3 ls 1,\
-  "mj0.1441.dat" using 1:3 ls 1,\
-  "mj0.1621.dat" using 1:3 ls 1,\
-  "mj0.1800.dat" using 1:3 ls 1,\
-  "ref/mj0.0000.dat" using 1:3 ls 2 lw 1.5,\
-  "ref/mj0.0181.dat" using 1:3 ls 2,\
-  "ref/mj0.0360.dat" using 1:3 ls 2,\
-  "ref/mj0.0541.dat" using 1:3 ls 2,\
-  "ref/mj0.0721.dat" using 1:3 ls 2,\
-  "ref/mj0.0900.dat" using 1:3 ls 2,\
-  "ref/mj0.1081.dat" using 1:3 ls 2,\
-  "ref/mj0.1260.dat" using 1:3 ls 2,\
-  "ref/mj0.1441.dat" using 1:3 ls 2,\
-  "ref/mj0.1621.dat" using 1:3 ls 2,\
-  "ref/mj0.1800.dat" using 1:3 ls 2,\
-sqrt(15/16.0) ls 2,\
-  "mj0.0000.dat" using 1:4 ls 1 lw 1.5,\
-  "mj0.0181.dat" using 1:4 ls 1,\
-  "mj0.0360.dat" using 1:4 ls 1,\
-  "mj0.0541.dat" using 1:4 ls 1,\
-  "mj0.0721.dat" using 1:4 ls 1,\
-  "mj0.0900.dat" using 1:4 ls 1,\
-  "mj0.1081.dat" using 1:4 ls 1,\
-  "mj0.1260.dat" using 1:4 ls 1,\
-  "mj0.1441.dat" using 1:4 ls 1,\
-  "mj0.1621.dat" using 1:4 ls 1,\
-  "mj0.1800.dat" using 1:4 ls 1,\
-  "ref/mj0.0000.dat" using 1:4 ls 2 lw 1.5,\
-  "ref/mj0.0181.dat" using 1:4 ls 2,\
-  "ref/mj0.0360.dat" using 1:4 ls 2,\
-  "ref/mj0.0541.dat" using 1:4 ls 2,\
-  "ref/mj0.0721.dat" using 1:4 ls 2,\
-  "ref/mj0.0900.dat" using 1:4 ls 2,\
-  "ref/mj0.1081.dat" using 1:4 ls 2,\
-  "ref/mj0.1260.dat" using 1:4 ls 2,\
-  "ref/mj0.1441.dat" using 1:4 ls 2,\
-  "ref/mj0.1621.dat" using 1:4 ls 2,\
-  "ref/mj0.1800.dat" using 1:4 ls 2,\
-0 ls 2,\
-  "mj0.0000.dat" using 1:5 ls 1 lw 1.5,\
-  "mj0.0181.dat" using 1:5 ls 1,\
-  "mj0.0360.dat" using 1:5 ls 1,\
-  "mj0.0541.dat" using 1:5 ls 1,\
-  "mj0.0721.dat" using 1:5 ls 1,\
-  "mj0.0900.dat" using 1:5 ls 1,\
-  "mj0.1081.dat" using 1:5 ls 1,\
-  "mj0.1260.dat" using 1:5 ls 1,\
-  "mj0.1441.dat" using 1:5 ls 1,\
-  "mj0.1621.dat" using 1:5 ls 1,\
-  "mj0.1800.dat" using 1:5 ls 1,\
-  "ref/mj0.0000.dat" using 1:5 ls 2 lw 1.5,\
-  "ref/mj0.0181.dat" using 1:5 ls 2,\
-  "ref/mj0.0360.dat" using 1:5 ls 2,\
-  "ref/mj0.0541.dat" using 1:5 ls 2,\
-  "ref/mj0.0721.dat" using 1:5 ls 2,\
-  "ref/mj0.0900.dat" using 1:5 ls 2,\
-  "ref/mj0.1081.dat" using 1:5 ls 2,\
-  "ref/mj0.1260.dat" using 1:5 ls 2,\
-  "ref/mj0.1441.dat" using 1:5 ls 2,\
-  "ref/mj0.1621.dat" using 1:5 ls 2,\
-  "ref/mj0.1800.dat" using 1:5 ls 2,\
--1/4. ls 2,\
+plot [] [-1:1.1]\
+  "mj0.0000.dat" using 1:3with lines lc 1 lw 1.5,\
+  "mj0.0090.dat" using 1:3with lines lc 1,\
+  "mj0.0181.dat" using 1:3with lines lc 1,\
+  "mj0.0271.dat" using 1:3with lines lc 1,\
+  "mj0.0362.dat" using 1:3with lines lc 1,\
+  "mj0.0450.dat" using 1:3with lines lc 1,\
+  "mj0.0561.dat" using 1:3with lines lc 1,\
+  "mj0.0651.dat" using 1:3with lines lc 1,\
+  "mj0.0742.dat" using 1:3with lines lc 1,\
+  "mj0.0832.dat" using 1:3with lines lc 1,\
+  "mj0.0900.dat" using 1:3with lines lc 1,\
+sqrt(15/16.0)with lines lc 1,\
+  "mj0.0000.dat" using 1:4with lines lc 2 lw 1.5,\
+  "mj0.0090.dat" using 1:4with lines lc 2,\
+  "mj0.0181.dat" using 1:4with lines lc 2,\
+  "mj0.0271.dat" using 1:4with lines lc 2,\
+  "mj0.0362.dat" using 1:4with lines lc 2,\
+  "mj0.0450.dat" using 1:4with lines lc 2,\
+  "mj0.0561.dat" using 1:4with lines lc 2,\
+  "mj0.0651.dat" using 1:4with lines lc 2,\
+  "mj0.0742.dat" using 1:4with lines lc 2,\
+  "mj0.0832.dat" using 1:4with lines lc 2,\
+  "mj0.0900.dat" using 1:4with lines lc 2,\
+0with lines lc 2,\
+  "mj0.0000.dat" using 1:5with lines lc 3 lw 1.5,\
+  "mj0.0090.dat" using 1:5with lines lc 3,\
+  "mj0.0181.dat" using 1:5with lines lc 3,\
+  "mj0.0271.dat" using 1:5with lines lc 3,\
+  "mj0.0362.dat" using 1:5with lines lc 3,\
+  "mj0.0450.dat" using 1:5with lines lc 3,\
+  "mj0.0561.dat" using 1:5with lines lc 3,\
+  "mj0.0651.dat" using 1:5with lines lc 3,\
+  "mj0.0742.dat" using 1:5with lines lc 3,\
+  "mj0.0832.dat" using 1:5with lines lc 3,\
+  "mj0.0900.dat" using 1:5with lines lc 3,\
+1with lines lc 3,\
+-1/4.with lines lc 3,\
 0 lc 0
 
 pause -1
 
-#set output "out_n.fig"
+set terminal png
+set output "m1.png"
+replot
 
+set terminal x11
 set title "Nx, Ny, Nz" 
 
-plot [] [-0.2:1.1]\
-  "mj0.0000.dat" using 1:6 ls 1 lw 1.5,\
-  "mj0.0181.dat" using 1:6 ls 1,\
-  "mj0.0360.dat" using 1:6 ls 1,\
-  "mj0.0541.dat" using 1:6 ls 1,\
-  "mj0.0721.dat" using 1:6 ls 1,\
-  "mj0.0900.dat" using 1:6 ls 1,\
-  "mj0.1081.dat" using 1:6 ls 1,\
-  "mj0.1260.dat" using 1:6 ls 1,\
-  "mj0.1441.dat" using 1:6 ls 1,\
-  "mj0.1621.dat" using 1:6 ls 1,\
-  "mj0.1800.dat" using 1:6 ls 1,\
-  "ref/mj0.0007.dat" using 1:6 ls 2 lw 1.5,\
-  "ref/mj0.0183.dat" using 1:6 ls 2,\
-  "ref/mj0.0366.dat" using 1:6 ls 2,\
-  "ref/mj0.0541.dat" using 1:6 ls 2,\
-  "ref/mj0.0724.dat" using 1:6 ls 2,\
-  "ref/mj0.0900.dat" using 1:6 ls 2,\
-  "ref/mj0.1081.dat" using 1:6 ls 2,\
-  "ref/mj0.1260.dat" using 1:6 ls 2,\
-  "ref/mj0.1441.dat" using 1:6 ls 2,\
-  "ref/mj0.1621.dat" using 1:6 ls 2,\
-  "ref/mj0.1800.dat" using 1:6 ls 2,\
-0 ls 2,\
-  "mj0.0000.dat" using 1:7 ls 1 lw 1.5,\
-  "mj0.0181.dat" using 1:7 ls 1,\
-  "mj0.0360.dat" using 1:7 ls 1,\
-  "mj0.0541.dat" using 1:7 ls 1,\
-  "mj0.0721.dat" using 1:7 ls 1,\
-  "mj0.0900.dat" using 1:7 ls 1,\
-  "mj0.1081.dat" using 1:7 ls 1,\
-  "mj0.1260.dat" using 1:7 ls 1,\
-  "mj0.1441.dat" using 1:7 ls 1,\
-  "mj0.1621.dat" using 1:7 ls 1,\
-  "mj0.1800.dat" using 1:7 ls 1,\
-  "ref/mj0.0000.dat" using 1:7 ls 2 lw 1.5,\
-  "ref/mj0.0181.dat" using 1:7 ls 2,\
-  "ref/mj0.0360.dat" using 1:7 ls 2,\
-  "ref/mj0.0541.dat" using 1:7 ls 2,\
-  "ref/mj0.0721.dat" using 1:7 ls 2,\
-  "ref/mj0.0900.dat" using 1:7 ls 2,\
-  "ref/mj0.1081.dat" using 1:7 ls 2,\
-  "ref/mj0.1260.dat" using 1:7 ls 2,\
-  "ref/mj0.1441.dat" using 1:7 ls 2,\
-  "ref/mj0.1621.dat" using 1:7 ls 2,\
-  "ref/mj0.1800.dat" using 1:7 ls 2,\
-1 lc 0,\
-  "mj0.0000.dat" using 1:8 ls 1 lw 1.5,\
-  "mj0.0181.dat" using 1:8 ls 1,\
-  "mj0.0360.dat" using 1:8 ls 1,\
-  "mj0.0541.dat" using 1:8 ls 1,\
-  "mj0.0721.dat" using 1:8 ls 1,\
-  "mj0.0900.dat" using 1:8 ls 1,\
-  "mj0.1081.dat" using 1:8 ls 1,\
-  "mj0.1260.dat" using 1:8 ls 1,\
-  "mj0.1441.dat" using 1:8 ls 1,\
-  "mj0.1621.dat" using 1:8 ls 1,\
-  "mj0.1800.dat" using 1:8 ls 1,\
-  "ref/mj0.0000.dat" using 1:8 ls 2 lw 1.5,\
-  "ref/mj0.0181.dat" using 1:8 ls 2,\
-  "ref/mj0.0360.dat" using 1:8 ls 2,\
-  "ref/mj0.0541.dat" using 1:8 ls 2,\
-  "ref/mj0.0721.dat" using 1:8 ls 2,\
-  "ref/mj0.0900.dat" using 1:8 ls 2,\
-  "ref/mj0.1081.dat" using 1:8 ls 2,\
-  "ref/mj0.1260.dat" using 1:8 ls 2,\
-  "ref/mj0.1441.dat" using 1:8 ls 2,\
-  "ref/mj0.1621.dat" using 1:8 ls 2,\
-  "ref/mj0.1800.dat" using 1:8 ls 2,\
-0 lc 0
+plot [] [-1:1.1]\
+  "mj0.0000.dat" using 1:6with lines lc 1 lw 1.5,\
+  "mj0.0090.dat" using 1:6with lines lc 1,\
+  "mj0.0181.dat" using 1:6with lines lc 1,\
+  "mj0.0271.dat" using 1:6with lines lc 1,\
+  "mj0.0362.dat" using 1:6with lines lc 1,\
+  "mj0.0450.dat" using 1:6with lines lc 1,\
+  "mj0.0561.dat" using 1:6with lines lc 1,\
+  "mj0.0651.dat" using 1:6with lines lc 1,\
+  "mj0.0742.dat" using 1:6with lines lc 1,\
+  "mj0.0832.dat" using 1:6with lines lc 1,\
+  "mj0.0900.dat" using 1:6with lines lc 1,\
+  "mj0.0000.dat" using 1:7with lines lc 2 lw 1.5,\
+  "mj0.0090.dat" using 1:7with lines lc 2,\
+  "mj0.0181.dat" using 1:7with lines lc 2,\
+  "mj0.0271.dat" using 1:7with lines lc 2,\
+  "mj0.0362.dat" using 1:7with lines lc 2,\
+  "mj0.0450.dat" using 1:7with lines lc 2,\
+  "mj0.0561.dat" using 1:7with lines lc 2,\
+  "mj0.0651.dat" using 1:7with lines lc 2,\
+  "mj0.0742.dat" using 1:7with lines lc 2,\
+  "mj0.0832.dat" using 1:7with lines lc 2,\
+  "mj0.0900.dat" using 1:7with lines lc 2,\
+  "mj0.0000.dat" using 1:8with lines lc 3 lw 1.5,\
+  "mj0.0090.dat" using 1:8with lines lc 3,\
+  "mj0.0181.dat" using 1:8with lines lc 3,\
+  "mj0.0271.dat" using 1:8with lines lc 3,\
+  "mj0.0362.dat" using 1:8with lines lc 3,\
+  "mj0.0450.dat" using 1:8with lines lc 3,\
+  "mj0.0561.dat" using 1:8with lines lc 3,\
+  "mj0.0651.dat" using 1:8with lines lc 3,\
+  "mj0.0742.dat" using 1:8with lines lc 3,\
+  "mj0.0832.dat" using 1:8with lines lc 3,\
+  "mj0.0900.dat" using 1:8with lines lc 3,\
+1with lines lc 3,\
+0with lines lc 2
 
 pause -1
 
-#set output "out_t.fig"
+set terminal png
+set output "n1.png"
+replot
 
-set title "cos(Theta)" 
 
-plot []\
-  "mj0.0000.dat" using 1:(cos($9)) ls 1 lw 1.5,\
-  "mj0.0181.dat" using 1:(cos($9)) ls 1,\
-  "mj0.0360.dat" using 1:(cos($9)) ls 1,\
-  "mj0.0541.dat" using 1:(cos($9)) ls 1,\
-  "mj0.0721.dat" using 1:(cos($9)) ls 1,\
-  "mj0.0900.dat" using 1:(cos($9)) ls 1,\
-  "mj0.1081.dat" using 1:(cos($9)) ls 1,\
-  "mj0.1260.dat" using 1:(cos($9)) ls 1,\
-  "mj0.1441.dat" using 1:(cos($9)) ls 1,\
-  "mj0.1621.dat" using 1:(cos($9)) ls 1,\
-  "mj0.1800.dat" using 1:(cos($9)) ls 1,\
-  "ref/mj0.0000.dat" using 1:(cos($9)) ls 2 lw 1.5,\
-  "ref/mj0.0181.dat" using 1:(cos($9)) ls 2,\
-  "ref/mj0.0360.dat" using 1:(cos($9)) ls 2,\
-  "ref/mj0.0541.dat" using 1:(cos($9)) ls 2,\
-  "ref/mj0.0721.dat" using 1:(cos($9)) ls 2,\
-  "ref/mj0.0900.dat" using 1:(cos($9)) ls 2,\
-  "ref/mj0.1081.dat" using 1:(cos($9)) ls 2,\
-  "ref/mj0.1260.dat" using 1:(cos($9)) ls 2,\
-  "ref/mj0.1441.dat" using 1:(cos($9)) ls 2,\
-  "ref/mj0.1621.dat" using 1:(cos($9)) ls 2,\
-  "ref/mj0.1800.dat" using 1:(cos($9)) ls 2,\
--1/4. lc 0
+set terminal x11
+set title "cos(theta)" 
+
+plot [] []\
+  "mj0.0000.dat" using 1:(cos($9))with lines lc 1 lw 1.5,\
+  "mj0.0090.dat" using 1:(cos($9))with lines lc 1,\
+  "mj0.0181.dat" using 1:(cos($9))with lines lc 1,\
+  "mj0.0271.dat" using 1:(cos($9))with lines lc 1,\
+  "mj0.0362.dat" using 1:(cos($9))with lines lc 1,\
+  "mj0.0450.dat" using 1:(cos($9))with lines lc 1,\
+  "mj0.0561.dat" using 1:(cos($9))with lines lc 1,\
+  "mj0.0651.dat" using 1:(cos($9))with lines lc 1,\
+  "mj0.0742.dat" using 1:(cos($9))with lines lc 1,\
+  "mj0.0832.dat" using 1:(cos($9))with lines lc 1,\
+  "mj0.0900.dat" using 1:(cos($9))with lines lc 1,\
+-1/4.0with lines lc 2
 
 pause -1
 
+set terminal png
+set output "t1.png"
+replot
