@@ -1,9 +1,9 @@
 CCC   STATE DUMP/RESTORE (does not work?)
 
-      subroutine STATE_DUMP(FNAME)
+      subroutine STATE_DUMP(FNAME, USOL, XSOL)
         include 'vmcw.fh'
         include 'par.fh'
-        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
+        dimension USOL(NPDE,NPTS,NDERV),X(NPTS)
         common /TIMEP/ T, TSTEP, TEND
         character FNAME*128
         NFILE=2001
@@ -25,10 +25,10 @@ CCC   STATE DUMP/RESTORE (does not work?)
         close (NFILE)
       end
 
-      subroutine STATE_RESTORE(FNAME)
+      subroutine STATE_RESTORE(FNAME, USOL, XSOL)
         include 'vmcw.fh'
         include 'par.fh'
-        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),X(NPTS)
+        dimension USOL(NPDE,NPTS,NDERV),X(NPTS)
         common /TIMEP/ T, TSTEP, TEND
         character FNAME*128
 
@@ -64,7 +64,7 @@ CCC   STATE DUMP/RESTORE (does not work?)
         T=0D0
         LP_SWR=0D0
         HR_SWR=0D0
-        call SET_ICOND()
+        call SET_ICOND(USOL,XSOL)
         return
  201    write (*, '("Error: skip file: ",A)') FNAME
         close (NFILE)

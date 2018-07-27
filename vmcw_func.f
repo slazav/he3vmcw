@@ -188,12 +188,12 @@ C          DBDUX(7,6)=UNz         !!
         return
       end
 C-- SET_ICOND -- INITIAL CONDITIONS ---------------------------------
-      subroutine SET_ICOND()
+      subroutine SET_ICOND(USOL,XSOL)
         include 'vmcw.fh'
         include 'par.fh'
         include 'he3_const.fh'
         real*8 USOL, XSOL
-        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),XSOL(NPTS)
+        dimension USOL(NPDE,NPTS,NDERV), XSOL(NPTS)
 
         real*8 BET, DELTA, DELTAX, DELTAY,
      .         UCTG, UNX,UNY,UNZ, UMX,UMY,UMZ,
@@ -240,11 +240,11 @@ C-- SET_ICOND -- INITIAL CONDITIONS ---------------------------------
         return
       end
 C-- USP(X) ----- CSI OF SOLUTION ------------------------------------
-      double precision function USP(XI,I)
+      double precision function USP(XI,I,USOL,XSOL)
         include 'vmcw.fh'
         include 'par.fh'
         real*8 USOL, XSOL
-        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),XSOL(NPTS)
+        dimension USOL(NPDE,NPTS,NDERV),XSOL(NPTS)
         do K=1,NPTS
           USM=dsqrt(USOL(5,K,1)**2+USOL(6,K,1)**2+USOL(4,K,1)**2)
           USOL(4,K,1)=USOL(4,K,1)/USM
@@ -266,9 +266,13 @@ C-- USP(X) ----- CSI OF SOLUTION ------------------------------------
 C-- UINIT ------ INITIAL CONDITIONS ---------------------------------
       subroutine UINIT(XI,UI,NPDEI)
         include 'vmcw.fh'
+        include 'par.fh'
+        real*8 USOL, XSOL
+        dimension USOL(NPDE,NPTS,NDERV),XSOL(NPTS)
+        common /ARRAYS/  USOL,XSOL
         dimension UI(NPDEI)
         do I=1,NPDEI
-          UI(I)=USP(XI,I)
+          UI(I)=USP(XI,I, USOL, XSOL)
         enddo
         return
       end

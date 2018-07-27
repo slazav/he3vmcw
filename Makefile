@@ -16,7 +16,7 @@ FOBJ=vmcw_f.o libs/pde_dp.o\
      vmcw_mesh.o vmcw_mon.o vmcw_state.o vmcw_pdecol.o\
      vmcw_cmd.o vmcw_func.o he3_funcs.o
 
-$(FOBJ): %.o: %.f vmcw.fh
+$(FOBJ): %.o: %.f vmcw.fh par.fh
 vmcw_pdecol.o: vmcw_pdecol.fh
 
 vmcw: $(FOBJ) vmcw.cpp

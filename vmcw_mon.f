@@ -1,9 +1,10 @@
 C-- MONITOR ---- MONITORING THE SOLUTION ----------------------------
-      subroutine MONITOR()
+      subroutine MONITOR(USOL, XSOL)
         include 'vmcw.fh'
         include 'par.fh'
         common /TIMEP/ T, TSTEP, TEND
-        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),XSOL(NPTS)
+        dimension  USOL(NPDE,NPTS,NDERV)
+        dimension XSOL(NPTS)
 
         integer   M_FILE
         common /M_FILE/ M_FILE
@@ -35,16 +36,17 @@ C--------------- SHOW INFORMATION -----------------------------------
      *    'LF=',  1D-3*(LF0+LF_SWR*T) , ' kHz, ',
      *    'DF=',  (DF0+DF_SWR*T) , ' cm^2/s, ',
      *    'CPAR=',  (CPAR0+CPAR_SWR*T) , ' cm/s, '
-        call WRITEMJ_DO()
+        call WRITEMJ_DO(USOL,XSOL)
    61   format(F7.1, 6(F12.8))
    69   format(F9.2, 1PE25.16)
       end
 C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
 
-      subroutine WRITEMJ_OPEN()
+      subroutine WRITEMJ_OPEN(USOL, XSOL)
         include 'vmcw.fh'
         include 'par.fh'
-        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),XSOL(NPTS)
+        dimension  USOL(NPDE,NPTS,NDERV)
+        dimension XSOL(NPTS)
         integer FILES_MJ(NPTS), FILES_MJ0
         common /FILES/ FILES_MJ, FILES_MJ0
         common /CFG_WRITE/ WRITEMJ_XSTEP
@@ -69,13 +71,14 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
         open(FILES_MJ0,FILE='mj_all.dat')
       end
 
-      subroutine WRITEMJ_DO()
+      subroutine WRITEMJ_DO(USOL, XSOL)
         include 'vmcw.fh'
         include 'par.fh'
         common /TIMEP/ T, TSTEP, TEND
         integer FILES_MJ(NPTS), FILES_MJ0
         common /FILES/ FILES_MJ, FILES_MJ0
-        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),XSOL(NPTS)
+        dimension  USOL(NPDE,NPTS,NDERV)
+        dimension XSOL(NPTS)
 
         DIFF=DF0+DF_SWR*T
 

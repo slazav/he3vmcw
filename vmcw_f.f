@@ -13,7 +13,8 @@ C---------------- CB=0.0 !!!!!!!!!!
         common /TIMEP/ T, TSTEP, TEND
 
         real*8 USOL, XSOL
-        common /ARRAYS/ USOL(NPDE,NPTS,NDERV),XSOL(NPTS)
+        dimension USOL(NPDE,NPTS,NDERV),XSOL(NPTS)
+        common /ARRAYS/ USOL, XSOL
 
         character*64 CFG_KEY
         real*8 CFG_VAL
@@ -102,8 +103,8 @@ C       CFG_AER parameter group:
 
         call SET_MESH(XSOL, NPTS)
         call SAVE_MESH(XSOL, NPTS, 'mesh.dat')
-        call SET_ICOND()
-        call WRITEMJ_OPEN()
+        call SET_ICOND(USOL,XSOL)
+        call WRITEMJ_OPEN(USOL,XSOL)
 
 
 C--------------- COMPUTE PARAMETERS ----------------------------
@@ -119,7 +120,7 @@ C----------------MAIN LOOP -------------------------------------------
           if (T.ge.TEND) call CMD_READ()
           T=T+TSTEP
           call pdecol_run(T,USOL, XSOL)
-          call MONITOR()
+          call MONITOR(USOL,XSOL)
         goto 2
       end
 

@@ -80,7 +80,7 @@ CC command SAVE/DUMP <filename> -- save state to file
         if (CMD.eq.'SAVE'.or.CMD.eq.'DUMP') then
           write(*,'(A, A, A30)') '> SAVE, ',
      *       ' FILE = ', FNAME
-          call STATE_DUMP(FNAME)
+          call STATE_DUMP(FNAME, USOL, XSOL)
           goto 303 ! next command
         endif
 
@@ -88,7 +88,7 @@ CC command RESTORE <filename> -- restore state from file
         if (CMD.eq.'RESTORE') then
           write(*,'(A, A, A30)') '> RESTORE, ',
      *       ' FILE = ', FNAME
-          call STATE_RESTORE(FNAME)
+          call STATE_RESTORE(FNAME, USOL, XSOL)
           goto 303 ! next command
         endif
 
