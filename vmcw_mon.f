@@ -54,7 +54,7 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
         real*8 X0
         character*64 FNAME
         integer I
-        X0=0D0
+        X0=-CELL_LEN/2D0
         do I=1,NPTS
           if (XSOL(I).GE.X0) then
             FILES_MJ(I)=1000+I
