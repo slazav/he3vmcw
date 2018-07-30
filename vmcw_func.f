@@ -187,24 +187,32 @@ C          DBDUX(7,6)=UNz         !!
         endif
         return
       end
-C-- SET_ICOND -- INITIAL CONDITIONS ---------------------------------
-      subroutine SET_ICOND(USOL,XSOL)
+
+C-- UINIT ------ INITIAL CONDITIONS ---------------------------------
+      subroutine UINIT(XI,UI,NPDEI)
         include 'vmcw.fh'
         include 'par.fh'
         include 'he3_const.fh'
         real*8 USOL, XSOL
-        dimension USOL(NPDE,NPTS,NDERV), XSOL(NPTS)
+        dimension USOL(NPDE,NPTS,NDERV),XSOL(NPTS)
+        common /ARRAYS/  USOL,XSOL
+        dimension UI(NPDEI)
 
         real*8 BET, DELTA, DELTAX, DELTAY,
      .         UCTG, UNX,UNY,UNZ, UMX,UMY,UMZ,
-     .         UNZ2
+     .         UNZ2, USM
         integer I,J,K
+
+        if (NPDEI.ne.7) then
+          write(*,*) 'Error in UINIT: NPDEI!=7'
+          stop
+        endif
 
         BET=BETA*PI/180.0D0
         UMZ=dcos(BET)
         UMX=dsin(BET)*dsqrt(0.5D0)
         UMY=UMX
-        if(UMZ.GE.-0.25D0)THEN
+        if (UMZ.GE.-0.25D0)THEN
           UNZ2=0.8D0*(0.25D0+dcos(BET))
           UNZ=dsqrt(UNZ2)
           DELTA=(25.0D0*UNZ2+15.0D0)/16.0D0
@@ -221,59 +229,15 @@ C-- SET_ICOND -- INITIAL CONDITIONS ---------------------------------
           UNY=dsqrt(0.5D0)
           UCTG=BET
         endif
-        do I=1,NPTS
-          USOL(1,I,1)=UMX             ! Mx
-          USOL(2,I,1)=UMY             ! My
-          USOL(3,I,1)=UMZ             ! Mz
-          USOL(4,I,1)=UNX             ! Nx   !!
-          USOL(5,I,1)=UNY             ! Ny   !!
-          USOL(6,I,1)=UNZ             ! Nz
-          USOL(7,I,1)=UCTG            ! TETA         !!!!!+/-
-        enddo
-        do I=1,NPTS
-          do J=1,NPDE
-            do K=2,3
-              USOL(J,I,K)=0D0
-            enddo
-          enddo
-        enddo
-        return
-      end
-C-- USP(X) ----- CSI OF SOLUTION ------------------------------------
-      double precision function USP(XI,I,USOL,XSOL)
-        include 'vmcw.fh'
-        include 'par.fh'
-        real*8 USOL, XSOL
-        dimension USOL(NPDE,NPTS,NDERV),XSOL(NPTS)
-        do K=1,NPTS
-          USM=dsqrt(USOL(5,K,1)**2+USOL(6,K,1)**2+USOL(4,K,1)**2)
-          USOL(4,K,1)=USOL(4,K,1)/USM
-          USOL(5,K,1)=USOL(5,K,1)/USM
-          USOL(6,K,1)=USOL(6,K,1)/USM
-        enddo
-        AA=1.0D20
-        IK=1
-        do II=1,NPTS
-          BB=(XSOL(II)-XI)**2
-          if(BB.LE.AA)THEN
-            AA=BB
-            IK=II
-          endif
-        enddo
-        USP=USOL(I,IK,1)
-        return
-      end
-C-- UINIT ------ INITIAL CONDITIONS ---------------------------------
-      subroutine UINIT(XI,UI,NPDEI)
-        include 'vmcw.fh'
-        include 'par.fh'
-        real*8 USOL, XSOL
-        dimension USOL(NPDE,NPTS,NDERV),XSOL(NPTS)
-        common /ARRAYS/  USOL,XSOL
-        dimension UI(NPDEI)
-        do I=1,NPDEI
-          UI(I)=USP(XI,I, USOL, XSOL)
-        enddo
+
+        USM=dsqrt(UNX**2+UNY**2+UNZ**2)
+        UI(1)=UMX             ! Mx
+        UI(2)=UMY             ! My
+        UI(3)=UMZ             ! Mz
+        UI(4)=UNX/USM         ! Nx   !!
+        UI(5)=UNY/USM         ! Ny   !!
+        UI(6)=UNZ/USM         ! Nz
+        UI(7)=UCTG            ! TETA         !!!!!+/-
         return
       end
 C-- DERIVF ----- SET UP DERIVATIVES ---------------------------------

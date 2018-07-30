@@ -1,6 +1,6 @@
       subroutine read_cfg(fname)
+        include 'vmcw.fh'
         character*(*) fname
-        include 'vmcw.hf'
 
 c       local vars
         integer fid/54/
@@ -26,6 +26,9 @@ c       local vars
           GRAD=CFG_VAL ! GRADIENT H (OE/CM)       (-0.2)
         elseif (CFG_KEY.EQ.'HR') then
           HR0=CFG_VAL   ! RF FIELD (OE)            (0.06)
+
+        elseif (CFG_KEY.EQ.'IBN') then
+          IBN=INT(CFG_VAL)  ! TYPE OF BOUND. COND.: 1-OPEN CELL 2-CLOSED CELL
 
 C       CFG_CELL parameter group:
         elseif (CFG_KEY.EQ.'CELL_LEN') then

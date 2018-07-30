@@ -64,7 +64,6 @@ CCC   STATE DUMP/RESTORE (does not work?)
         T=0D0
         LP_SWR=0D0
         HR_SWR=0D0
-        call SET_ICOND(USOL,XSOL)
         return
  201    write (*, '("Error: skip file: ",A)') FNAME
         close (NFILE)

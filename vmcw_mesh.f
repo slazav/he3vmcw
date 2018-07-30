@@ -56,12 +56,11 @@ C         scale the whole mesh to fit CELL_LEN
         write(*,*) 'warning: low mesh accuracy: ', ABS(DELTA)
       end
 
-      subroutine SAVE_MESH(X, N, FNAME)
-        character*(*) FNAME
+      subroutine SAVE_MESH(X, N)
         integer fid/54/, N
         real*8 X, AER_STEP
         dimension X(N)
-        open(fid,FILE=FNAME)
+        open(fid,FILE='mesh.dat')
         write(fid,*) '#  I    X(I) STEP(X) STEP''(X)'
         do J=1,N
           write(fid,'(I4," ",F7.5," ",F7.5," ",e12.5e2)')

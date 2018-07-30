@@ -1,5 +1,5 @@
 C---------------- CB=0.0 !!!!!!!!!!
-      function VMCW_F()
+      function VMCW_F(USOL, XSOL)
         include 'vmcw.fh'
         include 'par.fh'
         include 'he3_const.fh'
@@ -12,9 +12,7 @@ C---------------- CB=0.0 !!!!!!!!!!
         real*8 T, TSTEP, TEND
         common /TIMEP/ T, TSTEP, TEND
 
-        real*8 USOL, XSOL
-        dimension USOL(NPDE,NPTS,NDERV),XSOL(NPTS)
-        common /ARRAYS/ USOL, XSOL
+        real*8 USOL(NPDE,NPTS,NDERV),XSOL(NPTS), TEST(10)
 
         character*64 CFG_KEY
         real*8 CFG_VAL
@@ -28,8 +26,6 @@ C---------------- CB=0.0 !!!!!!!!!!
 
         real*8 WRITEMJ_XSTEP
         common /CFG_WRITE/ WRITEMJ_XSTEP
-
-        real*8 PRESS, TTC, T1C
 
 C--------------- INITIALIZATION -------------------------------------
 
@@ -90,46 +86,43 @@ C       CFG_AER parameter group:
         goto 11
    12   close(54)
 
-        T=0D0
-        TSTEP=5D-3
+c        T=0D0
+c        TSTEP=5D-3
 
-        LP0=0D0
-        HR0=1D-3
-        LP_SWR=0D0
-        HR_SWR=0D0
+c        LP0=0D0
+c        HR0=1D-3
+c        LP_SWR=0D0
+c        HR_SWR=0D0
 
-          write(*,'(A,A20)') 'init'
-        call pdecol_init(T) ! set PDECOL parameters
+c          write(*,'(A,A20)') 'init'
+c        call pdecol_init(T) ! set PDECOL parameters
 
-        call SET_MESH(XSOL, NPTS)
-        call SAVE_MESH(XSOL, NPTS, 'mesh.dat')
-        call SET_ICOND(USOL,XSOL)
-        call WRITEMJ_OPEN(USOL,XSOL)
-
+c        call SET_MESH(XSOL, NPTS)
+c        call SAVE_MESH(XSOL, NPTS)
+c        call WRITEMJ_OPEN(USOL,XSOL)
 
 C--------------- COMPUTE PARAMETERS ----------------------------
-        call CMD_OPEN()
-        call SET_HE3PT(PRESS,TTC,T1C)
+c        call CMD_OPEN()
+c        call SET_HE3PT()
 C----------------MAIN LOOP -------------------------------------------
-        TEND=T
-   2    CONTINUE
-          if (dabs(TTC_ST).ge.1D-5) then
-            TTC=TTC+TTC_ST
-            call SET_HE3PT(PRESS,TTC,T1C)
-          endif
-          if (T.ge.TEND) call CMD_READ()
-          T=T+TSTEP
-          call pdecol_run(T,USOL, XSOL)
-          call MONITOR(USOL,XSOL)
-        goto 2
+c        TEND=T
+c   2    CONTINUE
+c          if (dabs(TTC_ST).ge.1D-5) then
+c            TTC=TTC+TTC_ST
+c            call SET_HE3PT()
+c          endif
+c          if (T.ge.TEND) call CMD_READ()
+c          T=T+TSTEP
+c          call pdecol_run(T,USOL, XSOL)
+c          call MONITOR(USOL,XSOL)
+c        goto 2
       end
 
 
 
-      subroutine SET_HE3PT(PRESS, TTC, T1C)
+      subroutine SET_HE3PT()
         include 'vmcw.fh'
         include 'he3_const.fh'
-        real*8 PRESS, TTC, T1C
         real*8 TEMP, T1, TR
 
         call STOP_SWEEP

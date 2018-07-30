@@ -306,7 +306,9 @@ CC command T_P <t> <p> -- set T/P
         if (CMD.EQ.'P_T') then
           write(*,'("> ", A12, F5.3, A, F5.3, A)')
      +      CMD, ARG1, ' bar, ' , ARG2, ' Tc'
-          call SET_HE3PT(ARG1, ARG2, 6.0D+14)
+          PRESS = ARG1
+          TTC = ARG2
+          call SET_HE3PT()
           goto 303 ! next command
         endif
 

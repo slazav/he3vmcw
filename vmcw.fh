@@ -9,23 +9,23 @@
      +  LF0,LF_SWR,
      +  CPAR0, CPAR_SWR
 
-      common /BLK_UMU/
+      real*8 AER, AER_LEN, AER_CNT, AER_TRW
+      real*8 CELL_LEN
+      real*8 XMESH_K,XMESH_ACC
+      real*8 BETA,IBN
+      real*8 PRESS,TTC,TTC_ST
+
+      common /PARS/
      +  T11,GRAD,H,
      +  HR0,HR_SWR,
      +  LP0,LP_SWR,
      +  DF0,DF_SWR,
      +  TF0,TF_SWR,
      +  LF0,LF_SWR,
-     +  CPAR0, CPAR_SWR
-
-      real*8 AER, AER_LEN, AER_CNT, AER_TRW
-      real*8 CELL_LEN
-      real*8 XMESH_K,XMESH_ACC
-      real*8 BETA,IBN,TTC_ST
-
-      common /CFG_AER/  AER, AER_LEN, AER_CNT, AER_TRW
-      common /CFG_CELL/ CELL_LEN
-      common /CFG_MESH/ XMESH_K,XMESH_ACC
-      common /CH_PAR/ BETA,IBN,TTC_ST
+     +  CPAR0, CPAR_SWR,
+     +  AER, AER_LEN, AER_CNT, AER_TRW,
+     +  CELL_LEN,
+     +  XMESH_K, XMESH_ACC,
+     +  BETA, IBN, PRESS, TTC, TTC_ST, T1C
 
 
