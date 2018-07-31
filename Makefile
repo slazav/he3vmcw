@@ -4,7 +4,7 @@ FFLAGS= -Werror -Wconversion\
   -Wline-truncation -Wintrinsics-std -Wsurprising -Wno-tabs -Wunderflow\
   -Wno-unused-parameter -Wno-align-commons
 
-TARGETS=vmcw vft
+TARGETS=vmcw
 LDLIBS=-lhe3 -lgfortran
 FFLAGS=-I/usr/include -fno-range-check
 CC=g++
@@ -24,6 +24,4 @@ $(FOBJ): %.o: %.f vmcw.fh par.fh
 vmcw.o vmcw_pdecol.o: vmcw_pdecol.h
 
 vmcw: $(FOBJ) $(COBJ)
-
-vft: vft.f
 

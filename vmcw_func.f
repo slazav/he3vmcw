@@ -14,8 +14,8 @@ C       FV  - result
 
 C       calculate freq
         WY = GAM*(HR0+HR_SWR*T)
+     *   *(1D0-(2.0*X/CELL_LEN-1.0)*(2.0*X/CELL_LEN-1.0)*0.5)
 !     *   *(1D0+(2.0*X/CELL_LEN-1.0)*0.6)
-!     *   *(1D0-(2.0*X/CELL_LEN-1.0)*(2.0*X/CELL_LEN-1.0)*0.6)
 
 
         WL = GAM*(H + GRAD*X)
@@ -191,11 +191,8 @@ C          DBDUX(7,6)=UNz         !!
 C-- UINIT ------ INITIAL CONDITIONS ---------------------------------
       subroutine UINIT(XI,UI,NPDEI)
         include 'vmcw.fh'
-        include 'par.fh'
         include 'he3_const.fh'
         real*8 USOL, XSOL
-        dimension USOL(NPDE,NPTS,NDERV),XSOL(NPTS)
-        common /ARRAYS/  USOL,XSOL
         dimension UI(NPDEI)
 
         real*8 BET, DELTA, DELTAX, DELTAY,

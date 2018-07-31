@@ -1,18 +1,16 @@
 C---------------- CB=0.0 !!!!!!!!!!
       function VMCW_F(USOL, XSOL)
         include 'vmcw.fh'
-        include 'par.fh'
         include 'he3_const.fh'
+        include 'par.fh'
 
         include 'vmcw_cmd.fh'
         integer VMCW_F
 
         data CMD_FILE_NAME/'vmcw.cmd'/, CMD_FILE/200/,INTERACTIVE/0/
 
-        real*8 T, TSTEP, TEND
-        common /TIMEP/ T, TSTEP, TEND
-
-        real*8 USOL(NPDE,NPTS,NDERV),XSOL(NPTS), TEST(10)
+c        real*8 T, TSTEP, TEND
+c        common /TIMEP/ T, TSTEP, TEND
 
         character*64 CFG_KEY
         real*8 CFG_VAL
@@ -86,36 +84,6 @@ C       CFG_AER parameter group:
         goto 11
    12   close(54)
 
-c        T=0D0
-c        TSTEP=5D-3
-
-c        LP0=0D0
-c        HR0=1D-3
-c        LP_SWR=0D0
-c        HR_SWR=0D0
-
-c          write(*,'(A,A20)') 'init'
-c        call pdecol_init(T) ! set PDECOL parameters
-
-c        call SET_MESH(XSOL, NPTS)
-c        call SAVE_MESH(XSOL, NPTS)
-c        call WRITEMJ_OPEN(USOL,XSOL)
-
-C--------------- COMPUTE PARAMETERS ----------------------------
-c        call CMD_OPEN()
-c        call SET_HE3PT()
-C----------------MAIN LOOP -------------------------------------------
-c        TEND=T
-c   2    CONTINUE
-c          if (dabs(TTC_ST).ge.1D-5) then
-c            TTC=TTC+TTC_ST
-c            call SET_HE3PT()
-c          endif
-c          if (T.ge.TEND) call CMD_READ()
-c          T=T+TSTEP
-c          call pdecol_run(T,USOL, XSOL)
-c          call MONITOR(USOL,XSOL)
-c        goto 2
       end
 
 

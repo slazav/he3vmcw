@@ -4,8 +4,6 @@ C--------------- PARAMETERS LIST ------------------------------------
      +  IDIMWORK, IDIMIWORK
 
       PARAMETER(
-     +  ACC2 = 20,        ! log2 of pdecol accuracy
-     +  ACC = 2.0D0**(-ACC2),
      +  NPTS = 257,       ! NUMBER OF GRID POINTS (NPTS=8N+4)
      +  NINT = NPTS-1,    ! NUMBER OF SUBINTERVALS
      +  NPDE = 7,         ! NUMBER OF EQUATIONS

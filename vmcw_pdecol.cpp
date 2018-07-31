@@ -115,11 +115,8 @@ pdecol_solver::step(double t) {
   gettimeofday(&tt, NULL);
 
   if (verbose){
-    std::cerr << tt.tv_sec << "." << tt.tv_usec << ": ";
-    std::cerr << "PDECOL: INDEX: " << INDEX <<
-                 ", TOUT:" << t  << "\n";
     if (INDEX==1){
-      std::cerr << "first-call parameters (index==1):\n";
+      std::cerr << "PDECOL first-call parameters (index==1):\n";
       std::cerr << "  t0:     " << t0 << " -- the inital value of T\n";
       std::cerr << "  dt:     " << t  << " -- the initial step size in T\n";
       std::cerr << "  xleft:  " << *(XSOL.begin())  << " -- left X value\n";
@@ -134,14 +131,17 @@ pdecol_solver::step(double t) {
       std::cerr << "  iwork size: " << IWORK[1]  << " -- length of IWORK array\n";
     }
     if (INDEX==3){
-      std::cerr << "one-step call (index==3) parameters:\n";
+      std::cerr << "PDECOL one-step call (index==3) parameters:\n";
       std::cerr << "  dt:     " << t  << " -- the maximum step size allowed\n";
     }
     if (INDEX==4){
-      std::cerr << "call with EPS or MF reset (index==4) parameters:\n";
+      std::cerr << "PDECOL call with EPS or MF reset (index==4) parameters:\n";
       std::cerr << "  eps:    " << EPS  << " -- the maximum step size allowed\n";
       std::cerr << "  mf:     " << MF   << " -- the method flag\n";
     }
+    std::cerr << tt.tv_sec << "." << tt.tv_usec << ": ";
+    std::cerr << "PDECOL: INDEX: " << INDEX <<
+                 " TOUT:" << t  << " ";
   }
 
   pdecol_(&t0,&t,&dt,XSOL.data(),
@@ -184,6 +184,9 @@ pdecol_solver::step(double t) {
   case -15: throw Err() << "PDECOL: ILLEGAL BREAKPOINTS - NOT STRICTLY INCREASING.";
   case -16: throw Err() << "PDECOL: INSUFFICIENT STORAGE FOR WORK OR IWORK.";
   default: throw Err() << "unknown error";
+  }
+  if (verbose) {
+    std::cerr << " DT: " << get_dtused() << " NQ: " << get_nqused() << "\n";
   }
   values_(XSOL.data(),USOL.data(),
           SCTCH.data(),&NPDE,&NPTS,&NPTS,&NDERV,WORK.data());
