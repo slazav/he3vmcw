@@ -7,19 +7,23 @@ FFLAGS= -Werror -Wconversion\
 TARGETS=vmcw vft
 LDLIBS=-lhe3 -lgfortran
 FFLAGS=-I/usr/include -fno-range-check
+CC=g++
 
 all: $(TARGETS)
 clean:
 	rm -f $(TARGETS) *.o
 
 FOBJ=vmcw_f.o libs/pde_dp.o\
-     vmcw_mesh.o vmcw_mon.o vmcw_state.o vmcw_pdecol.o\
+     vmcw_mesh.o vmcw_mon.o\
      vmcw_cmd.o vmcw_func.o he3_funcs.o
+COBJ=vmcw.o vmcw_pdecol.o
+
+$(COBJ): %.o: %.cpp
 
 $(FOBJ): %.o: %.f vmcw.fh par.fh
-vmcw_pdecol.o: vmcw_pdecol.fh
+vmcw.o vmcw_pdecol.o: vmcw_pdecol.h
 
-vmcw: $(FOBJ) vmcw.cpp
+vmcw: $(FOBJ) $(COBJ)
 
 vft: vft.f
 

@@ -79,8 +79,8 @@ try{
   cmd_open_();
   set_he3pt_();
 
-  pdecol_init_(&timep_.T); // set PDECOL parameters
-//  pdecol_solver solver(xsol, usol, timep_.T, 1e-10, pow(2,-20), npde_);
+//  pdecol_init_(&timep_.T); // set PDECOL parameters
+  pdecol_solver solver(xsol, usol, timep_.T, 1e-10, pow(2,-24), npde_);
   while (1) {
     if (abs(pars_.TTC_ST) >  1e-5) {
       pars_.TTC += pars_.TTC_ST;
@@ -88,8 +88,8 @@ try{
     }
     if (timep_.T >= timep_.TEND) cmd_read_();
     timep_.T += timep_.TSTEP;
-//    solver.step(timep_.T);
-    pdecol_run_(&timep_.T, arrays_.usol, arrays_.xsol);
+    solver.step(timep_.T);
+//    pdecol_run_(&timep_.T, arrays_.usol, arrays_.xsol);
     monitor_(arrays_.usol,arrays_.xsol);
   }
 

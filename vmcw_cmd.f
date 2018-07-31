@@ -77,20 +77,20 @@ C       1 str arg
         read (CMD_LINE,*, ERR=301, END=301) CMD, FNAME
 
 CC command SAVE/DUMP <filename> -- save state to file
-        if (CMD.eq.'SAVE'.or.CMD.eq.'DUMP') then
-          write(*,'(A, A, A30)') '> SAVE, ',
-     *       ' FILE = ', FNAME
-          call STATE_DUMP(FNAME, USOL, XSOL)
-          goto 303 ! next command
-        endif
+C        if (CMD.eq.'SAVE'.or.CMD.eq.'DUMP') then
+C          write(*,'(A, A, A30)') '> SAVE, ',
+C     *       ' FILE = ', FNAME
+C          call STATE_DUMP(FNAME, USOL, XSOL)
+C          goto 303 ! next command
+C        endif
 
 CC command RESTORE <filename> -- restore state from file
-        if (CMD.eq.'RESTORE') then
-          write(*,'(A, A, A30)') '> RESTORE, ',
-     *       ' FILE = ', FNAME
-          call STATE_RESTORE(FNAME, USOL, XSOL)
-          goto 303 ! next command
-        endif
+C        if (CMD.eq.'RESTORE') then
+C          write(*,'(A, A, A30)') '> RESTORE, ',
+C     *       ' FILE = ', FNAME
+C          call STATE_RESTORE(FNAME, USOL, XSOL)
+C          goto 303 ! next command
+C        endif
 
 CC command WRITE_M <filename> -- write Mx,My,Mz to file
         if (CMD.eq.'WRITE_M') then
