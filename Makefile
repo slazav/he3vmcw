@@ -5,7 +5,7 @@ FFLAGS= -Werror -Wconversion\
   -Wno-unused-parameter -Wno-align-commons
 
 TARGETS=vmcw
-LDLIBS=-lhe3 -lgfortran
+LDLIBS=-lhe3 -lgfortran -lm
 FFLAGS=-I/usr/include -fno-range-check
 CC=g++
 

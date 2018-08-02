@@ -21,7 +21,7 @@ extern "C"{
   int npts_;
   int nderv_;
 
-  extern struct {
+  struct {
     double *usol;
     double *xsol;
   } arrays_;
@@ -90,7 +90,7 @@ try{
 
   pdecol_solver solver(xsol, usol, timep_.T, 1e-10, pow(2,-20), npde_);
   while (1) {
-    if (abs(pars_.TTC_ST) >  1e-5) {
+    if (fabs(pars_.TTC_ST) >  1e-5) {
       pars_.TTC += pars_.TTC_ST;
       set_he3pt_();
     }
