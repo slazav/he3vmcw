@@ -1,19 +1,19 @@
 CCC   CMD PROCESSING
 
       subroutine CMD_OPEN()
-        include 'vmcw.fh'
+        include 'vmcw_pars.fh'
         include 'vmcw_cmd.fh'
         if (INTERACTIVE.eq.0) open (CMD_FILE, FILE=CMD_FILE_NAME)
       end
 
       subroutine CMD_CLOSE()
-        include 'vmcw.fh'
+        include 'vmcw_pars.fh'
         include 'vmcw_cmd.fh'
         if (INTERACTIVE.eq.0) close (CMD_FILE)
       end
 
       subroutine STOP_SWEEP()
-        include 'vmcw.fh'
+        include 'vmcw_pars.fh'
         real*8 T, TSTEP, TEND
         common /TIMEP/ T, TSTEP, TEND
         HR0=HR0+T*HR_SWR
@@ -31,7 +31,7 @@ CCC   CMD PROCESSING
       end
 
       subroutine CMD_READ()
-        include 'vmcw.fh'
+        include 'vmcw_pars.fh'
         include 'vmcw_cmd.fh'
 
         integer   M_FILE

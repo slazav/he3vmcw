@@ -1,6 +1,6 @@
 C-- MONITOR ---- MONITORING THE SOLUTION ----------------------------
       subroutine MONITOR(USOL, XSOL)
-        include 'vmcw.fh'
+        include 'vmcw_pars.fh'
         include 'par.fh'
         common /TIMEP/ T, TSTEP, TEND
         dimension  USOL(NPDE,NPTS,NDERV)
@@ -43,7 +43,7 @@ C--------------- SHOW INFORMATION -----------------------------------
 C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
 
       subroutine WRITEMJ_OPEN(USOL, XSOL)
-        include 'vmcw.fh'
+        include 'vmcw_pars.fh'
         include 'par.fh'
         dimension  USOL(NPDE,NPTS,NDERV)
         dimension XSOL(NPTS)
@@ -72,7 +72,7 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
       end
 
       subroutine WRITEMJ_DO(USOL, XSOL)
-        include 'vmcw.fh'
+        include 'vmcw_pars.fh'
         include 'par.fh'
         common /TIMEP/ T, TSTEP, TEND
         integer FILES_MJ(NPTS), FILES_MJ0
@@ -136,7 +136,7 @@ C       write(24,*)''
       end
 
       subroutine WRITEMJ_CLOSE()
-        include 'vmcw.fh'
+        include 'vmcw_pars.fh'
         include 'par.fh'
         integer FILES_MJ(NPTS), FILES_MJ0
         common /FILES/ FILES_MJ, FILES_MJ0

@@ -10,7 +10,7 @@ C         AER_LEN  -- aerogel length / cell length
 C         AER_CNT  -- center of aerogel area / cell length
 C         AER_TRW  -- transition width / cell length
       real*8 function AER_STEP(X,D)
-        include 'vmcw.fh'
+        include 'vmcw_pars.fh'
         integer D
         real*8  X
         if (AER.LE.0D0) then
@@ -35,7 +35,7 @@ C         AER_TRW  -- transition width / cell length
       end
 C-- SET_MESH --- SET UP THE MESH ------------------------------------
       subroutine SET_MESH(X, N)
-        include 'vmcw.fh'
+        include 'vmcw_pars.fh'
 C       Set mesh according with AER_STEP function
         real*8 DELTA,DX,X, AER_STEP
         dimension X(N)

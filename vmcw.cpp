@@ -1,78 +1,55 @@
 #include <iostream>
 #include <cmath>
 #include "vmcw_pdecol.h"
+#include "vmcw_pars.h"
+#include "vmcw_mesh.h"
 
+// fortran functions
 extern "C"{
-
-  void pdecol_init_(double *T); // set PDECOL parameters
-  void set_mesh_(double *xsol, int *npts);
-  void save_mesh_(double *xsol, int *npts);
   void writemj_open_(double *usol, double *xsol);
   void cmd_open_();
   void cmd_read_();
-  void pdecol_run_(double *t, double *usol, double *xsol);
   void monitor_(double *usol, double *xsol);
   void set_he3pt_();
   int vmcw_f_(double *usol, double *xsol);
 }
 
 extern "C"{
-  int npde_;
-  int npts_;
-  int nderv_;
-
-  struct {
-    double *usol;
-    double *xsol;
-  } arrays_;
-
-  extern struct {
-    double t11, grad, H;
-    double HR0,HR_SWR;
-    double LP0,LP_SWR;
-    double DF0,DF_SWR;
-    double TF0,TF_SWR;
-    double LF0,LF_SWR;
-    double CPAR0, CPAR_SWR_;
-    double AER, AER_LEN, AER_CNT, AER_TRW;
-    double CELL_LEN;
-    double XMESH_K, XMESH_ACC;
-    double BETA, IBN;
-    double PRESS, TTC, TTC_ST, T1C;
-  } pars_;
+  extern struct pars_t pars_;
 
   extern struct {
    double T, TSTEP, TEND;
   } timep_;
 }
 
-
 /// Read one or more commends from a stream.
 /// stage = 0: pre-configure (before solver is started)
 /// stage = 1: configuration during solving
-/// Return 1 if stage is finished, 0 otherwise.
+/// Return 1 if stage is finished (solver started or stopped), 0 otherwise.
 int
 read_cmd(std::istream &s, int stage){
+  while (!s.eof()){
+  }
 }
 
 int
 main(){
 try{
 
-  npde_=7;
-  npts_=257;
-  nderv_=3;
+  int npde=7;
+  int npts=257;
+  int nderv=3;
 
-  std::cout << "npts: " << npts_ << "\n";
+  // set default parameters
+  set_def_pars(&pars_);
 
-  std::vector<double> usol(nderv_*npts_*npde_, 0.0);
-  std::vector<double> xsol(npts_, 0.0);
-  arrays_.usol = usol.data();
-  arrays_.xsol = xsol.data();
+  // allocate memory
+  std::vector<double> usol(nderv*npts*npde, 0.0);
+  std::vector<double> xsol(npts, 0.0);
 
 //  read_cfg_("vmcw.cfg");
 
-  vmcw_f_(arrays_.usol, arrays_.xsol);
+  vmcw_f_(usol.data(), xsol.data());
 
   timep_.T = 0.0;
   timep_.TSTEP = 5e-3;
@@ -82,13 +59,13 @@ try{
   pars_.LP_SWR=0.0;
   pars_.HR_SWR=0.0;
 
-  set_mesh_(arrays_.xsol, &npts_);
-  save_mesh_(arrays_.xsol, &npts_);
-  writemj_open_(arrays_.usol, arrays_.xsol);
+  set_mesh(&pars_, xsol);
+  save_mesh(&pars_, xsol, "mesh.txt");
+  writemj_open_(usol.data(), xsol.data());
   cmd_open_();
   set_he3pt_();
 
-  pdecol_solver solver(xsol, usol, timep_.T, 1e-10, pow(2,-20), npde_);
+  pdecol_solver solver(xsol, usol, timep_.T, 1e-10, pow(2,-20), npde);
   while (1) {
     if (fabs(pars_.TTC_ST) >  1e-5) {
       pars_.TTC += pars_.TTC_ST;
@@ -97,7 +74,7 @@ try{
     if (timep_.T >= timep_.TEND) cmd_read_();
     timep_.T += timep_.TSTEP;
     solver.step(timep_.T);
-    monitor_(arrays_.usol,arrays_.xsol);
+    monitor_(usol.data(), xsol.data());
   }
 
 

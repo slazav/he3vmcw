@@ -1,6 +1,6 @@
 C---------------- CB=0.0 !!!!!!!!!!
       function VMCW_F(USOL, XSOL)
-        include 'vmcw.fh'
+        include 'vmcw_pars.fh'
         include 'he3_const.fh'
         include 'par.fh'
 
@@ -89,7 +89,7 @@ C       CFG_AER parameter group:
 
 
       subroutine SET_HE3PT()
-        include 'vmcw.fh'
+        include 'vmcw_pars.fh'
         include 'he3_const.fh'
         real*8 TEMP, T1, TR
 

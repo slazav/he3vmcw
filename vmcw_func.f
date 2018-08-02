@@ -2,7 +2,7 @@ c Leggett equations for using in pdecol
 
 C-- F ---------- EVALUATION OF F ------------------------------------
       subroutine F(T,X,U,UX,UXX,FV,NPDE)
-        include 'vmcw.fh'
+        include 'vmcw_pars.fh'
         include 'he3_const.fh'
         dimension U(NPDE),UX(NPDE),UXX(NPDE),FV(NPDE)
 C       T - time
@@ -96,7 +96,7 @@ C       Leggett equations
 
 C-- BNDRY ------ BOUNDARY CONDITIONS -- B(U,UX)=Z(T) ------------
       subroutine BNDRY(T,X,U,UX,DBDU,DBDUX,DZDT,NPDE)
-        include 'vmcw.fh'
+        include 'vmcw_pars.fh'
         include 'he3_const.fh'
 
         dimension U(NPDE),UX(NPDE),DZDT(NPDE),
@@ -190,7 +190,7 @@ C          DBDUX(7,6)=UNz         !!
 
 C-- UINIT ------ INITIAL CONDITIONS ---------------------------------
       subroutine UINIT(XI,UI,NPDEI)
-        include 'vmcw.fh'
+        include 'vmcw_pars.fh'
         include 'he3_const.fh'
         real*8 USOL, XSOL
         dimension UI(NPDEI)
@@ -239,7 +239,7 @@ C-- UINIT ------ INITIAL CONDITIONS ---------------------------------
       end
 C-- DERIVF ----- SET UP DERIVATIVES ---------------------------------
       subroutine DERIVF(T,X,U,UX,UXX,DFDU,DFDUX,DFDUXX,NPDE)
-        include 'vmcw.fh'
+        include 'vmcw_pars.fh'
         dimension U(NPDE),UX(NPDE),UXX(NPDE),
      *       DFDU(NPDE,NPDE),DFDUX(NPDE,NPDE),DFDUXX(NPDE,NPDE)
         do I=1,NPDE
