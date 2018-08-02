@@ -79,6 +79,8 @@ pdecol_solver::pdecol_solver(
   iounit_.LOUT = 2; // send messages o stderr by default
 }
 
+// It is possible to change accuracy and method during calcultion.
+// In this case INDEX is set to 4;
 void
 pdecol_solver::ch_eps(double new_eps){
   if (new_eps == EPS) return;

@@ -6,8 +6,15 @@
 /** C++ wrapper for PDECOL solver.
              V.Zavjalov, 07.2018
     See further information in pde_dp.f
+
+    Additional functions should be provided:
+      subroutine F(T,X,U,UX,UXX,FV,NPDE)
+      subroutine BNDRY(T,X,U,UX,DBDU,DBDUX,DZDT,NPDE)
+      subroutine UINIT(XI,UI,NPDEI)
+      subroutine DERIVF(T,X,U,UX,UXX,DFDU,DFDUX,DFDUXX,NPDE)
 **/
 
+/// TODO: save/restore state
 
 /********************************************************************/
 // wrapper class
@@ -17,19 +24,29 @@ class pdecol_solver {
   public:
 
   /// Constructor. Allocate memory, initialize PDECOL
+  /// arguments:
+  ///   XSOL
+  ///   USOL
+  ///   t0 -- Initial time.
+  ///   dt -- Min time step.
+  ///   eps -- Accuracy. Can be changed during calculations (see ch_eps() below)
+  ///   NPDE  -- number of differential equations
+  ///   NDERV -- How many derivatives return into USOL.
+  ///   KORD  -- polynom.order (recommended 4)
+  ///   NCC   -- number of cont.cond (recommended 2)
+  ///   MF    -- The method flag (11,12,21 or 22).
+  ///            Can be changed during calculations (see ch_mf() below)
+  ///   verbose -- verbosity level
   pdecol_solver(
-    std::vector<double> &XSOL_, std::vector<double> &USOL_,
-    double t0_, double dt_, double EPS_,
-    int NPDE_, int NDERV_=2, int KORD_=4, int NCC_=2, int MF_=22, int verbose=1
+    std::vector<double> &XSOL, std::vector<double> &USOL,
+    double t0, double dt, double eps,
+    int NPDE, int NDERV=2, int KORD=4, int NCC=2, int MF=22, int verbose=1
   );
 
-  // It is possible to change accuracy and method during calcultion.
-  // In this case INDEX has to be set to 4;
-
-  /// change EPS
+  /// change EPS during calculation
   void ch_eps(double new_eps);
 
-  /// change MF
+  /// change MF during calculation
   void ch_mf(int new_mf);
 
   /// get step size last used (sucsessfully)
@@ -49,7 +66,6 @@ class pdecol_solver {
 
   /// Do calculation until time t.
   // TODO: some more exotic calculations can be done (INDEX=2,3)
-  // TODO: change verbosity using iounit_.LOUT
   int step(double t);
 
   /************************************/
