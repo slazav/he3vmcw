@@ -1,4 +1,6 @@
 #include <iostream>
+#include <fstream>
+#include <string>
 #include <cmath>
 #include "vmcw_pdecol.h"
 #include "vmcw_pars.h"
@@ -29,6 +31,7 @@ extern "C"{
 int
 read_cmd(std::istream &s, int stage){
   while (!s.eof()){
+    std::string l = getline(s);
   }
 }
 
@@ -46,6 +49,9 @@ try{
   // allocate memory
   std::vector<double> usol(nderv*npts*npde, 0.0);
   std::vector<double> xsol(npts, 0.0);
+
+  ifstream cmdf("cmd.txt");
+  read_cmd(cmdf, 0);
 
 //  read_cfg_("vmcw.cfg");
 
