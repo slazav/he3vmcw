@@ -76,7 +76,7 @@ pdecol_solver::pdecol_solver(
 
   SCTCH = std::vector<double>(KORD*(NDERV+1), 0.0);
 
-  iounit_.LOUT = 2; // send messages o stderr by default
+  iounit_.LOUT = 0; // send messages to stderr by default
 }
 
 // It is possible to change accuracy and method during calcultion.
