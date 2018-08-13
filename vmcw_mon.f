@@ -2,7 +2,6 @@ C-- MONITOR ---- MONITORING THE SOLUTION ----------------------------
       subroutine MONITOR(USOL, XSOL)
         include 'vmcw_pars.fh'
         include 'par.fh'
-        common /TIMEP/ T, TSTEP, TEND
         dimension  USOL(NPDE,NPTS,NDERV)
         dimension XSOL(NPTS)
 
@@ -10,9 +9,9 @@ C-- MONITOR ---- MONITORING THE SOLUTION ----------------------------
         common /M_FILE/ M_FILE
 
 C--------------- COMPUTE TIME DEPENDENCIES --------------------------
-        TMMS=T*1000.0D0
+        TMMS=TIME*1000.0D0
 
-        TMLP=(LP0+LP_SWR*T)/CELL_LEN
+        TMLP=(LP0+LP_SWR*TIME)/CELL_LEN
         TMAB=0.0D0
         TMDS=0.0D0
         TMZ=0.0D0
@@ -30,12 +29,12 @@ C--------------- COMPUTE TIME DEPENDENCIES --------------------------
 C--------------- SHOW INFORMATION -----------------------------------
         write(*,'(7(A,F8.3,A))')
      *    ' T=',TMMS,' ms, ',
-     *    'LP=', LP0+LP_SWR*T , ' cm, ',
-     *    'HR=',  1D3*(HR0+HR_SWR*T) , ' mOe, ',
-     *    'TF=',  1D6*(TF0+TF_SWR*T) , ' mks, ',
-     *    'LF=',  1D-3*(LF0+LF_SWR*T) , ' kHz, ',
-     *    'DF=',  (DF0+DF_SWR*T) , ' cm^2/s, ',
-     *    'CPAR=',  (CPAR0+CPAR_SWR*T) , ' cm/s, '
+     *    'LP=', LP0+LP_SWR*TIME , ' cm, ',
+     *    'HR=',  1D3*(HR0+HR_SWR*TIME) , ' mOe, ',
+     *    'TF=',  1D6*(TF0+TF_SWR*TIME) , ' mks, ',
+     *    'LF=',  1D-3*(LF0+LF_SWR*TIME) , ' kHz, ',
+     *    'DF=',  (DF0+DF_SWR*TIME) , ' cm^2/s, ',
+     *    'CPAR=',  (CPAR0+CPAR_SWR*TIME) , ' cm/s, '
         call WRITEMJ_DO(USOL,XSOL)
    61   format(F7.1, 6(F12.8))
    69   format(F9.2, 1PE25.16)
@@ -50,7 +49,6 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
         integer FILES_MJ(NPTS), FILES_MJ0
         common /FILES/ FILES_MJ, FILES_MJ0
         common /CFG_WRITE/ WRITEMJ_XSTEP
-        common /TIMEP/ T, TSTEP, TEND
         real*8 X0
         character*64 FNAME
         integer I
@@ -74,13 +72,12 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
       subroutine WRITEMJ_DO(USOL, XSOL)
         include 'vmcw_pars.fh'
         include 'par.fh'
-        common /TIMEP/ T, TSTEP, TEND
         integer FILES_MJ(NPTS), FILES_MJ0
         common /FILES/ FILES_MJ, FILES_MJ0
         dimension  USOL(NPDE,NPTS,NDERV)
         dimension XSOL(NPTS)
 
-        DIFF=DF0+DF_SWR*T
+        DIFF=DF0+DF_SWR*TIME
 
         do I=1, NPTS
           if (FILES_MJ(I).NE.0) then
@@ -111,12 +108,12 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
             UFY=UJY*AF-DIFF*UX2
             UFZ=UJZ*AF-DIFF*UX3
 
-            write(FILES_MJ(I),101) T*1000D0, (LP0+LP_SWR*T)/CELL_LEN,
+            write(FILES_MJ(I),101) T*1000D0, (LP0+LP_SWR*TIME)/CELL_LEN,
      *        USOL(1,I,1),USOL(2,I,1),USOL(3,I,1),
      *        USOL(4,I,1),USOL(5,I,1),USOL(6,I,1),USOL(7,I,1)
 
             write(FILES_MJ0,103) XSOL(I), T*1000D0,
-     *        (LP0+LP_SWR*T)/CELL_LEN,
+     *        (LP0+LP_SWR*TIME)/CELL_LEN,
      *        USOL(1,I,1),USOL(2,I,1),USOL(3,I,1),
      *        USOL(4,I,1),USOL(5,I,1),USOL(6,I,1),USOL(7,I,1)
 

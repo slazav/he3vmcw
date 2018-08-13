@@ -6,20 +6,23 @@ use warnings;
 
 # parameters (type, name, default, comment):
 my $pars ="
+double time      0.0     current time, s (always 0 in the begining)
+double tend      0.0     end of current sweep/wait commant, s (always 0 in the begining)
+double tstep     5e-3    time step, s (can be changed at any time)
 double t11       0.0
 double H         284.0   constant part of magnetic field, G
 double grad      0.1     gradient of magnetic field, G/cm
-double HR0       5e-3    RF field, G
+double HR0       1e-3    RF field, G
 double HR_SWR    0.0     RF field sweep rate, G/s
 double LP0       0.0     Larmor position, cm
 double LP_SWR    0.0     Larmor position sweep rate, cm/s
-double DF0       0.0     Spin diffusion
-double DF_SWR    0.0     Spin diffusion sweep rate
-double TF0       0.0     Leggett-Takagi relaxation time, s
+double DF0       0.1     Spin diffusion, cm^2/s
+double DF_SWR    0.0     Spin diffusion sweep rate (cm^2/s)/s
+double TF0       1e-5    Leggett-Takagi relaxation time, s
 double TF_SWR    0.0     Leggett-Takagi relaxation time sweep rate s/s
-double LF0       0.0     Leggett frequency, Hz
+double LF0       1e5     Leggett frequency, Hz
 double LF_SWR    0.0     Leggett frequency sweep rate, Hz/s
-double CPAR0     0.0     spin-wave velocity (which one?), cm/s
+double CPAR0     5e2     spin-wave velocity (c_par?), cm/s
 double CPAR_SWR  0.0     spin-wave velocity sweep rate, (cm/s)/s
 double AER_LEN   0.5     aerogel length / cell length
 double AER_CNT   0.0     center of aerogel area / cell length

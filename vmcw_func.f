@@ -5,18 +5,29 @@ C-- F ---------- EVALUATION OF F ------------------------------------
         include 'vmcw_pars.fh'
         include 'he3_const.fh'
         dimension U(NPDE),UX(NPDE),UXX(NPDE),FV(NPDE)
-C       T - time
-C       X - x-coord
-C       U   - Mx My Mz Nx Ny Nz T 
-C       UX  - dU/dx
-C       UXX - d2U/dx2
-C       FV  - result
+C       Arguments:
+C         T - time
+C         X - x-coord
+C         U   - Mx My Mz Nx Ny Nz T 
+C         UX  - dU/dx
+C         UXX - d2U/dx2
+C         FV  - result
+C       Parameters (from vmcw_pars.fh and he3_const.fh)
+C         GAM -- gyromagnetic ratio
+C         PI
+C         HR0, HR_SWR -- RF-field
+C         H, GRAD     -- constant field, gradient
+C         LP0, LP_SWR -- Larmor position
+C         LF0, LF_SWR -- Leggett freq.
+C         CPAR0, CPAR_SWR -- spin-wave vel
+C         TF0, TF_SWR
+C         DF0, DF_SWR
+C         T11
 
 C       calculate freq
         WY = GAM*(HR0+HR_SWR*T)
-     *   *(1D0-(2.0*X/CELL_LEN-1.0)*(2.0*X/CELL_LEN-1.0)*0.5)
+!     *   *(1D0-(2.0*X/CELL_LEN-1.0)*(2.0*X/CELL_LEN-1.0)*0.5)
 !     *   *(1D0+(2.0*X/CELL_LEN-1.0)*0.6)
-
 
         WL = GAM*(H + GRAD*X)
         W0= GAM*(H + GRAD*(LP0+LP_SWR*T))

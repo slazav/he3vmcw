@@ -9,9 +9,6 @@ C---------------- CB=0.0 !!!!!!!!!!
 
         data CMD_FILE_NAME/'vmcw.cmd'/, CMD_FILE/200/,INTERACTIVE/0/
 
-c        real*8 T, TSTEP, TEND
-c        common /TIMEP/ T, TSTEP, TEND
-
         character*64 CFG_KEY
         real*8 CFG_VAL
 

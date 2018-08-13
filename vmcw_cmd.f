@@ -14,8 +14,6 @@ CCC   CMD PROCESSING
 
       subroutine STOP_SWEEP()
         include 'vmcw_pars.fh'
-        real*8 T, TSTEP, TEND
-        common /TIMEP/ T, TSTEP, TEND
         HR0=HR0+T*HR_SWR
         HR_SWR=0D0
         LP0=LP0+T*LP_SWR
@@ -38,9 +36,8 @@ CCC   CMD PROCESSING
         common /M_FILE/ M_FILE
 
         character CMD_LINE*128, CMD*128, FNAME*128
-        common /TIMEP/ T, TSTEP, TEND
 
-        real*8 T,TSTEP,TEND,ARG1,ARG2
+        real*8 ARG1,ARG2
         real*8 LP,HR,STEPS
 
         call STOP_SWEEP !!!

@@ -2,6 +2,7 @@
 #include <fstream>
 #include <vector>
 #include <cmath>
+#include <iostream>
 #include "vmcw_pars.h"
 
 // function aer_step_ is used from fortran function F.
