@@ -1,0 +1,9 @@
+start
+hr 2e-3
+LP -0.3
+
+LP_SWEEP_TO -0.1 0.1
+profile prof.dat
+
+LP_SWEEP_TO 0.2 0.1
+
