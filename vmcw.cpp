@@ -12,12 +12,6 @@
 #define NPDE 7
 #define NDER 3
 
-// fortran functions
-extern "C"{
-  void writemj_open_(double *usol, double *xsol);
-  void monitor_(double *usol, double *xsol);
-}
-
 struct pars_t pars;
 
 /// set parameters for Leggett equations using main parameter structure
@@ -247,6 +241,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c, int stage, pdecol_solver *sol
 }
 /********************************************************************/
 
+// write integral magnetization
 void
 write_magn(std::ostream & s,
            const std::vector<double> zsol,
@@ -273,6 +268,68 @@ write_magn(std::ostream & s,
 
   s << pars.time << "  " << pars.LP0 + pars.time*pars.LP_SWR << "  "
     << smx << " " << smy << " " << smz << "\n";
+}
+
+int
+vec_to_cal(const double vx, const double vy, const double vz){
+  double a = 3*(atan2(vy,vx)/M_PI+1.0); // azimuth: 0..6
+  int ai = floor(a); // color range 0..5
+  int d = floor((a-ai)*256);
+  int r=0,g=0,b=0;
+  switch (ai) {
+    case 0: r=255; g = d; b=0; break;
+    case 1: r=255-d; g=255; b=0; break;
+    case 2: r=0; g=255; b=floor(d); break;
+    case 3: r=0; g=255-d; b=255; break;
+    case 4: r=d; g=0; b=255; break;
+    case 5: r=255; g=0; b=255-d; break;
+  }
+  double f = 2*atan2(vz, hypot(vx,vy))/M_PI; // -1..1
+  if (f<0) {
+    r = r*(1.0+f);
+    g = g*(1.0+f);
+    b = b*(1.0+f);
+  }
+  if (f>0) {
+    r = 255.0*f + r*(1.0-f);
+    g = 255.0*f + g*(1.0-f);
+    b = 255.0*f + b*(1.0-f);
+  }
+
+  if (r<0) r=0; if (r>255) r=255;
+  if (g<0) g=0; if (g>255) g=255;
+  if (b<0) b=0; if (b>255) b=255;
+  return (r<<16) + (g<<8) + b;
+}
+
+// write M,N,J to pnm file
+void
+write_pnm(std::ostream & s,
+           const std::vector<double> zsol,
+           const std::vector<double> usol){
+
+  double smx=0, smy=0, smz=0, sz = 0;
+  for (int i=0; i<zsol.size(); i++){
+    double mx = usol[i*NPDE+0];
+    double my = usol[i*NPDE+1];
+    double mz = usol[i*NPDE+2];
+    int c = vec_to_cal(mx,my,mz);
+
+    s << ((char)((c>>16)&0xFF))
+      << ((char)((c>>8)&0xFF))
+      << ((char)(c&0xFF));
+  }
+  s << (char)0 << (char)0 << (char)0;
+
+  for (int i=0; i<zsol.size(); i++){
+    double nx = usol[i*NPDE+3];
+    double ny = usol[i*NPDE+4];
+    double nz = usol[i*NPDE+5];
+    int c = vec_to_cal(nx,ny,nz);
+    s << ((char)((c>>16)&0xFF))
+      << ((char)((c>>8)&0xFF))
+      << ((char)(c&0xFF));
+  }
 }
 
 void
@@ -308,6 +365,10 @@ try{
   out_m << "# Integral magnetization log: T, LP, Mx, Mx, Mz\n";
   std::ofstream out_c("cmd_log.dat"); // log commands and main parameters
   out_c << "# Commands and main parameters\n";
+  std::ofstream out_p("cmd_log.pnm"); // log commands and main parameters
+  out_p << "P6\n" << npts*2+1 << " ";
+  int png_width_pos = out_p.tellp();
+  out_p << "            \n255\n";
 
   // read all commands until start or eof
   if (read_cmd(in_c, out_c, STAGE_INIT, NULL)) return 0;
@@ -321,6 +382,7 @@ try{
 
     write_pars(out_c);
 
+  int n=0;
   while (1) {
 //    if (fabs(pars.TTC_ST) >  1e-5) {
 //      pars.TTC += pars.TTC_ST;
@@ -329,7 +391,7 @@ try{
     // If we reach final time, read new cmd.
     // If it returns 1, finish the program
     if (pars.time >= pars.tend &&
-        read_cmd(in_c, out_c, STAGE_RUN, &solver)) return 0;
+        read_cmd(in_c, out_c, STAGE_RUN, &solver)) break;
 
     // do the next step
     pars.time += pars.tstep;
@@ -337,13 +399,18 @@ try{
 
     // write results
     write_magn(out_m, xsol, usol);
+    write_pnm(out_p, xsol, usol);
     write_pars(out_c);
+    n++;
+    int png_data_pos = out_p.tellp();
+    out_p.seekp(png_width_pos);
+    out_p << n;
+    out_p.seekp(png_data_pos);
 
     // flush files
     out_c.flush();
     out_m.flush();
   }
-
 
 } catch (pdecol_solver::Err e){
   std::cerr << "Error: " << e.str() << "\n";
