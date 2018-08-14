@@ -1,6 +1,7 @@
 #include <vector>
 #include <sstream>
 #include <iostream>
+#include <iomanip>
 #include <sys/time.h>
 #include "vmcw_pdecol.h"
 
@@ -141,9 +142,9 @@ pdecol_solver::step(double t) {
       std::cerr << "  eps:    " << EPS  << " -- the maximum step size allowed\n";
       std::cerr << "  mf:     " << MF   << " -- the method flag\n";
     }
-    std::cerr << tt.tv_sec << "." << tt.tv_usec << ": ";
+    std::cerr << tt.tv_sec << "." << std::setw(6) << std::setfill('0') << tt.tv_usec << ": ";
     std::cerr << "PDECOL: INDEX: " << INDEX <<
-                 " TOUT:" << t  << " ";
+                 " TOUT:" << std::scientific << std::setprecision(4) << t  << " ";
   }
 
   pdecol_(&t0,&t,&dt,XSOL.data(),
