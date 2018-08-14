@@ -68,6 +68,8 @@ class pdecol_solver {
   // TODO: some more exotic calculations can be done (INDEX=2,3)
   int step(double t);
 
+  /// Write functions and derivatives vs. the coordinate.
+  void write_profile(std::ostream &ss);
   /************************************/
   // Error class for exceptions
   public:

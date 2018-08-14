@@ -194,3 +194,18 @@ pdecol_solver::step(double t) {
           SCTCH.data(),&NPDE,&NPTS,&NPTS,&NDERV,WORK.data());
 }
 
+void
+pdecol_solver::write_profile(std::ostream &ss) {
+  values_(XSOL.data(),USOL.data(),
+          SCTCH.data(),&NPDE,&NPTS,&NPTS,&NDERV,WORK.data());
+  for (int i=0; i< XSOL.size(); i++){
+    ss << XSOL[i];
+    for (int d = 0; d<NDERV; d++){
+      ss << "  ";
+      for (int n = 0; n<NPDE; n++){
+        ss << " " << USOL[d*(NPDE*NPTS) + i*NPDE + n];
+      }
+    }
+    ss << "\n";
+  }
+}
