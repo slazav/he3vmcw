@@ -11,21 +11,21 @@ CC=g++
 
 all: $(TARGETS)
 clean:
-	rm -f $(TARGETS) *.o vmcw_pars.fh vmcw_pars.h vmcw_pars.cpp
+	rm -f $(TARGETS) *.o vmcw_pars.h vmcw_pars.cpp
 
 # To share main parameter structure beteen C++ and Fortran
 # we create a .fh file from .h
-vmcw_pars.fh vmcw_pars.h vmcw_pars.cpp: vmcw_pars.pl
+vmcw_pars.h vmcw_pars.cpp: vmcw_pars.pl
 	./$<
 
 # Fortran objects
-FOBJ=vmcw_f.o libs/pde_dp.o vmcw_func.o he3_funcs.o
+FOBJ=libs/pde_dp.o vmcw_func.o he3_funcs.o
 
 # C++ object files
 COBJ=vmcw.o vmcw_pdecol.o vmcw_pars.o vmcw_mesh.o
 
 $(COBJ): %.o: %.cpp
-$(FOBJ): %.o: %.f par.fh vmcw_pars.fh
+$(FOBJ): %.o: %.f par.fh
 vmcw.o vmcw_pdecol.o: vmcw_pdecol.h vmcw_pars.h
 
 vmcw: $(FOBJ) $(COBJ)

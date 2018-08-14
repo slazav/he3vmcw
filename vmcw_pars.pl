@@ -2,7 +2,7 @@
 use strict;
 use warnings;
 
-# create vmcw_pars.fh from vmcw_pars.h
+# create vmcw_pars.h and vmcw_pars.cpp
 
 # parameters (type, name, default, comment):
 my $pars ="
@@ -46,7 +46,6 @@ my %types = (
 );
 
 open CH, "> vmcw_pars.h"   or die "can't open vmcw_pars.h: $!\n";
-open FH, "> vmcw_pars.fh"  or die "can't open vmcw_pars.fh: $!\n";
 open CC, "> vmcw_pars.cpp" or die "can't open vmcw_pars.cpp: $!\n";
 
 ######
@@ -54,14 +53,9 @@ print CH qq*// This file is created by $0 script. Do not modify.
 #ifndef VMCW_PARS_H
 #define VMCW_PARS_H
 void set_def_pars(struct pars_t \*p);
-extern "C" {
-  struct pars_t {
+struct pars_t {
 *;
 
-######
-print FH qq*! This file is created by $0 script. Do not modify.
-      implicit none
-*;
 
 ######
 print CC qq*// This file is created by $0 script. Do not modify.
@@ -80,24 +74,13 @@ foreach (split /\n/, $pars) {
 
   my $ccomm = $comm? " ///< $comm": '';
   my $fcomm = $comm? " ! $comm": '';
-  printf FH "      %8s %12s$fcomm\n", $ftype, $name;
   printf CH "    %8s %12s;$ccomm\n", $ctype, $name;
   printf CC "  p->%-12s = $def;\n", $name;
   push @names, $name;
 }
 
-print FH "\n", ' 'x6, "common /PARS/";
-my $l=0;
-for (my $i=0; $i<=$#names; $i++) {
-  my $fl = length($names[$i])+2;
-  if ($l==0 || $l+$fl > 68){ print FH "\n     +"; $l=9;}
-  print FH " $names[$i]", ($i<$#names?',':'');
-  $l+=$fl;
-}
-print FH "\n";
-print CH "  };\n}\n#endif\n";
+print CH "};\n#endif\n";
 print CC "}\n";
 
 close CH;
 close CC;
-close FH;

@@ -5,10 +5,6 @@
 #include <iostream>
 #include "vmcw_pars.h"
 
-// function aer_step_ is used from fortran function F.
-// It use the global parameter structure
-extern "C"{ extern struct pars_t pars_;}
-
 // Aerogel profile.
 // Returns 1 in the central
 // part of the cell with fermi steps to 0 on edges.
@@ -21,13 +17,13 @@ extern "C"{ extern struct pars_t pars_;}
 //   AER_CNT  -- center of aerogel area / cell length
 //   AER_TRW  -- transition width / cell length
 double
-aer_step(double x, int d){
+aer_step(struct pars_t *p, double x, int d){
 
-  if (!pars_.AER) return 0.0;
-  double L = pars_.CELL_LEN;
-  double l = pars_.AER_LEN;
-  double c = pars_.AER_CNT;
-  double w = pars_.AER_TRW;
+  if (!p->AER) return 0.0;
+  double L = p->CELL_LEN;
+  double l = p->AER_LEN;
+  double c = p->AER_CNT;
+  double w = p->AER_TRW;
 
   double xx = x/L - c;
   double a = (fabs(xx) - l/2.0)/w;
@@ -52,7 +48,7 @@ set_mesh(struct pars_t *p, std::vector<double> & x){
   x[0] = -L/2.0;
   for (int k=0; k<100; k++){
     for (int i=0; i<N-1; i++){
-      x[i+1] = x[i] + dx/(1.0+p->XMESH_K*fabs(aer_step(x[i],1)));
+      x[i+1] = x[i] + dx/(1.0+p->XMESH_K*fabs(aer_step(p,x[i],1)));
     }
     // scale the whole mesh to fit CELL_LEN
     double d = L - (x[N-1]-x[0]);
@@ -68,8 +64,8 @@ save_mesh(struct pars_t *p, const std::vector<double> &x, const char *fname){
   ff << "# N X AER AER'\n";
   for (int i=0; i<x.size(); i++){
     double xx = x[i];
-    double a0 = aer_step(xx,0);
-    double a1 = aer_step(xx,1);
+    double a0 = aer_step(p,xx,0);
+    double a1 = aer_step(p,xx,1);
     ff << i << " " << xx << " " << a0 << " " << a1 << "\n";
   }
 }

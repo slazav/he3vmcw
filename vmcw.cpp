@@ -9,9 +9,6 @@
 #include "vmcw_pars.h"
 #include "vmcw_mesh.h"
 
-
-
-
 #define NPDE 7
 #define NDER 3
 
@@ -19,13 +16,9 @@
 extern "C"{
   void writemj_open_(double *usol, double *xsol);
   void monitor_(double *usol, double *xsol);
-  void set_he3pt_();
 }
 
-extern "C"{
-  extern struct pars_t pars_;
-}
-
+struct pars_t pars;
 
 /// set parameters for Leggett equations using main parameter structure
 extern "C" {
@@ -34,25 +27,25 @@ extern "C" {
                  double *WB, double *Cpar, double *dCpar,
                  double *Diff, double *Tf, double *T1, int *IBN){
     double gyro = 20378.0; // Gyromagnetic ratio. Use from he3lib?
-    *Wr = gyro*(pars_.HR0 + pars_.HR_SWR*(*t));
-    *Wz = gyro*(pars_.H + pars_.grad*(*x));
-    *W0 = gyro*(pars_.H + pars_.grad*(pars_.LP0 + pars_.LP_SWR*(*t)));
-    *WB = (pars_.LF0 + pars_.LF_SWR*(*t))*2*M_PI;
-    *Cpar = pars_.CPAR0 + pars_.CPAR_SWR*(*t);
+    *Wr = gyro*(pars.HR0 + pars.HR_SWR*(*t));
+    *Wz = gyro*(pars.H + pars.grad*(*x));
+    *W0 = gyro*(pars.H + pars.grad*(pars.LP0 + pars.LP_SWR*(*t)));
+    *WB = (pars.LF0 + pars.LF_SWR*(*t))*2*M_PI;
+    *Cpar = pars.CPAR0 + pars.CPAR_SWR*(*t);
     *dCpar = 0;
-    *Diff = pars_.DF0 + pars_.DF_SWR*(*t);
-    *Tf   = pars_.TF0 + pars_.TF_SWR*(*t);
-    *T1   = 1/pars_.t11;
+    *Diff = pars.DF0 + pars.DF_SWR*(*t);
+    *Tf   = pars.TF0 + pars.TF_SWR*(*t);
+    *T1   = 1/pars.t11;
 
     // spatial modulation
-    if (pars_.AER){
+    if (pars.AER){
       int d0=0, d1=1;
-      *Cpar *= 1.0 - 0.5*aer_step(*x,0);
-      *dCpar =(*Cpar) * 0.5*aer_step(*x,1);
-      *Diff *= 1.0 - 0.835 * aer_step(*x,0);
-      *Tf   *= 1.0 - 0.5 * aer_step(*x,0);
+      *Cpar *= 1.0 - 0.5*aer_step(&pars, *x,0);
+      *dCpar =(*Cpar) * 0.5*aer_step(&pars, *x,1);
+      *Diff *= 1.0 - 0.835 * aer_step(&pars, *x,0);
+      *Tf   *= 1.0 - 0.5 * aer_step(&pars, *x,0);
     }
-    *IBN = pars_.IBN;
+    *IBN = pars.IBN;
   }
 }
 
@@ -123,12 +116,12 @@ cmd_set(const std::vector<std::string> & args, // splitted command line
 int
 read_cmd(std::istream &in_c, std::ostream & out_c, int stage, pdecol_solver *solver){
   // reset sweeps
-  pars_.HR0=pars_.HR0+pars_.time*pars_.HR_SWR;       pars_.HR_SWR=0.0;
-  pars_.LP0=pars_.LP0+pars_.time*pars_.LP_SWR;       pars_.LP_SWR=0.0;
-  pars_.DF0=pars_.DF0+pars_.time*pars_.DF_SWR;       pars_.DF_SWR=0.0;
-  pars_.TF0=pars_.TF0+pars_.time*pars_.TF_SWR;       pars_.TF_SWR=0.0;
-  pars_.LF0=pars_.LF0+pars_.time*pars_.LF_SWR;       pars_.LF_SWR=0.0;
-  pars_.CPAR0=pars_.CPAR0+pars_.time*pars_.CPAR_SWR; pars_.CPAR_SWR = 0.0;
+  pars.HR0=pars.HR0+pars.time*pars.HR_SWR;       pars.HR_SWR=0.0;
+  pars.LP0=pars.LP0+pars.time*pars.LP_SWR;       pars.LP_SWR=0.0;
+  pars.DF0=pars.DF0+pars.time*pars.DF_SWR;       pars.DF_SWR=0.0;
+  pars.TF0=pars.TF0+pars.time*pars.TF_SWR;       pars.TF_SWR=0.0;
+  pars.LF0=pars.LF0+pars.time*pars.LF_SWR;       pars.LF_SWR=0.0;
+  pars.CPAR0=pars.CPAR0+pars.time*pars.CPAR_SWR; pars.CPAR_SWR = 0.0;
 
   // read input string line by line
   std::string line;
@@ -157,26 +150,26 @@ read_cmd(std::istream &in_c, std::ostream & out_c, int stage, pdecol_solver *sol
     if (args.size()<1) continue;
 
     // commands
-    if (cmd_set(args, "beta",      &pars_.BETA,      stage, CMD_INIT)) continue;
-    if (cmd_set(args, "IBN",       &pars_.IBN,       stage, CMD_INIT)) continue;
-    if (cmd_set(args, "CELL_LEN",  &pars_.CELL_LEN,  stage, CMD_INIT)) continue;
-    if (cmd_set(args, "XMESH_K",   &pars_.XMESH_K,   stage, CMD_INIT)) continue;
-    if (cmd_set(args, "XMESH_ACC", &pars_.XMESH_ACC, stage, CMD_INIT)) continue;
-    if (cmd_set(args, "AER",       &pars_.AER,       stage, CMD_INIT)) continue;
-    if (cmd_set(args, "AER_LEN",   &pars_.AER_LEN,   stage, CMD_INIT)) continue;
-    if (cmd_set(args, "AER_CNT",   &pars_.AER_CNT,   stage, CMD_INIT)) continue;
-    if (cmd_set(args, "AER_TRW",   &pars_.AER_TRW,   stage, CMD_INIT)) continue;
+    if (cmd_set(args, "beta",      &pars.BETA,      stage, CMD_INIT)) continue;
+    if (cmd_set(args, "IBN",       &pars.IBN,       stage, CMD_INIT)) continue;
+    if (cmd_set(args, "CELL_LEN",  &pars.CELL_LEN,  stage, CMD_INIT)) continue;
+    if (cmd_set(args, "XMESH_K",   &pars.XMESH_K,   stage, CMD_INIT)) continue;
+    if (cmd_set(args, "XMESH_ACC", &pars.XMESH_ACC, stage, CMD_INIT)) continue;
+    if (cmd_set(args, "AER",       &pars.AER,       stage, CMD_INIT)) continue;
+    if (cmd_set(args, "AER_LEN",   &pars.AER_LEN,   stage, CMD_INIT)) continue;
+    if (cmd_set(args, "AER_CNT",   &pars.AER_CNT,   stage, CMD_INIT)) continue;
+    if (cmd_set(args, "AER_TRW",   &pars.AER_TRW,   stage, CMD_INIT)) continue;
 
-    if (cmd_set(args, "t1c",    &pars_.T1C,    stage, CMD_INIT | CMD_RUN)) continue;
-    if (cmd_set(args, "H",      &pars_.H,      stage, CMD_INIT | CMD_RUN)) continue;
-    if (cmd_set(args, "grad",   &pars_.grad,   stage, CMD_INIT | CMD_RUN)) continue;
-    if (cmd_set(args, "Hr",     &pars_.HR0,    stage, CMD_INIT | CMD_RUN | CMD_SWEEP)) continue;
-    if (cmd_set(args, "tstep",  &pars_.tstep,  stage, CMD_INIT | CMD_RUN)) continue;
+    if (cmd_set(args, "t1c",    &pars.T1C,    stage, CMD_INIT | CMD_RUN)) continue;
+    if (cmd_set(args, "H",      &pars.H,      stage, CMD_INIT | CMD_RUN)) continue;
+    if (cmd_set(args, "grad",   &pars.grad,   stage, CMD_INIT | CMD_RUN)) continue;
+    if (cmd_set(args, "Hr",     &pars.HR0,    stage, CMD_INIT | CMD_RUN | CMD_SWEEP)) continue;
+    if (cmd_set(args, "tstep",  &pars.tstep,  stage, CMD_INIT | CMD_RUN)) continue;
 
 //    if (args[0] == "temp_press") {
 //      if (!check_nargs(line, args.size(), 3)) continue;
-//      pars_.TTC   = atof(args[1].c_str());
-//      pars_.PRESS = atof(args[2].c_str());
+//      pars.TTC   = atof(args[1].c_str());
+//      pars.PRESS = atof(args[2].c_str());
 //      set_he3pt_();
 //      continue;
 //    }
@@ -206,7 +199,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c, int stage, pdecol_solver *sol
     if (args[0] == "wait") {
       if (!check_nargs(line, args.size(), 2)) continue;
       double dt = atof(args[1].c_str());
-      pars_.tend = pars_.time + dt*1e-3;
+      pars.tend = pars.time + dt*1e-3;
       out_c << "Wait " << dt << " ms\n";
       return 0;
     }
@@ -215,7 +208,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c, int stage, pdecol_solver *sol
       if (!check_nargs(line, args.size(), 2)) continue;
       double v = atof(args[1].c_str());
       out_c << "larmor position: " << v << " cm\n";
-      pars_.LP0 = v - pars_.time*pars_.LP_SWR;
+      pars.LP0 = v - pars.time*pars.LP_SWR;
       continue;
     }
 
@@ -223,7 +216,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c, int stage, pdecol_solver *sol
       if (!check_nargs(line, args.size(), 2)) continue;
       double v = atof(args[1].c_str());
       out_c << "larmor position step: " << v << " cm\n";
-      pars_.LP0 += v;
+      pars.LP0 += v;
       continue;
     }
 
@@ -232,16 +225,16 @@ read_cmd(std::istream &in_c, std::ostream & out_c, int stage, pdecol_solver *sol
       double v = atof(args[1].c_str());
       double r = fabs(atof(args[2].c_str()));
       out_c << "sweep larmor position to " << v << " cm at " << r << " cm/s\n";
-      int steps = abs(rint((v-pars_.LP0)/r/pars_.tstep));
+      int steps = abs(rint((v-pars.LP0)/r/pars.tstep));
 
       if (steps==0){
         out_c << "Warning: zero steps, skip the command.\n";
         continue;
       }
-      pars_.LP_SWR = (v-pars_.LP0)/(steps*pars_.tstep);
-      pars_.LP0   -= pars_.time*pars_.LP_SWR;
-      pars_.tend  = pars_.time + steps*pars_.tstep;
-      out_c << "  real rate: " << pars_.LP_SWR << " cm/s\n";
+      pars.LP_SWR = (v-pars.LP0)/(steps*pars.tstep);
+      pars.LP0   -= pars.time*pars.LP_SWR;
+      pars.tend  = pars.time + steps*pars.tstep;
+      out_c << "  real rate: " << pars.LP_SWR << " cm/s\n";
       return 0;
     }
 
@@ -278,19 +271,19 @@ write_magn(std::ostream & s,
   smy/=sz;
   smz/=sz;
 
-  s << pars_.time << "  " << pars_.LP0 + pars_.time*pars_.LP_SWR << "  "
+  s << pars.time << "  " << pars.LP0 + pars.time*pars.LP_SWR << "  "
     << smx << " " << smy << " " << smz << "\n";
 }
 
 void
 write_pars(std::ostream & s){
-  s << " T=" << pars_.time*1000 << " ms, "
-    << "LP=" << pars_.LP0+pars_.LP_SWR*pars_.time << " cm, "
-    << "HR=" << 1e3*(pars_.HR0+pars_.HR_SWR*pars_.time) << " mOe, "
-    << "TF=" << 1e6*(pars_.TF0+pars_.TF_SWR*pars_.time) << " mks, "
-    << "LF=" << 1e-3*(pars_.LF0+pars_.LF_SWR*pars_.time) << " kHz, "
-    << "DF=" << (pars_.DF0+pars_.DF_SWR*pars_.time) << " cm^2/s, "
-    << "CPAR=" <<  (pars_.CPAR0+pars_.CPAR_SWR*pars_.time) << " cm/s, "
+  s << " T=" << pars.time*1000 << " ms, "
+    << "LP=" << pars.LP0+pars.LP_SWR*pars.time << " cm, "
+    << "HR=" << 1e3*(pars.HR0+pars.HR_SWR*pars.time) << " mOe, "
+    << "TF=" << 1e6*(pars.TF0+pars.TF_SWR*pars.time) << " mks, "
+    << "LF=" << 1e-3*(pars.LF0+pars.LF_SWR*pars.time) << " kHz, "
+    << "DF=" << (pars.DF0+pars.DF_SWR*pars.time) << " cm^2/s, "
+    << "CPAR=" <<  (pars.CPAR0+pars.CPAR_SWR*pars.time) << " cm/s, "
     << "\n";
 }
 
@@ -304,7 +297,7 @@ try{
   int npts=257;
 
   // set default parameters
-  set_def_pars(&pars_);
+  set_def_pars(&pars);
 
   // allocate memory
   std::vector<double> usol(NDER*npts*NPDE, 0.0);
@@ -320,27 +313,27 @@ try{
   if (read_cmd(in_c, out_c, STAGE_INIT, NULL)) return 0;
 
   // set up the mesh and save it into a file
-  set_mesh(&pars_, xsol);
-  save_mesh(&pars_, xsol, "mesh.txt");
+  set_mesh(&pars, xsol);
+  save_mesh(&pars, xsol, "mesh.txt");
 
   // initialize the solver
-  pdecol_solver solver(xsol, usol, pars_.time, 1e-10, pow(2,-20), NPDE);
+  pdecol_solver solver(xsol, usol, pars.time, 1e-10, pow(2,-20), NPDE);
 
     write_pars(out_c);
 
   while (1) {
-    if (fabs(pars_.TTC_ST) >  1e-5) {
-      pars_.TTC += pars_.TTC_ST;
-      set_he3pt_();
-    }
+//    if (fabs(pars.TTC_ST) >  1e-5) {
+//      pars.TTC += pars.TTC_ST;
+//      set_he3pt_();
+//    }
     // If we reach final time, read new cmd.
     // If it returns 1, finish the program
-    if (pars_.time >= pars_.tend &&
+    if (pars.time >= pars.tend &&
         read_cmd(in_c, out_c, STAGE_RUN, &solver)) return 0;
 
     // do the next step
-    pars_.time += pars_.tstep;
-    solver.step(pars_.time);
+    pars.time += pars.tstep;
+    solver.step(pars.time);
 
     // write results
     write_magn(out_m, xsol, usol);

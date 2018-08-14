@@ -7,5 +7,4 @@ vft
 *.o
 fort.*
 vmcw_pars.h
-vmcw_pars.fh
 vmcw_pars.cpp

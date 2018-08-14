@@ -9,9 +9,7 @@
 !   NPDE=7
 ! output
 !   Fv(7)  - dU/dt
-! use PARS common block (see vmcw_pars.fh) to set parameters:
-
-
+! Parameters are set using set_pars function.
 
 C-- F ---------- EVALUATION OF F ------------------------------------
       subroutine F(T,X,U,UX,UXX,FV,NPDE)
