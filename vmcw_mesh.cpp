@@ -68,6 +68,7 @@ set_mesh(struct pars_t *p, std::vector<double> & x){
 void
 save_mesh(struct pars_t *p, const std::vector<double> &x, const char *fname){
   std::ofstream ff(fname);
+  ff << "# N X AER AER'\n";
   for (int i=0; i<x.size(); i++){
     int d0=0, d1=1;
     double xx = x[i];
