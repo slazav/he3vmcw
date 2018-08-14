@@ -208,52 +208,15 @@ C          DBDUX(7,6)=UNz         !!
 
 C-- UINIT ------ INITIAL CONDITIONS ---------------------------------
       subroutine UINIT(XI,UI,NPDEI)
-        include 'he3_const.fh'
-        real*8 USOL, XSOL
-        real*8 XI, UI
         integer NPDEI
-        dimension UI(NPDEI)
-
-        real*8 BET, DELTA, DELTAX, DELTAY,
-     .         UCTG, UNX,UNY,UNZ, UMX,UMY,UMZ,
-     .         UNZ2, USM
-        integer I,J,K
-
-        if (NPDEI.ne.7) then
-          write(*,*) 'Error in UINIT: NPDEI!=7'
-          stop
-        endif
-
-        BET=BETA*PI/180.0D0
-        UMZ=dcos(BET)
-        UMX=dsin(BET)*dsqrt(0.5D0)
-        UMY=UMX
-        if (UMZ.GE.-0.25D0)THEN
-          UNZ2=0.8D0*(0.25D0+dcos(BET))
-          UNZ=dsqrt(UNZ2)
-          DELTA=(25.0D0*UNZ2+15.0D0)/16.0D0
-          DELTAX=dsin(BET)*dsqrt(0.5D0)*
-     *     (UNZ*1.25D0-dsqrt(15.0D0)*0.25D0)
-          DELTAY=dsin(BET)*dsqrt(0.5D0)*
-     *     (UNZ*1.25D0+dsqrt(15.0D0)*0.25D0)
-          UNX=DELTAX/DELTA
-          UNY=DELTAY/DELTA
-          UCTG=dacos(-0.25D0)
-        else
-          UNZ=0.0D0
-          UNX=-dsqrt(0.5D0)
-          UNY=dsqrt(0.5D0)
-          UCTG=BET
-        endif
-
-        USM=dsqrt(UNX**2+UNY**2+UNZ**2)
-        UI(1)=UMX             ! Mx
-        UI(2)=UMY             ! My
-        UI(3)=UMZ             ! Mz
-        UI(4)=UNX/USM         ! Nx   !!
-        UI(5)=UNY/USM         ! Ny   !!
-        UI(6)=UNZ/USM         ! Nz
-        UI(7)=UCTG            ! TETA         !!!!!+/-
+        real*8 XI, UI(NPDEI)
+        UI(1)=0D0      ! Mx
+        UI(2)=0D0      ! My
+        UI(3)=1D0      ! Mz
+        UI(4)=0D0      ! Nx
+        UI(5)=0D0      ! Ny
+        UI(6)=1D0      ! Nz
+        UI(7)=acos(-0.25D0) ! TETA
         return
       end
 C-- DERIVF ----- SET UP DERIVATIVES ---------------------------------
