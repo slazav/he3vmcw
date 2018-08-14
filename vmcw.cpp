@@ -11,6 +11,9 @@
 #define STAGE1 1
 #define STAGE2 2
 
+#define NPDE 7
+#define NDER 3
+
 // fortran functions
 extern "C"{
   void writemj_open_(double *usol, double *xsol);
@@ -29,16 +32,14 @@ extern "C"{
 bool
 check_nargs(const std::string &line, int n1, int n2){
   if (n1==n2) return true;
-  std::cerr << "Warning: skip bad command (wrong number of arguments):\n"
-            << "> " << line << "\n";
+  std::cerr << "  Warning: skip bad command (wrong number of arguments)\n";
   return false;
 }
 
 bool
 check_init(const std::string &line, int stage){
   if (stage<1) return true;
-  std::cerr << "Warning: this command works only before starting calculations:\n"
-            << "> " << line << "\n";
+  std::cerr << "  Warning: this command works only before starting calculations:\n";
   return false;
 }
 
@@ -47,10 +48,10 @@ check_init(const std::string &line, int stage){
 /// stage = 1: configuration during solving
 /// Return 1 if file is finished, 0 otherwise.
 int
-read_cmd(std::istream &s, int stage){
+read_cmd(std::istream &in_c, std::ostream & out_c, int stage){
   // read input string line by line
   std::string line;
-  while (getline(s, line)){
+  while (getline(in_c, line)){
 
     // remove comments
     size_t c = line.find('#');
@@ -67,6 +68,9 @@ read_cmd(std::istream &s, int stage){
       if (!in) break;
       args.push_back(a);
     }
+
+    // logging to out_c
+    out_c << "Command: " << line << "\n";
 
     // empty string
     if (args.size()<1) continue;
@@ -223,7 +227,7 @@ read_cmd(std::istream &s, int stage){
       int steps = abs(rint((v-pars_.LP0)/r/pars_.tstep));
 
       if (steps==0){
-        std::cerr << "Warning: zero steps, skip the command\n";
+        out_c << "Warning: zero steps, skip the command.\n";
         continue;
       }
       pars_.LP_SWR = (v-pars_.LP0)/(steps*pars_.tstep);
@@ -233,44 +237,73 @@ read_cmd(std::istream &s, int stage){
       return 0;
     }
 
-    std::cerr << "Warning: skip unknown command:\n"
-              << "> " << line << "\n";
+    out_c << "  Warning: skipping unknown command.\n";
     continue;
   }
   // end of file
-  std::cerr << "End of command file, stop calculations\n";
+  out_c << "End of command file, stop calculations\n";
   return 1;
+}
+/********************************************************************/
+
+void
+write_magn(std::ostream & s,
+           const std::vector<double> zsol,
+           const std::vector<double> usol){
+
+  double smx=0, smy=0, smz=0, sz = 0;
+  for (int i=0; i<zsol.size()-1; i++){
+    double mx1 = usol[i*NPDE+0];
+    double my1 = usol[i*NPDE+1];
+    double mz1 = usol[i*NPDE+2];
+
+    double mx2 = usol[(i+1)*NPDE+0];
+    double my2 = usol[(i+1)*NPDE+1];
+    double mz2 = usol[(i+1)*NPDE+2];
+    double dz = zsol[i+1]-zsol[i];
+    smx += dz*(mx1+mx2)/2;
+    smy += dz*(my1+my2)/2;
+    smz += dz*(mz1+mz2)/2;
+    sz += dz;
+  }
+  smx/=sz;
+  smy/=sz;
+  smz/=sz;
+
+  s << pars_.time << "  " << pars_.LP0 + pars_.time*pars_.LP_SWR << "  "
+    << smx << " " << smy << " " << smz << "\n";
 }
 
 
+/********************************************************************/
 int
 main(){
 try{
 
-  int npde=7;
   int npts=257;
-  int nderv=3;
 
   // set default parameters
   set_def_pars(&pars_);
 
   // allocate memory
-  std::vector<double> usol(nderv*npts*npde, 0.0);
+  std::vector<double> usol(NDER*npts*NPDE, 0.0);
   std::vector<double> xsol(npts, 0.0);
 
-  std::ifstream cmdf("cmd.txt");
+  std::ifstream in_c("cmd.txt");   // read commands
+  std::ofstream out_m("magn.dat"); // log total magnetization
+  std::ofstream out_c("cmd_log.dat"); // log commands
 
   // read all commands until start or eof
-  if (read_cmd(cmdf, 0)) return 0;
+  if (read_cmd(in_c, out_c, 0)) return 0;
 
   // set up the mesh and save it into a file
   set_mesh(&pars_, xsol);
   save_mesh(&pars_, xsol, "mesh.txt");
 
   // initialize the solver
-  pdecol_solver solver(xsol, usol, pars_.time, 1e-10, pow(2,-20), npde);
+  pdecol_solver solver(xsol, usol, pars_.time, 1e-10, pow(2,-20), NPDE);
 
-  writemj_open_(usol.data(), xsol.data());
+//  writemj_open_(usol.data(), xsol.data());
   while (1) {
     if (fabs(pars_.TTC_ST) >  1e-5) {
       pars_.TTC += pars_.TTC_ST;
@@ -278,12 +311,17 @@ try{
     }
     // If we reach final time, read new cmd.
     // If it returns 1, finish the program
-    if (pars_.time >= pars_.tend && read_cmd(cmdf, 1)) return 0;
+    if (pars_.time >= pars_.tend &&
+        read_cmd(in_c, out_c, 1)) return 0;
+    out_c.flush();
 
     // do the next step
     pars_.time += pars_.tstep;
     solver.step(pars_.time);
-    monitor_(usol.data(), xsol.data());
+
+    // write results
+    write_magn(out_m, xsol, usol);
+//    monitor_(usol.data(), xsol.data());
   }
 
 

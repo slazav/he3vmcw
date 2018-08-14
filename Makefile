@@ -20,8 +20,7 @@ vmcw_pars.fh vmcw_pars.h vmcw_pars.cpp: vmcw_pars.pl
 
 # Fortran objects
 FOBJ=vmcw_f.o libs/pde_dp.o\
-     vmcw_mon.o\
-     vmcw_cmd.o vmcw_func.o he3_funcs.o
+     vmcw_func.o he3_funcs.o
 
 # C++ object files
 COBJ=vmcw.o vmcw_pdecol.o vmcw_pars.cpp vmcw_mesh.o

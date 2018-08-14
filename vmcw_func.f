@@ -1,10 +1,33 @@
-c Leggett equations for using in pdecol
+! Leggett equations in rotating frame. 1D calculations along rotation axis.
+! Spin currents, spin diffusion, leggett-takagi, extra Mz relaxation.
+! input:
+!   T - time
+!   X - x-coord
+!   U(7)   - Mx My Mz Nx Ny Nz Theta
+!   Ux(7)  - dU/dx
+!   Uxx(7) - d2U/dx2
+!   NPDE=7
+! output
+!   Fv(7)  - dU/dt
+! use PARS common block (see vmcw_pars.fh) to set parameters:
+
+
 
 C-- F ---------- EVALUATION OF F ------------------------------------
       subroutine F(T,X,U,UX,UXX,FV,NPDE)
         include 'vmcw_pars.fh'
         include 'he3_const.fh'
+        integer NPDE
+        real*8 T,X,U,UX,UXX,FV
         dimension U(NPDE),UX(NPDE),UXX(NPDE),FV(NPDE)
+        real*8 WY, WZ, WL2, DW
+        real*8 UN,UNx,UNy,UNz,UMxm,UMym,UMzm
+        real*8 DD45,ST,CT,CTM,CT1,CTG,UT,AUT,AF,DAF,FTN,DFTN,B
+        real*8 UJX,UJY,UJZ,DJX,DJY,DJZ ! spinn current J and dJ/dz
+
+        real*8 DIFF,TF1,W0,WL
+        real*8 AER_STEP
+
 C       Arguments:
 C         T - time
 C         X - x-coord
@@ -110,8 +133,17 @@ C-- BNDRY ------ BOUNDARY CONDITIONS -- B(U,UX)=Z(T) ------------
         include 'vmcw_pars.fh'
         include 'he3_const.fh'
 
+        integer NPDE
         dimension U(NPDE),UX(NPDE),DZDT(NPDE),
      *   DBDU(NPDE,NPDE),DBDUX(NPDE,NPDE)
+        real*8 T,X,U,UX,DZDT,DBDU,DBDUX
+        real*8 UN,UNx,UNy,UNz
+        real*8 ST,ST2,CT,CTM,CTM2,DD45,FTN,CTF,STF
+        real*8 FTN4,FTN5,FTN7,FTNX4,FTNX5,C46,C56,C66,C266
+        real*8 W,AF,DA
+        real*8 AER_STEP
+        integer I,J
+
         do I=1,NPDE
           DZDT(I)=0.0D0
           do J=1,NPDE
@@ -204,6 +236,8 @@ C-- UINIT ------ INITIAL CONDITIONS ---------------------------------
         include 'vmcw_pars.fh'
         include 'he3_const.fh'
         real*8 USOL, XSOL
+        real*8 XI, UI
+        integer NPDEI
         dimension UI(NPDEI)
 
         real*8 BET, DELTA, DELTAX, DELTAY,
@@ -253,6 +287,9 @@ C-- DERIVF ----- SET UP DERIVATIVES ---------------------------------
         include 'vmcw_pars.fh'
         dimension U(NPDE),UX(NPDE),UXX(NPDE),
      *       DFDU(NPDE,NPDE),DFDUX(NPDE,NPDE),DFDUXX(NPDE,NPDE)
+        integer I,J,NPDE
+        real*8  T,X,U,UX,UXX,DFDU,DFDUX,DFDUXX
+
         do I=1,NPDE
           do J=1,NPDE
             DFDU(I,J)=0.0D0

@@ -60,8 +60,7 @@ extern "C" {
 
 ######
 print FH qq*! This file is created by $0 script. Do not modify.
-
-        implicit real\*8(A-H,O-Z)
+      implicit none
 *;
 
 ######

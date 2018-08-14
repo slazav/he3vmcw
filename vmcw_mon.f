@@ -4,7 +4,8 @@ C-- MONITOR ---- MONITORING THE SOLUTION ----------------------------
         include 'par.fh'
         dimension  USOL(NPDE,NPTS,NDERV)
         dimension XSOL(NPTS)
-
+        real*8    TMMS,TMLP,TMAB,TMDS,TMZ,TMPC
+        real*8    USOL, XSOL
         integer   M_FILE
         common /M_FILE/ M_FILE
 
@@ -46,7 +47,7 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
         include 'par.fh'
         dimension  USOL(NPDE,NPTS,NDERV)
         dimension XSOL(NPTS)
-        integer FILES_MJ(NPTS), FILES_MJ0
+        integer FILES_MJ(NPTS), FILES_MJ0, I, NPTS
         common /FILES/ FILES_MJ, FILES_MJ0
         common /CFG_WRITE/ WRITEMJ_XSTEP
         real*8 X0
@@ -72,10 +73,11 @@ C-- WRITE_MJ --- WRITE SPINS & CURRENTS TO VMCW ------------------
       subroutine WRITEMJ_DO(USOL, XSOL)
         include 'vmcw_pars.fh'
         include 'par.fh'
-        integer FILES_MJ(NPTS), FILES_MJ0
+        integer FILES_MJ(NPTS), FILES_MJ0, I, NPTS
         common /FILES/ FILES_MJ, FILES_MJ0
         dimension  USOL(NPDE,NPTS,NDERV)
         dimension XSOL(NPTS)
+        real*8 USOL,XSOL
 
         DIFF=DF0+DF_SWR*TIME
 
@@ -135,7 +137,7 @@ C       write(24,*)''
       subroutine WRITEMJ_CLOSE()
         include 'vmcw_pars.fh'
         include 'par.fh'
-        integer FILES_MJ(NPTS), FILES_MJ0
+        integer FILES_MJ(NPTS), FILES_MJ0, I
         common /FILES/ FILES_MJ, FILES_MJ0
         do I=1,NPTS
             close(FILES_MJ(I))

@@ -1,96 +1,9 @@
-C---------------- CB=0.0 !!!!!!!!!!
-      function VMCW_F(USOL, XSOL)
-        include 'vmcw_pars.fh'
-        include 'he3_const.fh'
-        include 'par.fh'
-
-        include 'vmcw_cmd.fh'
-        integer VMCW_F
-
-        data CMD_FILE_NAME/'vmcw.cmd'/, CMD_FILE/200/,INTERACTIVE/0/
-
-        character*64 CFG_KEY
-        real*8 CFG_VAL
-
-        integer FILES_MJ(NPTS), FILES_MJ0
-        common /FILES/ FILES_MJ, FILES_MJ0
-
-        integer   M_FILE ! file for writing Mx,My,Mz
-        common /M_FILE/ M_FILE
-        data M_FILE /201/
-
-        real*8 WRITEMJ_XSTEP
-        common /CFG_WRITE/ WRITEMJ_XSTEP
-
-C--------------- INITIALIZATION -------------------------------------
-
-        VMCW_F=0
-        WRITEMJ_XSTEP=0.1D0
-
-        open(54,FILE='vmcw.cfg')
-   11   read(54,*,END=12) CFG_KEY, CFG_VAL
-        if (CFG_KEY.EQ.'BETA') then
-          BETA=CFG_VAL ! INITIAL TIPPING ANGLE (DEGREES)
-
-        elseif (CFG_KEY.EQ.'T1C') then
-          T1C=CFG_VAL  ! T1*T                     (1.0E-3)
-
-        elseif (CFG_KEY.EQ.'TEMP') then
-          TTC=CFG_VAL ! TEMPERATURE (T/TC)
-        elseif (CFG_KEY.EQ.'PRESS') then
-          PRESS=CFG_VAL ! PRESS (bar)
-
-        elseif (CFG_KEY.EQ.'H') then
-          H=CFG_VAL    ! FIELD (OE)               (110)
-        elseif (CFG_KEY.EQ.'GRAD') then
-          GRAD=CFG_VAL ! GRADIENT H (OE/CM)       (-0.2)
-        elseif (CFG_KEY.EQ.'HR') then
-          HR0=CFG_VAL   ! RF FIELD (OE)            (0.06)
-
-        elseif (CFG_KEY.EQ.'IBN') then
-          IBN=INT(CFG_VAL)  ! TYPE OF BOUND. COND.: 1-OPEN CELL 2-CLOSED CELL
-
-C       CFG_CELL parameter group:
-        elseif (CFG_KEY.EQ.'CELL_LEN') then
-          CELL_LEN=CFG_VAL
-C       CFG_MESH parameter group:
-        elseif (CFG_KEY.EQ.'XMESH_K') then
-          XMESH_K=CFG_VAL
-        elseif (CFG_KEY.EQ.'XMESH_ACC') then
-          XMESH_ACC=CFG_VAL
-C       CFG_WRITE parameter group:
-        elseif (CFG_KEY.EQ.'WRITEMJ_XSTEP') then
-          WRITEMJ_XSTEP=CFG_VAL
-C       CFG_AER parameter group:
-        elseif (CFG_KEY.EQ.'AER') then
-          AER=CFG_VAL
-        elseif (CFG_KEY.EQ.'AER_LEN') then
-          AER_LEN=CFG_VAL
-        elseif (CFG_KEY.EQ.'AER_CNT') then
-          AER_CNT=CFG_VAL
-        elseif (CFG_KEY.EQ.'AER_TRW') then
-          AER_TRW=CFG_VAL
-        elseif (CFG_KEY.EQ.'INTERACTIVE') then
-          INTERACTIVE=int(CFG_VAL)
-
-
-        else
-          write(*,'(A,A20)')
-     *     'warning: unknown parameter in cfg-file: ', CFG_KEY
-        endif
-        goto 11
-   12   close(54)
-
-      end
-
-
-
       subroutine SET_HE3PT()
         include 'vmcw_pars.fh'
         include 'he3_const.fh'
         real*8 TEMP, T1, TR
 
-        call STOP_SWEEP
+!        call STOP_SWEEP
 
         TEMP=TTC*TCF(PRESS)
         T1=T1C*TEMP/1000D0         ! RELAXATION TIME
