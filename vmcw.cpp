@@ -4,12 +4,13 @@
 #include <vector>
 #include <cmath>
 #include <cstdlib>
+#include <cstring>
 #include "vmcw_pdecol.h"
 #include "vmcw_pars.h"
 #include "vmcw_mesh.h"
 
-#define STAGE1 1
-#define STAGE2 2
+
+
 
 #define NPDE 7
 #define NDER 3
@@ -43,12 +44,65 @@ check_init(const std::string &line, int stage){
   return false;
 }
 
+/// calculation stages
+#define STAGE_INIT 1
+#define STAGE_RUN   2
+
+/// command types
+#define CMD_INIT  1 // can appear before calculations, in STAGE_INIT
+#define CMD_RUN   2 // can appear during calculations, in STAGE_RUN
+#define CMD_SWEEP 4 // can be used for sweeps
+
+// process SET command
+// return 1 if command have been found (correct or wrong)
+template <typename T>
+bool
+cmd_set(const std::vector<std::string> & args, // splitted command line
+             const char *name, // parameter name
+             T *ref,           // parameter reference
+             const int stage,  // calculation stage
+             const int cmdtype // type of command
+             ){
+  if (args.size() < 1 || strcasecmp(args[0].c_str(),name)!=0) return false;
+
+  if (stage == STAGE_INIT && (cmdtype & CMD_INIT == 0)){
+    std::cerr << "  Warning: skip bad command (can appear only before calculations)\n";
+    return true;
+  }
+  if (stage == STAGE_RUN && (cmdtype & CMD_RUN == 0)){
+    std::cerr << "  Warning: skip bad command (can appear only during calculations)\n";
+    return true;
+  }
+  if (args.size() != 2){
+    std::cerr << "  Warning: skip bad command (wrong number of arguments)\n";
+    return true;
+  }
+
+  std::istringstream ss(args[1]);
+  T v;
+  ss >> v;
+  if (!ss.eof() || ss.fail()){
+    std::cerr << "  Warning: skip bad command (unreadable value)\n";
+    return true;
+  }
+  *ref=v;
+  return true;
+}
+
 /// Read one or more commends from a stream.
 /// stage = 0: pre-configure (before solver is started)
 /// stage = 1: configuration during solving
 /// Return 1 if file is finished, 0 otherwise.
 int
-read_cmd(std::istream &in_c, std::ostream & out_c, int stage){
+read_cmd(std::istream &in_c, std::ostream & out_c, int stage, pdecol_solver *solver){
+  // reset sweeps
+  pars_.HR0=pars_.HR0+pars_.time*pars_.HR_SWR;       pars_.HR_SWR=0.0;
+  pars_.LP0=pars_.LP0+pars_.time*pars_.LP_SWR;       pars_.LP_SWR=0.0;
+  pars_.DF0=pars_.DF0+pars_.time*pars_.DF_SWR;       pars_.DF_SWR=0.0;
+  pars_.TF0=pars_.TF0+pars_.time*pars_.TF_SWR;       pars_.TF_SWR=0.0;
+  pars_.LF0=pars_.LF0+pars_.time*pars_.LF_SWR;       pars_.LF_SWR=0.0;
+  pars_.CPAR0=pars_.CPAR0+pars_.time*pars_.CPAR_SWR; pars_.CPAR_SWR = 0.0;
+
   // read input string line by line
   std::string line;
   while (getline(in_c, line)){
@@ -76,137 +130,64 @@ read_cmd(std::istream &in_c, std::ostream & out_c, int stage){
     if (args.size()<1) continue;
 
     // commands
-    if (args[0] == "beta") {
-      if (!check_nargs(line, args.size(), 2)) continue;
-      if (!check_init(line, stage)) continue;
-      pars_.BETA = atof(args[1].c_str());
-      continue;
-    }
+    if (cmd_set(args, "beta",      &pars_.BETA,      stage, CMD_INIT)) continue;
+    if (cmd_set(args, "IBN",       &pars_.IBN,       stage, CMD_INIT)) continue;
+    if (cmd_set(args, "CELL_LEN",  &pars_.CELL_LEN,  stage, CMD_INIT)) continue;
+    if (cmd_set(args, "XMESH_K",   &pars_.XMESH_K,   stage, CMD_INIT)) continue;
+    if (cmd_set(args, "XMESH_ACC", &pars_.XMESH_ACC, stage, CMD_INIT)) continue;
+    if (cmd_set(args, "AER",       &pars_.AER,       stage, CMD_INIT)) continue;
+    if (cmd_set(args, "AER_LEN",   &pars_.AER_LEN,   stage, CMD_INIT)) continue;
+    if (cmd_set(args, "AER_CNT",   &pars_.AER_CNT,   stage, CMD_INIT)) continue;
+    if (cmd_set(args, "AER_TRW",   &pars_.AER_TRW,   stage, CMD_INIT)) continue;
 
-    if (args[0] == "t1c") {
-      if (!check_nargs(line, args.size(), 2)) continue;
-      pars_.T1C = atof(args[1].c_str());
-      continue;
-    }
+    if (cmd_set(args, "t1c",    &pars_.T1C,    stage, CMD_INIT | CMD_RUN)) continue;
+    if (cmd_set(args, "H",      &pars_.H,      stage, CMD_INIT | CMD_RUN)) continue;
+    if (cmd_set(args, "grad",   &pars_.grad,   stage, CMD_INIT | CMD_RUN)) continue;
+    if (cmd_set(args, "Hr",     &pars_.HR0,    stage, CMD_INIT | CMD_RUN | CMD_SWEEP)) continue;
+    if (cmd_set(args, "tstep",  &pars_.tstep,  stage, CMD_INIT | CMD_RUN)) continue;
 
-    if (args[0] == "temp_press") {
-      if (!check_nargs(line, args.size(), 3)) continue;
-      pars_.TTC   = atof(args[1].c_str());
-      pars_.PRESS = atof(args[2].c_str());
-      set_he3pt_();
-      continue;
-    }
-
-    if (args[0] == "H") {
-      if (!check_nargs(line, args.size(), 2)) continue;
-      pars_.H = atof(args[1].c_str());
-      continue;
-    }
-
-    if (args[0] == "grad") {
-      if (!check_nargs(line, args.size(), 2)) continue;
-      pars_.grad = atof(args[1].c_str());
-      continue;
-    }
-
-    if (args[0] == "Hr") {
-      if (!check_nargs(line, args.size(), 2)) continue;
-      pars_.HR0 = atof(args[1].c_str());
-      continue;
-    }
-
-    if (args[0] == "IBN") {
-      if (!check_nargs(line, args.size(), 2)) continue;
-      if (!check_init(line, stage)) continue;
-      pars_.IBN = atoi(args[1].c_str());
-      continue;
-    }
-
-    if (args[0] == "CELL_LEN") {
-      if (!check_nargs(line, args.size(), 2)) continue;
-      if (!check_init(line, stage)) continue;
-      pars_.CELL_LEN = atof(args[1].c_str());
-      std::cerr << "set cell length: " << pars_.CELL_LEN << " cm\n";
-      continue;
-    }
-
-    if (args[0] == "XMESH_K") {
-      if (!check_nargs(line, args.size(), 2)) continue;
-      if (!check_init(line, stage)) continue;
-      pars_.XMESH_K = atof(args[1].c_str());
-      continue;
-    }
-
-    if (args[0] == "XMESH_ACC") {
-      if (!check_nargs(line, args.size(), 2)) continue;
-      if (!check_init(line, stage)) continue;
-      pars_.XMESH_ACC = atof(args[1].c_str());
-      continue;
-    }
-
-    if (args[0] == "AER") {
-      if (!check_nargs(line, args.size(), 2)) continue;
-      if (!check_init(line, stage)) continue;
-      pars_.AER = atoi(args[1].c_str());
-      continue;
-    }
-
-    if (args[0] == "AER_LEN") {
-      if (!check_nargs(line, args.size(), 2)) continue;
-      if (!check_init(line, stage)) continue;
-      pars_.AER_LEN = atof(args[1].c_str());
-      continue;
-    }
-
-    if (args[0] == "AER_CNT") {
-      if (!check_nargs(line, args.size(), 2)) continue;
-      if (!check_init(line, stage)) continue;
-      pars_.AER_CNT = atof(args[1].c_str());
-      continue;
-    }
-
-    if (args[0] == "AER_TRW") {
-      if (!check_nargs(line, args.size(), 2)) continue;
-      if (!check_init(line, stage)) continue;
-      pars_.AER_TRW = atof(args[1].c_str());
-      continue;
-    }
-
+//    if (args[0] == "temp_press") {
+//      if (!check_nargs(line, args.size(), 3)) continue;
+//      pars_.TTC   = atof(args[1].c_str());
+//      pars_.PRESS = atof(args[2].c_str());
+//      set_he3pt_();
+//      continue;
+//    }
 
 
     if (args[0] == "start") {
       if (!check_nargs(line, args.size(), 1)) continue;
       if (!check_init(line, stage)) continue;
-      std::cerr << "Start calculation\n";
+      out_c << "Start calculation\n";
+      return 0;
+    }
+    if (args[0] == "stop") {
+      if (!check_nargs(line, args.size(), 1)) continue;
+      out_c << "Stop calculations\n";
+      return 1;
+    }
+
+    if (args[0] == "profile") {
+      if (!check_nargs(line, args.size(), 2)) continue;
+      out_c << "Write function profiles\n";
+      std::ofstream ss(args[1]);
+      if (solver) solver->write_profile(ss);
       return 0;
     }
 
-    if (args[0] == "tstep") {
-      if (!check_nargs(line, args.size(), 2)) continue;
-      double dt = atof(args[1].c_str());
-      std::cerr << "time step: " << dt << " ms\n";
-      pars_.tstep = dt*1e-3;
-      continue;
-    }
-
-    if (args[0] == "stop") {
-      if (!check_nargs(line, args.size(), 1)) continue;
-      std::cerr << "Stop calculations\n";
-      return 1;
-    }
 
     if (args[0] == "wait") {
       if (!check_nargs(line, args.size(), 2)) continue;
       double dt = atof(args[1].c_str());
       pars_.tend = pars_.time + dt*1e-3;
-      std::cerr << "Wait " << dt << " ms\n";
+      out_c << "Wait " << dt << " ms\n";
       return 0;
     }
 
     if (args[0] == "LP") {
       if (!check_nargs(line, args.size(), 2)) continue;
       double v = atof(args[1].c_str());
-      std::cerr << "larmor position: " << v << " cm\n";
+      out_c << "larmor position: " << v << " cm\n";
       pars_.LP0 = v - pars_.time*pars_.LP_SWR;
       continue;
     }
@@ -214,7 +195,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c, int stage){
     if (args[0] == "LP_ADD") {
       if (!check_nargs(line, args.size(), 2)) continue;
       double v = atof(args[1].c_str());
-      std::cerr << "larmor position step: " << v << " cm\n";
+      out_c << "larmor position step: " << v << " cm\n";
       pars_.LP0 += v;
       continue;
     }
@@ -223,7 +204,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c, int stage){
       if (!check_nargs(line, args.size(), 3)) continue;
       double v = atof(args[1].c_str());
       double r = fabs(atof(args[2].c_str()));
-      std::cerr << "sweep larmor position to " << v << " cm at " << r << " cm/s\n";
+      out_c << "sweep larmor position to " << v << " cm at " << r << " cm/s\n";
       int steps = abs(rint((v-pars_.LP0)/r/pars_.tstep));
 
       if (steps==0){
@@ -233,7 +214,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c, int stage){
       pars_.LP_SWR = (v-pars_.LP0)/(steps*pars_.tstep);
       pars_.LP0   -= pars_.time*pars_.LP_SWR;
       pars_.tend  = pars_.time + steps*pars_.tstep;
-      std::cerr << "  real rate: " << pars_.LP_SWR << " cm/s\n";
+      out_c << "  real rate: " << pars_.LP_SWR << " cm/s\n";
       return 0;
     }
 
@@ -274,6 +255,19 @@ write_magn(std::ostream & s,
     << smx << " " << smy << " " << smz << "\n";
 }
 
+void
+write_pars(std::ostream & s){
+  s << " T=" << pars_.time*1000 << " ms, "
+    << "LP=" << pars_.LP0+pars_.LP_SWR*pars_.time << " cm, "
+    << "HR=" << 1e3*(pars_.HR0+pars_.HR_SWR*pars_.time) << " mOe, "
+    << "TF=" << 1e6*(pars_.TF0+pars_.TF_SWR*pars_.time) << " mks, "
+    << "LF=" << 1e-3*(pars_.LF0+pars_.LF_SWR*pars_.time) << " kHz, "
+    << "DF=" << (pars_.DF0+pars_.DF_SWR*pars_.time) << " cm^2/s, "
+    << "CPAR=" <<  (pars_.CPAR0+pars_.CPAR_SWR*pars_.time) << " cm/s, "
+    << "\n";
+}
+
+
 
 /********************************************************************/
 int
@@ -291,10 +285,12 @@ try{
 
   std::ifstream in_c("cmd.txt");   // read commands
   std::ofstream out_m("magn.dat"); // log total magnetization
-  std::ofstream out_c("cmd_log.dat"); // log commands
+  out_m << "# Integral magnetization log: T, LP, Mx, Mx, Mz\n";
+  std::ofstream out_c("cmd_log.dat"); // log commands and main parameters
+  out_c << "# Commands and main parameters\n";
 
   // read all commands until start or eof
-  if (read_cmd(in_c, out_c, 0)) return 0;
+  if (read_cmd(in_c, out_c, STAGE_INIT, NULL)) return 0;
 
   // set up the mesh and save it into a file
   set_mesh(&pars_, xsol);
@@ -303,7 +299,8 @@ try{
   // initialize the solver
   pdecol_solver solver(xsol, usol, pars_.time, 1e-10, pow(2,-20), NPDE);
 
-//  writemj_open_(usol.data(), xsol.data());
+    write_pars(out_c);
+
   while (1) {
     if (fabs(pars_.TTC_ST) >  1e-5) {
       pars_.TTC += pars_.TTC_ST;
@@ -312,8 +309,7 @@ try{
     // If we reach final time, read new cmd.
     // If it returns 1, finish the program
     if (pars_.time >= pars_.tend &&
-        read_cmd(in_c, out_c, 1)) return 0;
-    out_c.flush();
+        read_cmd(in_c, out_c, STAGE_RUN, &solver)) return 0;
 
     // do the next step
     pars_.time += pars_.tstep;
@@ -321,7 +317,11 @@ try{
 
     // write results
     write_magn(out_m, xsol, usol);
-//    monitor_(usol.data(), xsol.data());
+    write_pars(out_c);
+
+    // flush files
+    out_c.flush();
+    out_m.flush();
   }
 
 
