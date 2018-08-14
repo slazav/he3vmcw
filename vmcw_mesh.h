@@ -2,7 +2,7 @@
 #define VMCW_MESH_H
 #include "vmcw_pars.h"
 
-double aer_step_(struct pars_t *p, double x, int d);
+double aer_step(double x, int d);
 
 // Set the mesh
 void set_mesh(struct pars_t *p, std::vector<double> & x);

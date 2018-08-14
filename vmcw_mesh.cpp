@@ -20,9 +20,8 @@ extern "C"{ extern struct pars_t pars_;}
 //   AER_LEN  -- aerogel length / cell length
 //   AER_CNT  -- center of aerogel area / cell length
 //   AER_TRW  -- transition width / cell length
-extern "C" {
 double
-aer_step_(double *x, int *d){
+aer_step(double x, int d){
 
   if (!pars_.AER) return 0.0;
   double L = pars_.CELL_LEN;
@@ -30,16 +29,15 @@ aer_step_(double *x, int *d){
   double c = pars_.AER_CNT;
   double w = pars_.AER_TRW;
 
-  double xx = *x/L - c;
+  double xx = x/L - c;
   double a = (fabs(xx) - l/2.0)/w;
   double dadx = (xx>0? 1:-1)/w/L;
 
   if(a < 82.0){
-    if (*d==0) return 1.0/(1.0+exp(a));
-    else       return dadx * exp(a)/(1.0+exp(a))/(1.0+exp(a));
+    if (d==0) return 1.0/(1.0+exp(a));
+    else      return dadx * exp(a)/(1.0+exp(a))/(1.0+exp(a));
   }
   return 0.0;
-}
 }
 
 // Set the mesh
@@ -54,8 +52,7 @@ set_mesh(struct pars_t *p, std::vector<double> & x){
   x[0] = -L/2.0;
   for (int k=0; k<100; k++){
     for (int i=0; i<N-1; i++){
-      int der = 1;
-      x[i+1] = x[i] + dx/(1.0+p->XMESH_K*fabs(aer_step_(&(x[i]),&der)));
+      x[i+1] = x[i] + dx/(1.0+p->XMESH_K*fabs(aer_step(x[i],1)));
     }
     // scale the whole mesh to fit CELL_LEN
     double d = L - (x[N-1]-x[0]);
@@ -70,10 +67,9 @@ save_mesh(struct pars_t *p, const std::vector<double> &x, const char *fname){
   std::ofstream ff(fname);
   ff << "# N X AER AER'\n";
   for (int i=0; i<x.size(); i++){
-    int d0=0, d1=1;
     double xx = x[i];
-    double a0 = aer_step_(&xx,&d0);
-    double a1 = aer_step_(&xx,&d1);
+    double a0 = aer_step(xx,0);
+    double a1 = aer_step(xx,1);
     ff << i << " " << xx << " " << a0 << " " << a1 << "\n";
   }
 }

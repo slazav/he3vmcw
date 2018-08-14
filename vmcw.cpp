@@ -18,15 +18,42 @@
 // fortran functions
 extern "C"{
   void writemj_open_(double *usol, double *xsol);
-//  void cmd_open_();
-//  void cmd_read_();
   void monitor_(double *usol, double *xsol);
   void set_he3pt_();
-//  int vmcw_f_(double *usol, double *xsol);
 }
 
 extern "C"{
   extern struct pars_t pars_;
+}
+
+
+/// set parameters for Leggett equations using main parameter structure
+extern "C" {
+  void set_pars_(double *t, double *x,
+                 double *Wr, double *Wz, double *W0,
+                 double *WB, double *Cpar, double *dCpar,
+                 double *Diff, double *Tf, double *T1, int *IBN){
+    double gyro = 20378.0; // Gyromagnetic ratio. Use from he3lib?
+    *Wr = gyro*(pars_.HR0 + pars_.HR_SWR*(*t));
+    *Wz = gyro*(pars_.H + pars_.grad*(*x));
+    *W0 = gyro*(pars_.H + pars_.grad*(pars_.LP0 + pars_.LP_SWR*(*t)));
+    *WB = (pars_.LF0 + pars_.LF_SWR*(*t))*2*M_PI;
+    *Cpar = pars_.CPAR0 + pars_.CPAR_SWR*(*t);
+    *dCpar = 0;
+    *Diff = pars_.DF0 + pars_.DF_SWR*(*t);
+    *Tf   = pars_.TF0 + pars_.TF_SWR*(*t);
+    *T1   = 1/pars_.t11;
+
+    // spatial modulation
+    if (pars_.AER){
+      int d0=0, d1=1;
+      *Cpar *= 1.0 - 0.5*aer_step(*x,0);
+      *dCpar =(*Cpar) * 0.5*aer_step(*x,1);
+      *Diff *= 1.0 - 0.835 * aer_step(*x,0);
+      *Tf   *= 1.0 - 0.5 * aer_step(*x,0);
+    }
+    *IBN = pars_.IBN;
+  }
 }
 
 

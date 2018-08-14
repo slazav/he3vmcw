@@ -15,81 +15,51 @@
 
 C-- F ---------- EVALUATION OF F ------------------------------------
       subroutine F(T,X,U,UX,UXX,FV,NPDE)
-        include 'vmcw_pars.fh'
-        include 'he3_const.fh'
         integer NPDE
         real*8 T,X,U,UX,UXX,FV
         dimension U(NPDE),UX(NPDE),UXX(NPDE),FV(NPDE)
-        real*8 WY, WZ, WL2, DW
-        real*8 UN,UNx,UNy,UNz,UMxm,UMym,UMzm
+!       RF-field in (rad/s), constant field (rad/s), pumping freq (rad/s),
+        real*8 Wr, Wz, W0
+!       Leggett freq (rad/s), Cpar (cm/s) and it's z derivative,
+!       D (cm^2/s), Tf (s), T1 (s)
+        real*8 WB, Cpar, dCpar, Diff, Tf, T1
+        integer IBN ! used only as argument of set_pars
+
+        real*8 UN, UNx,UNy,UNz
+        real*8 UMxm,UMym,UMzm
         real*8 DD45,ST,CT,CTM,CT1,CTG,UT,AUT,AF,DAF,FTN,DFTN,B
-        real*8 UJX,UJY,UJZ,DJX,DJY,DJZ ! spinn current J and dJ/dz
+        real*8 UJX,UJY,UJZ,DJX,DJY,DJZ ! spin current J and dJ/dz
 
-        real*8 DIFF,TF1,W0,WL
-        real*8 AER_STEP
+!       set parameters:
+        call set_pars(T,X, Wr,Wz,W0,WB,
+     *                Cpar, dCpar, Diff, Tf, T1, IBN)
 
-C       Arguments:
-C         T - time
-C         X - x-coord
-C         U   - Mx My Mz Nx Ny Nz T 
-C         UX  - dU/dx
-C         UXX - d2U/dx2
-C         FV  - result
-C       Parameters (from vmcw_pars.fh and he3_const.fh)
-C         GAM -- gyromagnetic ratio
-C         PI
-C         HR0, HR_SWR -- RF-field
-C         H, GRAD     -- constant field, gradient
-C         LP0, LP_SWR -- Larmor position
-C         LF0, LF_SWR -- Leggett freq.
-C         CPAR0, CPAR_SWR -- spin-wave vel
-C         TF0, TF_SWR
-C         DF0, DF_SWR
-C         T11
-
-C       calculate freq
-        WY = GAM*(HR0+HR_SWR*T)
-!     *   *(1D0-(2.0*X/CELL_LEN-1.0)*(2.0*X/CELL_LEN-1.0)*0.5)
-!     *   *(1D0+(2.0*X/CELL_LEN-1.0)*0.6)
-
-        WL = GAM*(H + GRAD*X)
-        W0= GAM*(H + GRAD*(LP0+LP_SWR*T))
-        DW = WL-W0
-
-C       fix n vector length
+C       Normilize n vector length
         UN=dsqrt(U(4)**2+U(5)**2+U(6)**2)
         UNx = U(4)/UN
         UNy = U(5)/UN
         UNz = U(6)/UN
 
-        UMxm = U(1)-WY/WL
+        UMxm = U(1)-Wr/Wz
         UMym = U(2)
         UMzm = U(3)-1.0D0
 
-        WL2 = 0.5D0*WL
-        DD45=UNx*UX(5)-UX(4)*UNy       ! Nx Ny` - Nx` Ny
         ST=dsin(U(7))
         CT=dcos(U(7))
         CTM=1.0D0-CT
         CT1=1.0D0+CT
         CTG=ST/CTM      ! ctg(T/2) = sin(T)/(1-cos(T))
-        UT=ST*(1.0D0+4.0D0*CT)*0.2666666D0
+        UT=ST*(1.0D0+4.0D0*CT)*0.2666666D0 ! 4/15 sin(t)*(1+4*cos(t))
 
-        AUT=UT*(LF0+LF_SWR*T)**2/WL*4.0D0*PI**2
-        AF=-(CPAR0+CPAR_SWR*T)**2/WL
-        TF1=TF0+TF_SWR*T
-        DIFF=DF0+DF_SWR*T
-
-C       spatial modulation
-        AF=AF*(1D0 - 0.5D0 * AER_STEP(X,0))
-        DAF=-AF*0.5D0 * AER_STEP(X,1)
-        AUT=AUT*(1D0 - 0.835D0 * AER_STEP(X,0))
-        TF1=TF1*(1D0 - 0.5D0 * AER_STEP(X,0))
+        AUT=UT*WB**2/Wz
+        AF=-Cpar**2/Wz
+        DAF = -2D0*Cpar*dCpar/Wz
 
 C       something..
+        DD45=UNx*UX(5)-UX(4)*UNy ! Nx Ny` - Nx` Ny
         FTN=CTM*DD45-ST*UX(6)-UX(7)*UNz
         DFTN=CTM*(UNx*UXX(5)-UXX(4)*UNy)-ST*UXX(6)-UXX(7)*UNz-
-     *   CT1*UX(7)*UX(6)+ST*UX(7)*DD45   !!! dFTN/dz
+     *   CT1*UX(7)*UX(6)+ST*UX(7)*DD45   ! dFTN/dz
 
 C       components of spin current, Ji
         UJX=2.0D0*(UX(7)*UNx+ST*UX(4)+CTM*(UNy*UX(6)-UX(5)*UNz))+
@@ -118,20 +88,19 @@ C       dJi/dz
         B = UNx*UMxm + UMym*UNy + UMzm*UNz
 
 C       Leggett equations
-        FV(1)=   DW*U(2)           + AUT*UNx - DJX
-        FV(2)= - DW*U(1) + WY*U(3) + AUT*UNy - DJY
-        FV(3)=           - WY*U(2) + AUT*UNz - DJZ - UMzm*T11
-        FV(4)= - W0*UNy - WL2*(UMzm*UNy-UMym*UNz+CTG*(B*UNx-UMxm))
-        FV(5)=   W0*UNx - WL2*(UMxm*UNz-UMzm*UNx+CTG*(B*UNy-UMym))
-        FV(6)=           - WL2*(UMym*UNx-UMxm*UNy+CTG*(B*UNz-UMzm))
-        FV(7)= WL*B + UT/TF1
+        FV(1)=   (Wz-W0)*U(2)           + AUT*UNx - DJX
+        FV(2)= - (Wz-W0)*U(1) + Wr*U(3) + AUT*UNy - DJY
+        FV(3)=                - Wr*U(2) + AUT*UNz - DJZ - UMzm/T1
+        FV(4)=-W0*UNy-0.5D0*Wz*(UMzm*UNy-UMym*UNz+CTG*(B*UNx-UMxm))
+        FV(5)= W0*UNx-0.5D0*Wz*(UMxm*UNz-UMzm*UNx+CTG*(B*UNy-UMym))
+        FV(6)=       -0.5D0*Wz*(UMym*UNx-UMxm*UNy+CTG*(B*UNz-UMzm))
+        FV(7)= Wz*B + UT/Tf
         return
       end
 
 C-- BNDRY ------ BOUNDARY CONDITIONS -- B(U,UX)=Z(T) ------------
+
       subroutine BNDRY(T,X,U,UX,DBDU,DBDUX,DZDT,NPDE)
-        include 'vmcw_pars.fh'
-        include 'he3_const.fh'
 
         integer NPDE
         dimension U(NPDE),UX(NPDE),DZDT(NPDE),
@@ -141,8 +110,17 @@ C-- BNDRY ------ BOUNDARY CONDITIONS -- B(U,UX)=Z(T) ------------
         real*8 ST,ST2,CT,CTM,CTM2,DD45,FTN,CTF,STF
         real*8 FTN4,FTN5,FTN7,FTNX4,FTNX5,C46,C56,C66,C266
         real*8 W,AF,DA
-        real*8 AER_STEP
         integer I,J
+
+!       paramaters, same as in F (only Cpar, Diff used)
+        real*8 Wr, Wz, W0
+        real*8 WB, Cpar, dCpar, Diff, Tf, T1
+        integer IBN
+
+!       set parameters:
+        call set_pars(T,X, Wr,Wz,W0,WB,
+     *                Cpar, dCpar, Diff, Tf, T1, IBN)
+
 
         do I=1,NPDE
           DZDT(I)=0.0D0
@@ -152,8 +130,9 @@ C-- BNDRY ------ BOUNDARY CONDITIONS -- B(U,UX)=Z(T) ------------
           enddo
         enddo
 
+!       Closed cell: no spin flow through walls
+!       D Mz' - Jiz' Mz - = 0 ??
         if(IBN.EQ.2)THEN       ! CLOSED CELL
-
 C         fix n vector length
           UN=dsqrt(U(4)**2+U(5)**2+U(6)**2)
           UNx=U(4)/UN
@@ -179,12 +158,8 @@ C         fix n vector length
           C66=CTM*UNz**2+CT
           C266=2.0D0-C66
 
-          W=GAM*H
-          AF=-(CPAR0+CPAR_SWR*T)**2/W
-
-          AF=AF*(1D0 - 0.5D0 * AER_STEP(X,0))
-
-          DA=-(DF0+DF_SWR*T)/AF
+          AF=-Cpar**2/W0
+          DA=-Diff/AF
 
           DBDUX(4,1)=DA
           DBDUX(5,2)=DA
@@ -233,7 +208,6 @@ C          DBDUX(7,6)=UNz         !!
 
 C-- UINIT ------ INITIAL CONDITIONS ---------------------------------
       subroutine UINIT(XI,UI,NPDEI)
-        include 'vmcw_pars.fh'
         include 'he3_const.fh'
         real*8 USOL, XSOL
         real*8 XI, UI
@@ -283,8 +257,8 @@ C-- UINIT ------ INITIAL CONDITIONS ---------------------------------
         return
       end
 C-- DERIVF ----- SET UP DERIVATIVES ---------------------------------
+CCC ATTENTION :   DERIVF IS WRONG
       subroutine DERIVF(T,X,U,UX,UXX,DFDU,DFDUX,DFDUXX,NPDE)
-        include 'vmcw_pars.fh'
         dimension U(NPDE),UX(NPDE),UXX(NPDE),
      *       DFDU(NPDE,NPDE),DFDUX(NPDE,NPDE),DFDUXX(NPDE,NPDE)
         integer I,J,NPDE
@@ -297,6 +271,5 @@ C-- DERIVF ----- SET UP DERIVATIVES ---------------------------------
             DFDUXX(I,J)=0.0D0
           enddo
         enddo
-CCC ATTENTION :   DERIVF IS WRONG
         return
       end
