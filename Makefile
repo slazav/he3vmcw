@@ -22,11 +22,11 @@ vmcw_pars.h vmcw_pars.cpp: vmcw_pars.pl
 FOBJ=libs/pde_dp.o vmcw_func.o he3_funcs.o
 
 # C++ object files
-COBJ=vmcw.o vmcw_pdecol.o vmcw_pars.o vmcw_mesh.o
+COBJ=vmcw.o vmcw_pdecol.o vmcw_pars.o vmcw_mesh.o pnm_writer.o
 
 $(COBJ): %.o: %.cpp
 $(FOBJ): %.o: %.f par.fh
-vmcw.o vmcw_pdecol.o: vmcw_pdecol.h vmcw_pars.h
+vmcw.o vmcw_pdecol.o: vmcw_pdecol.h vmcw_pars.h pnm_writer.h
 
 vmcw: $(FOBJ) $(COBJ)
 
