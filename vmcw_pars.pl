@@ -9,12 +9,12 @@ my $pars ="
 double time      0.0     current time, s (always 0 in the begining)
 double tend      0.0     end of current sweep/wait commant, s (always 0 in the begining)
 double tstep     5e-3    time step, s (can be changed at any time)
-double t11       0.0
+double t11       1.0     1/t1, s^-1
 double H         284.0   constant part of magnetic field, G
 double grad      0.1     gradient of magnetic field, G/cm
 double HR0       1e-3    RF field, G
 double HR_SWR    0.0     RF field sweep rate, G/s
-double LP0       0.0     Larmor position, cm
+double LP0      -1.0     Larmor position, cm
 double LP_SWR    0.0     Larmor position sweep rate, cm/s
 double DF0       0.1     Spin diffusion, cm^2/s
 double DF_SWR    0.0     Spin diffusion sweep rate (cm^2/s)/s
@@ -27,7 +27,7 @@ double CPAR_SWR  0.0     spin-wave velocity sweep rate, (cm/s)/s
 double AER_LEN   0.5     aerogel length / cell length
 double AER_CNT   0.0     center of aerogel area / cell length
 double AER_TRW   6e-3    transition width / cell length
-double CELL_LEN  0.18    cell length, cm
+double CELL_LEN  0.4     cell length, cm
 double XMESH_K   0.2     mesh step: CELL_LEN/(NPTS-1) / (1+XMESH_K*AER_STEP)
 double XMESH_ACC 1e-10   mesh accuracy
 double BETA      0.0     initial tipping angle
