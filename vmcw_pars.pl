@@ -13,7 +13,9 @@ double t11       1.0     1/t1, s^-1
 double H         284.0   constant part of magnetic field, G
 double grad      0.1     gradient of magnetic field, G/cm
 double HR0       1e-3    RF field, G
-double HR_SWR    0.0     RF field sweep rate, G/s
+double HRG       0.0     RF gradient component, G/cm
+double HRQ       0.0     RF quadratic component, G/cm^2
+double HRT       0.0     RF field sweep rate, G/s
 double LP0      -1.0     Larmor position, cm
 double LP_SWR    0.0     Larmor position sweep rate, cm/s
 double DF0       0.1     Spin diffusion, cm^2/s

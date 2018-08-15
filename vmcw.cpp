@@ -22,7 +22,7 @@ extern "C" {
                  double *WB, double *Cpar, double *dCpar,
                  double *Diff, double *Tf, double *T1, int *IBN){
     double gyro = 20378.0; // Gyromagnetic ratio. Use from he3lib?
-    *Wr = gyro*(pars.HR0 + pars.HR_SWR*(*t));
+    *Wr = gyro*(pars.HR0 + pars.HRG*(*x) + pars.HRQ*(*x)*(*x) + pars.HRT*(*t));
     *Wz = gyro*(pars.H + pars.grad*(*x));
     *W0 = gyro*(pars.H + pars.grad*(pars.LP0 + pars.LP_SWR*(*t)));
     *WB = (pars.LF0 + pars.LF_SWR*(*t))*2*M_PI;
@@ -111,7 +111,7 @@ cmd_set(const std::vector<std::string> & args, // splitted command line
 int
 read_cmd(std::istream &in_c, std::ostream & out_c, int stage, pdecol_solver *solver){
   // reset sweeps
-  pars.HR0=pars.HR0+pars.time*pars.HR_SWR;       pars.HR_SWR=0.0;
+  pars.HR0=pars.HR0+pars.time*pars.HRT;          pars.HRT=0.0;
   pars.LP0=pars.LP0+pars.time*pars.LP_SWR;       pars.LP_SWR=0.0;
   pars.DF0=pars.DF0+pars.time*pars.DF_SWR;       pars.DF_SWR=0.0;
   pars.TF0=pars.TF0+pars.time*pars.TF_SWR;       pars.TF_SWR=0.0;
@@ -159,6 +159,11 @@ read_cmd(std::istream &in_c, std::ostream & out_c, int stage, pdecol_solver *sol
     if (cmd_set(args, "H",      &pars.H,      stage, CMD_INIT | CMD_RUN)) continue;
     if (cmd_set(args, "grad",   &pars.grad,   stage, CMD_INIT | CMD_RUN)) continue;
     if (cmd_set(args, "Hr",     &pars.HR0,    stage, CMD_INIT | CMD_RUN | CMD_SWEEP)) continue;
+    if (cmd_set(args, "Hrg",    &pars.HRG,    stage, CMD_INIT | CMD_RUN | CMD_SWEEP)) continue;
+    if (cmd_set(args, "Hrq",    &pars.HRQ,    stage, CMD_INIT | CMD_RUN | CMD_SWEEP)) continue;
+    if (cmd_set(args, "DF0",    &pars.DF0,    stage, CMD_INIT | CMD_RUN | CMD_SWEEP)) continue;
+    if (cmd_set(args, "LF0",    &pars.LF0,    stage, CMD_INIT | CMD_RUN | CMD_SWEEP)) continue;
+    if (cmd_set(args, "CPAR",    &pars.CPAR0,    stage, CMD_INIT | CMD_RUN | CMD_SWEEP)) continue;
     if (cmd_set(args, "tstep",  &pars.tstep,  stage, CMD_INIT | CMD_RUN)) continue;
 
 //    if (args[0] == "temp_press") {
@@ -275,7 +280,7 @@ void
 write_pars(std::ostream & s){
   s << " T=" << pars.time*1000 << " ms, "
     << "LP=" << pars.LP0+pars.LP_SWR*pars.time << " cm, "
-    << "HR=" << 1e3*(pars.HR0+pars.HR_SWR*pars.time) << " mOe, "
+    << "HR=" << 1e3*(pars.HR0+pars.HRT*pars.time) << " mOe, "
     << "TF=" << 1e6*(pars.TF0+pars.TF_SWR*pars.time) << " mks, "
     << "LF=" << 1e-3*(pars.LF0+pars.LF_SWR*pars.time) << " kHz, "
     << "DF=" << (pars.DF0+pars.DF_SWR*pars.time) << " cm^2/s, "
