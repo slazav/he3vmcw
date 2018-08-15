@@ -6,13 +6,19 @@
 
 class pnm_writer{
   public:
-    pnm_writer(std::ostream & ss_);
+    pnm_writer(const char *fname_);
+
+    // write line of data
     void write(const std::vector<double> zsol,
                const std::vector<double> usol, int NPDE);
+
+    // draw a horisontal line (to mark some position)
+    void hline();
+
   private:
-    std::ostream & ss;
+    const char *fname;
     int width_pos;
-    int line;
+    int W,H;
 };
 
 #endif

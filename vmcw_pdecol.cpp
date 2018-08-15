@@ -43,19 +43,16 @@ extern "C"{
 // wrapper class methods
 
 pdecol_solver::pdecol_solver(
-  std::vector<double> &XSOL_, std::vector<double> &USOL_,
   double t0_, double dt_, double EPS_,
-  int NPDE_, int NDERV_, int KORD_, int NCC_, int MF_, int verbose_
-): XSOL(XSOL_), USOL(USOL_), t0(t0_), dt(dt_), EPS(EPS_),
-  NPDE(NPDE_), NDERV(NDERV_), KORD(KORD_), NCC(NCC_), MF(MF_), verbose(verbose_){
+  int NPTS_, int NPDE_, int NDERV_, int KORD_, int NCC_, int MF_, int verbose_
+): XSOL(NPTS_,0), USOL(NPTS_*NPDE_*(NDERV_+1),0), t0(t0_), dt(dt_), EPS(EPS_),
+   NPTS(NPTS_), NPDE(NPDE_), NDERV(NDERV_), KORD(KORD_), NCC(NCC_), MF(MF_),
+   verbose(verbose_){
 
-  NPTS = XSOL.size();
   NINT = NPTS-1;
   INDEX=1;  // type of call (first call)
 
   // some tests
-  if (USOL.size() != NPTS*NPDE*(NDERV+1)) throw Err() <<
-    "pdecol_solver: USOL.size() should be equal to NPTS*NPDE*NDERV";
   if (NINT<1 ) throw Err() << "pdecol_solver: NINT should be >= 1";
   if (KORD<3 || KORD>20) throw Err() << "pdecol_solver: KORD should be 3..20";
   if (NCC<2 || NCC>=KORD) throw Err() << "pdecol_solver: NCC should be 2..KORD-1";

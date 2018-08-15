@@ -38,9 +38,8 @@ class pdecol_solver {
   ///            Can be changed during calculations (see ch_mf() below)
   ///   verbose -- verbosity level
   pdecol_solver(
-    std::vector<double> &XSOL, std::vector<double> &USOL,
     double t0, double dt, double eps,
-    int NPDE, int NDERV=2, int KORD=4, int NCC=2, int MF=22, int verbose=1
+    int NPTS, int NPDE, int NDERV=2, int KORD=4, int NCC=2, int MF=22, int verbose=1
   );
 
   /// change EPS during calculation
@@ -63,6 +62,12 @@ class pdecol_solver {
 
   // get number of matrix evaluations fo far (PSETIB calls)
   int get_nje() const;
+
+  // get reference to the coordinate vector
+  std::vector<double> & get_crd_vec() {return XSOL;}
+
+  // get reference to the solution vector
+  std::vector<double> & get_sol_vec() {return USOL;}
 
   /// Do calculation until time t.
   // TODO: some more exotic calculations can be done (INDEX=2,3)
@@ -87,8 +92,8 @@ class pdecol_solver {
   private:
 
   double t0, dt; // initial time (used only on first call), min time step
-  std::vector<double> &XSOL; // reference to x-vector
-  std::vector<double> &USOL; // reference to solution vector
+  std::vector<double> XSOL; // reference to x-vector
+  std::vector<double> USOL; // reference to solution vector
 
   int INDEX; // type of call -- result
   double EPS;                // Accuracy. Can be changed during calculations

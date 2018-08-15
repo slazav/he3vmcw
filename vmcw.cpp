@@ -2,6 +2,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <list>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
@@ -13,9 +14,21 @@
 #define NPDE 7
 #define NDER 3
 
+// I use many global variables here. Maybe it would be better
+// to pack everything inside a class
+
+// parameter structure
 struct pars_t pars;
 
-/// set parameters for Leggett equations using main parameter structure
+// container for PDECOL solver (only one can be used!)
+std::list<pdecol_solver> solvers;
+
+// container for PNM writer
+std::list<pnm_writer> pnm_writers;
+
+/******************************************************************/
+// Set parameters for Leggett equations using main parameter structure.
+// This function is called from F and BNDRY
 extern "C" {
   void set_pars_(double *t, double *x,
                  double *Wr, double *Wz, double *W0,
@@ -58,10 +71,11 @@ check_init(const std::string &line, int stage){
   std::cerr << "  Warning: this command works only before starting calculations:\n";
   return false;
 }
+/******************************************************************/
 
 /// calculation stages
 #define STAGE_INIT 1
-#define STAGE_RUN   2
+#define STAGE_RUN  2
 
 /// command types
 #define CMD_INIT  1 // can appear before calculations, in STAGE_INIT
@@ -109,7 +123,7 @@ cmd_set(const std::vector<std::string> & args, // splitted command line
 /// stage = 1: configuration during solving
 /// Return 1 if file is finished, 0 otherwise.
 int
-read_cmd(std::istream &in_c, std::ostream & out_c, int stage, pdecol_solver *solver){
+read_cmd(std::istream &in_c, std::ostream & out_c, int stage){
   // reset sweeps
   pars.HR0=pars.HR0+pars.time*pars.HRT;          pars.HRT=0.0;
   pars.LP0=pars.LP0+pars.time*pars.LP_SWR;       pars.LP_SWR=0.0;
@@ -190,8 +204,8 @@ read_cmd(std::istream &in_c, std::ostream & out_c, int stage, pdecol_solver *sol
     if (args[0] == "profile") {
       if (!check_nargs(line, args.size(), 2)) continue;
       out_c << "Write function profiles\n";
-      std::ofstream ss(args[1]);
-      if (solver) solver->write_profile(ss);
+      std::ofstream ss(args[1].c_str());
+      if (solvers.size()>0) solvers.begin()->write_profile(ss);
       return 0;
     }
 
@@ -231,6 +245,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c, int stage, pdecol_solver *sol
         out_c << "Warning: zero steps, skip the command.\n";
         continue;
       }
+      pars.LP0 = pars.LP0+pars.time*pars.LP_SWR;
       pars.LP_SWR = (v-pars.LP0)/(steps*pars.tstep);
       pars.LP0   -= pars.time*pars.LP_SWR;
       pars.tend  = pars.time + steps*pars.tstep;
@@ -300,32 +315,37 @@ try{
   // set default parameters
   set_def_pars(&pars);
 
-  // allocate memory
-  std::vector<double> usol(NDER*npts*NPDE, 0.0);
-  std::vector<double> xsol(npts, 0.0);
-
   std::ifstream in_c("cmd.txt");   // read commands
   std::ofstream out_m("magn.dat"); // log total magnetization
   out_m << "# Integral magnetization log: T, LP, Mx, Mx, Mz\n";
   std::ofstream out_c("cmd_log.dat"); // log commands and main parameters
   out_c << "# Commands and main parameters\n";
-  std::ofstream out_p("cmd_log.pnm"); // log commands and main parameters
-  pnm_writer pnmw(out_p);
 
   // read all commands until start or eof
-  if (read_cmd(in_c, out_c, STAGE_INIT, NULL)) return 0;
+  if (read_cmd(in_c, out_c, STAGE_INIT)) return 0;
+
+  // initialize the solver
+  if (solvers.size()==0){
+    solvers.push_back(pdecol_solver(pars.time, 1e-10, pow(2,-20), npts, NPDE));
+  }
+  std::vector<double> &xsol = solvers.begin()->get_crd_vec();
+  std::vector<double> &usol = solvers.begin()->get_sol_vec();
 
   // set up the mesh and save it into a file
   set_mesh(&pars, xsol);
   save_mesh(&pars, xsol, "mesh.txt");
 
-  // initialize the solver
-  pdecol_solver solver(xsol, usol, pars.time, 1e-10, pow(2,-20), NPDE);
+  // initialize pnm_writer
+  pnm_writers.push_back(pnm_writer("magn.pnm"));
 
-    write_pars(out_c);
+  write_pars(out_c);
 
+  // main cycle
   int n=0;
   while (1) {
+
+
+
 //    if (fabs(pars.TTC_ST) >  1e-5) {
 //      pars.TTC += pars.TTC_ST;
 //      set_he3pt_();
@@ -333,15 +353,21 @@ try{
     // If we reach final time, read new cmd.
     // If it returns 1, finish the program
     if (pars.time >= pars.tend &&
-        read_cmd(in_c, out_c, STAGE_RUN, &solver)) break;
+        read_cmd(in_c, out_c, STAGE_RUN)) break;
 
     // do the next step
-    pars.time += pars.tstep;
-    solver.step(pars.time);
+    if (solvers.size()>0) {
+      pars.time += pars.tstep;
+      solvers.begin()->step(pars.time);
+    }
 
     // write results
     write_magn(out_m, xsol, usol);
-    pnmw.write(xsol, usol, NPDE);
+    std::list<pnm_writer>::iterator i;
+    for (i=pnm_writers.begin(); i!=pnm_writers.end(); i++){
+      i->write(xsol, usol, NPDE);
+    }
+
     write_pars(out_c);
 
     // flush files

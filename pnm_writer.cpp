@@ -1,4 +1,4 @@
-#include <iostream>
+#include <fstream>
 #include <vector>
 #include <cmath>
 #include <cstdlib>
@@ -36,14 +36,25 @@ int vec_to_cal(const double vx, const double vy, const double vz){
   return (r<<16) + (g<<8) + b;
 }
 
-pnm_writer::pnm_writer(std::ostream & ss):ss(ss),line(0){}
+pnm_writer::pnm_writer(const char *fname_):H(0),W(0),fname(fname_){
+}
 
 void
 pnm_writer::write(const std::vector<double> zsol,
                   const std::vector<double> usol, int NPDE){
-  if (line==0){
+
+  // open file for appending; write to its end
+  std::ofstream ss;
+  std::ios_base::openmode flags =
+     (H==0)? std::fstream::out | std::fstream::trunc :
+             std::fstream::out | std::fstream::in | std::fstream::ate;
+  ss.open (fname, flags);
+
+  // if it is the first line
+  if (H==0){
     ss.seekp(0);
-    ss << "P6\n" << zsol.size()*2+1 << " ";
+    W = zsol.size()*2+1;
+    ss << "P6\n" << W << " ";
     width_pos = ss.tellp();
     ss << "                  \n255\n";
   }
@@ -54,9 +65,9 @@ pnm_writer::write(const std::vector<double> zsol,
   for (int i=0; i<zsol.size(); i++){
 
     double mx,my,mz;
-    if ((i-x0)*(i-x0) + (line-y0)*(line-y0) <= r*r){
+    if ((i-x0)*(i-x0) + (H-y0)*(H-y0) <= r*r){
       mx = (i-x0)/(double)r;
-      my = -(line-y0)/(double)r;
+      my = -(H-y0)/(double)r;
       mz = sqrt(1-mx*mx-my*my);
     }
     else {
@@ -70,7 +81,8 @@ pnm_writer::write(const std::vector<double> zsol,
       << ((char)((c>>8)&0xFF))
       << ((char)(c&0xFF));
   }
-  ss << (char)0 << (char)0 << (char)0;
+  char c=0;
+  ss << c << c << c;
 
   for (int i=0; i<zsol.size(); i++){
     double nx = usol[i*NPDE+3];
@@ -78,13 +90,30 @@ pnm_writer::write(const std::vector<double> zsol,
     double nz = usol[i*NPDE+5];
     int c = vec_to_cal(nx,ny,nz);
     ss << ((char)((c>>16)&0xFF))
-      << ((char)((c>>8)&0xFF))
-      << ((char)(c&0xFF));
+       << ((char)((c>>8)&0xFF))
+       << ((char)(c&0xFF));
   }
-  line++;
-  int data_pos = ss.tellp();
+  H++;
   ss.seekp(width_pos);
-  ss << line;
-  ss.seekp(data_pos);
+  ss << H;
+}
+
+void
+pnm_writer::hline(){
+
+  // open file for appending; write to its end
+  std::ofstream ss;
+  std::ios_base::openmode flags =
+     (H==0)? std::fstream::out | std::fstream::trunc:
+             std::fstream::out | std::fstream::in | std::fstream::ate;
+  ss.open (fname, flags);
+
+  for (int i=0; i<W; i++){
+    char c = (i/10)%2;
+    ss << c << c << c;
+  }
+  H++;
+  ss.seekp(width_pos);
+  ss << H;
 }
 
