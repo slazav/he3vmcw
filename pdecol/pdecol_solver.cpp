@@ -3,7 +3,7 @@
 #include <iostream>
 #include <iomanip>
 #include <sys/time.h>
-#include "vmcw_pdecol.h"
+#include "pdecol_solver.h"
 
 // C++ wrapper for PDECOL solver
 // V.Zavjalov, 07.2018

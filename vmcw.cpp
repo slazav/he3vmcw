@@ -6,7 +6,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
-#include "vmcw_pdecol.h"
+#include "pdecol/pdecol_solver.h"
 #include "vmcw_pars.h"
 #include "vmcw_mesh.h"
 #include "pnm_writer.h"
