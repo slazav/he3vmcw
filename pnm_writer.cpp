@@ -36,7 +36,8 @@ int vec_to_cal(const double vx, const double vy, const double vz){
   return (r<<16) + (g<<8) + b;
 }
 
-pnm_writer::pnm_writer(const char *fname_):H(0),W(0),fname(fname_){
+pnm_writer::pnm_writer(const char *fname_):
+  H(0),W(0),fname(fname_), br(0), bx0(0), by0(0){
 }
 
 void
@@ -65,9 +66,9 @@ pnm_writer::write(const std::vector<double> zsol,
   for (int i=0; i<zsol.size(); i++){
 
     double mx,my,mz;
-    if ((i-x0)*(i-x0) + (H-y0)*(H-y0) <= r*r){
-      mx = (i-x0)/(double)r;
-      my = -(H-y0)/(double)r;
+    if (br && (i-bx0)*(i-bx0) + (H-by0)*(H-by0) <= br*br){
+      mx = (i-bx0)/(double)r;
+      my = -(H-by0)/(double)r;
       mz = sqrt(1-mx*mx-my*my);
     }
     else {
@@ -117,3 +118,7 @@ pnm_writer::hline(){
   ss << H;
 }
 
+void
+pnm_writer::legend(int r, int x0){
+  br = r; bx0=x0; by0 = H+r;
+}
