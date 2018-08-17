@@ -104,8 +104,8 @@ class pdecol_solver {
   private:
 
   double t0, dt; // initial time (used only on first call), min time step
-  std::vector<double> XSOL; // reference to x-vector
-  std::vector<double> USOL; // reference to solution vector
+  std::vector<double> XSOL; // coordinate vector
+  std::vector<double> USOL; // solution vector
 
   int INDEX; // type of call -- result
   double EPS;                // Accuracy. Can be changed during calculations

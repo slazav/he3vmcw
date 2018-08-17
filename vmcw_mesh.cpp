@@ -46,6 +46,7 @@ set_mesh(struct pars_t *p, std::vector<double> & x){
   int N = x.size();
   double dx = L/(N-1);
   x[0] = -L/2.0;
+//std::cerr << ">>> " << x[0] << "\n";
   for (int k=0; k<100; k++){
     for (int i=0; i<N-1; i++){
       x[i+1] = x[i] + dx/(1.0+p->XMESH_K*fabs(aer_step(p,x[i],1)));

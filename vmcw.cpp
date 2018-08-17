@@ -2,7 +2,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
-#include <list>
+#include <map>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
@@ -14,19 +14,45 @@
 // I use many global variables here. Maybe it would be better
 // to pack everything inside a class
 
-const int npde = 7; // Number of equations and. Can not be changed.
-const int nder = 3; // how many derivatives to calculate. Can not be changed./
-int npts=257;       // Number of points. It can be set by user at any time.
-                    // In the code it can be used only to initialize the solver.
-                    // In other places solver.get_crd_vec().size() or
-                    // (or get_npts()) should be used.
-double acc = pow(2,-20); // Solver accuracy. Can be changed during calculation.
-double mindt=1e-10; // Min time step (recommended 1e-10)
+/* Number of equations. Can not be changed. */
+const int npde = 7;
+
+/* How many derivatives to calculate. Can not be changed. */
+const int nder = 3;
+
+/* Number of points. It can be set by user at any time, but real change
+happened when the solver is (re)started. In the code it can be used only
+to initialize the solver. In other places solver->get_npts() should be
+used (it corresponds to the actual number of points in the running solver). */
+int npts=257;
+
+/* Solver accuracy. Can be changed during calculation. There is in idea that
+if it is a power of 2 solver runs faster */
+double acc = pow(2,-20);
+
+/* Min time step (recommended 1e-10). It can be set by user at any time,
+but real change happened when the solver is (re)started. */
+double mindt = 1e-10;
+
+/* Current time [s]. Changes only before doing solver->step(). */
+double tcurr = 0;
+
+/* Time step [s]. Can be changed during calculation. */
+double tstep = 5e-3;
+
+/* End of current sweep/wait command [s]. Calculation is done until this time
+without reading new commands. Should be equal to "time" in the begining. */
+double tend = tcurr;
+
+
 
 struct pars_t pars; // parameter structure
 
-pdecol_solver *solver = NULL; // PDECOL solver pointer
-std::list<pnm_writer> pnm_writers; // container for PNM writer
+/* PDECOL solver pointer */
+pdecol_solver *solver = NULL;
+
+/* Container for PNM writers. Kay is the file name. */
+pnm_writers_t pnm_writers;
 
 /******************************************************************/
 // Set parameters for Leggett equations using main parameter structure.
@@ -127,12 +153,12 @@ cmd_set(const std::vector<std::string> & args, // splitted command line
 int
 read_cmd(std::istream &in_c, std::ostream & out_c, int stage){
   // reset sweeps
-  pars.HR0=pars.HR0+pars.time*pars.HRT;          pars.HRT=0.0;
-  pars.LP0=pars.LP0+pars.time*pars.LP_SWR;       pars.LP_SWR=0.0;
-  pars.DF0=pars.DF0+pars.time*pars.DF_SWR;       pars.DF_SWR=0.0;
-  pars.TF0=pars.TF0+pars.time*pars.TF_SWR;       pars.TF_SWR=0.0;
-  pars.LF0=pars.LF0+pars.time*pars.LF_SWR;       pars.LF_SWR=0.0;
-  pars.CPAR0=pars.CPAR0+pars.time*pars.CPAR_SWR; pars.CPAR_SWR = 0.0;
+  pars.HR0=pars.HR0+tcurr*pars.HRT;          pars.HRT=0.0;
+  pars.LP0=pars.LP0+tcurr*pars.LP_SWR;       pars.LP_SWR=0.0;
+  pars.DF0=pars.DF0+tcurr*pars.DF_SWR;       pars.DF_SWR=0.0;
+  pars.TF0=pars.TF0+tcurr*pars.TF_SWR;       pars.TF_SWR=0.0;
+  pars.LF0=pars.LF0+tcurr*pars.LF_SWR;       pars.LF_SWR=0.0;
+  pars.CPAR0=pars.CPAR0+tcurr*pars.CPAR_SWR; pars.CPAR_SWR = 0.0;
 
   // read input string line by line
   std::string line;
@@ -180,7 +206,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c, int stage){
     if (cmd_set(args, "DF0",    &pars.DF0,    stage, CMD_INIT | CMD_RUN | CMD_SWEEP)) continue;
     if (cmd_set(args, "LF0",    &pars.LF0,    stage, CMD_INIT | CMD_RUN | CMD_SWEEP)) continue;
     if (cmd_set(args, "CPAR",    &pars.CPAR0,    stage, CMD_INIT | CMD_RUN | CMD_SWEEP)) continue;
-    if (cmd_set(args, "tstep",  &pars.tstep,  stage, CMD_INIT | CMD_RUN)) continue;
+    if (cmd_set(args, "tstep",  &tstep,  stage, CMD_INIT | CMD_RUN)) continue;
 
 //    if (args[0] == "temp_press") {
 //      if (!check_nargs(line, args.size(), 3)) continue;
@@ -214,7 +240,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c, int stage){
     if (args[0] == "wait") {
       if (!check_nargs(line, args.size(), 2)) continue;
       double dt = atof(args[1].c_str());
-      pars.tend = pars.time + dt*1e-3;
+      tend = tcurr + dt*1e-3;
       out_c << "Wait " << dt << " ms\n";
       return 0;
     }
@@ -228,11 +254,45 @@ read_cmd(std::istream &in_c, std::ostream & out_c, int stage){
       continue;
     }
 
+
+    // initialize a pnm_writer
+    if (args[0] == "pnm_start") {
+      if (!check_nargs(line, args.size(), 2)) continue;
+      if (!pnm_writers.add(args[1]))
+        std::cerr << "pnm_start: can't open create pnm_writer";
+      continue;
+    }
+
+    // pnm_legend: start draw a legend
+    if (args[0] == "pnm_legend") {
+      if (!check_nargs(line, args.size(), 2)) continue;
+      if (!pnm_writers.legend(args[1], 50, 100))
+        std::cerr << "pnm_legend: no such writer";
+      continue;
+    }
+
+    // pnm_hline: draw a horizontal line
+    if (args[0] == "pnm_hline") {
+      if (!check_nargs(line, args.size(), 2)) continue;
+      if (!pnm_writers.hline(args[1]))
+        std::cerr << "pnm_hline: no such writer";
+      continue;
+    }
+
+    // stop a pnm_writer
+    if (args[0] == "pnm_stop") {
+      if (!check_nargs(line, args.size(), 2)) continue;
+      if (!pnm_writers.del(args[1]))
+        std::cerr << "pnm_stop: no such writer";
+      continue;
+    }
+
+
     if (args[0] == "LP") {
       if (!check_nargs(line, args.size(), 2)) continue;
       double v = atof(args[1].c_str());
       out_c << "larmor position: " << v << " cm\n";
-      pars.LP0 = v - pars.time*pars.LP_SWR;
+      pars.LP0 = v - tcurr*pars.LP_SWR;
       continue;
     }
 
@@ -249,16 +309,16 @@ read_cmd(std::istream &in_c, std::ostream & out_c, int stage){
       double v = atof(args[1].c_str());
       double r = fabs(atof(args[2].c_str()));
       out_c << "sweep larmor position to " << v << " cm at " << r << " cm/s\n";
-      int steps = abs(rint((v-pars.LP0)/r/pars.tstep));
+      int steps = abs(rint((v-pars.LP0)/r/tstep));
 
       if (steps==0){
         out_c << "Warning: zero steps, skip the command.\n";
         continue;
       }
-      pars.LP0 = pars.LP0+pars.time*pars.LP_SWR;
-      pars.LP_SWR = (v-pars.LP0)/(steps*pars.tstep);
-      pars.LP0   -= pars.time*pars.LP_SWR;
-      pars.tend  = pars.time + steps*pars.tstep;
+      pars.LP0 = pars.LP0+tcurr*pars.LP_SWR;
+      pars.LP_SWR = (v-pars.LP0)/(steps*tstep);
+      pars.LP0   -= tcurr*pars.LP_SWR;
+      tend  = tcurr + steps*tstep;
       out_c << "  real rate: " << pars.LP_SWR << " cm/s\n";
       return 0;
     }
@@ -297,19 +357,19 @@ write_magn(std::ostream & s,
   smy/=sz;
   smz/=sz;
 
-  s << pars.time << "  " << pars.LP0 + pars.time*pars.LP_SWR << "  "
+  s << tcurr << "  " << pars.LP0 + tcurr*pars.LP_SWR << "  "
     << smx << " " << smy << " " << smz << "\n";
 }
 
 void
 write_pars(std::ostream & s){
-  s << " T=" << pars.time*1000 << " ms, "
-    << "LP=" << pars.LP0+pars.LP_SWR*pars.time << " cm, "
-    << "HR=" << 1e3*(pars.HR0+pars.HRT*pars.time) << " mOe, "
-    << "TF=" << 1e6*(pars.TF0+pars.TF_SWR*pars.time) << " mks, "
-    << "LF=" << 1e-3*(pars.LF0+pars.LF_SWR*pars.time) << " kHz, "
-    << "DF=" << (pars.DF0+pars.DF_SWR*pars.time) << " cm^2/s, "
-    << "CPAR=" <<  (pars.CPAR0+pars.CPAR_SWR*pars.time) << " cm/s, "
+  s << " T=" << tcurr*1000 << " ms, "
+    << "LP=" << pars.LP0+pars.LP_SWR*tcurr << " cm, "
+    << "HR=" << 1e3*(pars.HR0+pars.HRT*tcurr) << " mOe, "
+    << "TF=" << 1e6*(pars.TF0+pars.TF_SWR*tcurr) << " mks, "
+    << "LF=" << 1e-3*(pars.LF0+pars.LF_SWR*tcurr) << " kHz, "
+    << "DF=" << (pars.DF0+pars.DF_SWR*tcurr) << " cm^2/s, "
+    << "CPAR=" <<  (pars.CPAR0+pars.CPAR_SWR*tcurr) << " cm/s, "
     << "\n";
 }
 
@@ -335,17 +395,13 @@ try{
 
   // initialize the solver
   if (solver==NULL){
-    solver = new pdecol_solver(pars.time, mindt, acc, npts, npde);
+    solver = new pdecol_solver(tcurr, mindt, acc, npts, npde);
     if (!solver) throw pdecol_solver::Err() << "can't create solver";
     // set up the mesh and save it into a file
     set_mesh(&pars, solver->get_crd_vec());
     save_mesh(&pars, solver->get_crd_vec(), "mesh.txt");
   }
 
-
-  // initialize pnm_writer
-  pnm_writers.push_back(pnm_writer("magn.pnm"));
-  pnm_writers.begin()->legend(50,200);
 
   write_pars(out_c);
 
@@ -361,20 +417,17 @@ try{
 //    }
     // If we reach final time, read new cmd.
     // If it returns 1, finish the program
-    if (pars.time >= pars.tend &&
+    if (tcurr >= tend &&
         read_cmd(in_c, out_c, STAGE_RUN)) break;
 
     // do the next step
     if (solver) {
-      pars.time += pars.tstep;
-      solver->step(pars.time);
+      tcurr += tstep;
+      solver->step(tcurr);
 
       // write results
       write_magn(out_m, solver->get_crd_vec(), solver->get_sol_vec());
-      std::list<pnm_writer>::iterator i;
-      for (i=pnm_writers.begin(); i!=pnm_writers.end(); i++){
-        i->write(solver->get_crd_vec(), solver->get_sol_vec(), npde);
-      }
+      pnm_writers.write(solver->get_crd_vec(), solver->get_sol_vec(), npde);
       write_pars(out_c);
     }
 

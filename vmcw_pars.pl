@@ -6,9 +6,6 @@ use warnings;
 
 # parameters (type, name, default, comment):
 my $pars ="
-double time      0.0     current time, s (always 0 in the begining)
-double tend      0.0     end of current sweep/wait commant, s (always 0 in the begining)
-double tstep     5e-3    time step, s (can be changed at any time)
 double t11       1.0     1/t1, s^-1
 double H         284.0   constant part of magnetic field, G
 double grad      0.1     gradient of magnetic field, G/cm

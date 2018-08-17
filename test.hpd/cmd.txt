@@ -1,9 +1,19 @@
+pnm_start full.pnm
+pnm_legend full.pnm
 start
+
 hr 2e-3
 LP -0.3
 
 LP_SWEEP_TO -0.1 0.1
 profile prof.dat
+
+pnm_start pic1.pnm
+pnm_hline full.pnm
+LP_SWEEP_TO 0.1 0.1
+
+pnm_hline full.pnm
+pnm_stop pic1.pnm
 
 LP_SWEEP_TO 0.2 0.1
 

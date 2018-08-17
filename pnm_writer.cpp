@@ -36,12 +36,12 @@ int vec_to_cal(const double vx, const double vy, const double vz){
   return (r<<16) + (g<<8) + b;
 }
 
-pnm_writer::pnm_writer(const char *fname_):
+pnm_writer_t::pnm_writer_t(const std::string & fname_):
   H(0),W(0),fname(fname_), br(0), bx0(0), by0(0){
 }
 
 void
-pnm_writer::write(const std::vector<double> zsol,
+pnm_writer_t::write(const std::vector<double> zsol,
                   const std::vector<double> usol, int NPDE){
 
   // open file for appending; write to its end
@@ -100,7 +100,7 @@ pnm_writer::write(const std::vector<double> zsol,
 }
 
 void
-pnm_writer::hline(){
+pnm_writer_t::hline(){
 
   // open file for appending; write to its end
   std::ofstream ss;
@@ -109,16 +109,56 @@ pnm_writer::hline(){
              std::fstream::out | std::fstream::in | std::fstream::ate;
   ss.open (fname, flags);
 
-  for (int i=0; i<W; i++){
-    char c = (i/10)%2;
-    ss << c << c << c;
-  }
+  char c = 0;
+  for (int i=0; i<W; i++) ss << c << c << c;
   H++;
   ss.seekp(width_pos);
   ss << H;
 }
 
 void
-pnm_writer::legend(int r, int x0){
+pnm_writer_t::legend(int r, int x0){
   br = r; bx0=x0; by0 = H+r;
+}
+
+/****************************************************************/
+
+bool
+pnm_writers_t::add(const std::string & fname){
+   iterator w = find(fname);
+   if (w != end()) return false;
+   insert(std::make_pair(fname, pnm_writer_t(fname)));
+  return true;
+}
+
+bool
+pnm_writers_t::del(const std::string & fname){
+   iterator w = find(fname);
+   if (w == end()) return false;
+   erase(w);
+   return true;
+}
+
+bool
+pnm_writers_t::legend(const std::string & fname, int r, int x0){
+  iterator w = find(fname);
+  if (w == end()) return false;
+  w->second.legend(r,x0);
+  return true;
+}
+
+bool
+pnm_writers_t::hline(const std::string & fname){
+  iterator w = find(fname);
+  if (w == end()) return false;
+  w->second.hline();
+  return true;
+}
+
+
+void
+pnm_writers_t::write(const std::vector<double> zsol,
+           const std::vector<double> usol, int NPDE){
+  for (iterator i=begin(); i!=end(); i++)
+    i->second.write(zsol, usol, NPDE);
 }
