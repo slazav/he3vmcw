@@ -11,20 +11,22 @@
 #include "vmcw_mesh.h"
 #include "pnm_writer.h"
 
-#define NPDE 7
-#define NDER 3
-
 // I use many global variables here. Maybe it would be better
 // to pack everything inside a class
 
-// parameter structure
-struct pars_t pars;
+const int npde = 7; // Number of equations and. Can not be changed.
+const int nder = 3; // how many derivatives to calculate. Can not be changed./
+int npts=257;       // Number of points. It can be set by user at any time.
+                    // In the code it can be used only to initialize the solver.
+                    // In other places solver.get_crd_vec().size() or
+                    // (or get_npts()) should be used.
+double acc = pow(2,-20); // Solver accuracy. Can be changed during calculation.
+double mindt=1e-10; // Min time step (recommended 1e-10)
 
-// container for PDECOL solver (only one can be used!)
-std::list<pdecol_solver> solvers;
+struct pars_t pars; // parameter structure
 
-// container for PNM writer
-std::list<pnm_writer> pnm_writers;
+pdecol_solver *solver = NULL; // PDECOL solver pointer
+std::list<pnm_writer> pnm_writers; // container for PNM writer
 
 /******************************************************************/
 // Set parameters for Leggett equations using main parameter structure.
@@ -205,10 +207,9 @@ read_cmd(std::istream &in_c, std::ostream & out_c, int stage){
       if (!check_nargs(line, args.size(), 2)) continue;
       out_c << "Write function profiles\n";
       std::ofstream ss(args[1].c_str());
-      if (solvers.size()>0) solvers.begin()->write_profile(ss);
+      if (solver) solver->write_profile(ss);
       return 0;
     }
-
 
     if (args[0] == "wait") {
       if (!check_nargs(line, args.size(), 2)) continue;
@@ -216,6 +217,15 @@ read_cmd(std::istream &in_c, std::ostream & out_c, int stage){
       pars.tend = pars.time + dt*1e-3;
       out_c << "Wait " << dt << " ms\n";
       return 0;
+    }
+
+    if (args[0] == "acc2") {
+      if (!check_nargs(line, args.size(), 2)) continue;
+      double v = atof(args[1].c_str());
+      acc=pow(2, -v);
+      out_c << "accuracy: " << acc << "\n";
+      if (solver) solver->ch_eps(acc);
+      continue;
     }
 
     if (args[0] == "LP") {
@@ -270,13 +280,13 @@ write_magn(std::ostream & s,
 
   double smx=0, smy=0, smz=0, sz = 0;
   for (int i=0; i<zsol.size()-1; i++){
-    double mx1 = usol[i*NPDE+0];
-    double my1 = usol[i*NPDE+1];
-    double mz1 = usol[i*NPDE+2];
+    double mx1 = usol[i*npde+0];
+    double my1 = usol[i*npde+1];
+    double mz1 = usol[i*npde+2];
 
-    double mx2 = usol[(i+1)*NPDE+0];
-    double my2 = usol[(i+1)*NPDE+1];
-    double mz2 = usol[(i+1)*NPDE+2];
+    double mx2 = usol[(i+1)*npde+0];
+    double my2 = usol[(i+1)*npde+1];
+    double mz2 = usol[(i+1)*npde+2];
     double dz = zsol[i+1]-zsol[i];
     smx += dz*(mx1+mx2)/2;
     smy += dz*(my1+my2)/2;
@@ -310,7 +320,6 @@ int
 main(){
 try{
 
-  int npts=257;
 
   // set default parameters
   set_def_pars(&pars);
@@ -325,18 +334,18 @@ try{
   if (read_cmd(in_c, out_c, STAGE_INIT)) return 0;
 
   // initialize the solver
-  if (solvers.size()==0){
-    solvers.push_back(pdecol_solver(pars.time, 1e-10, pow(2,-20), npts, NPDE));
+  if (solver==NULL){
+    solver = new pdecol_solver(pars.time, mindt, acc, npts, npde);
+    if (!solver) throw pdecol_solver::Err() << "can't create solver";
+    // set up the mesh and save it into a file
+    set_mesh(&pars, solver->get_crd_vec());
+    save_mesh(&pars, solver->get_crd_vec(), "mesh.txt");
   }
-  std::vector<double> &xsol = solvers.begin()->get_crd_vec();
-  std::vector<double> &usol = solvers.begin()->get_sol_vec();
 
-  // set up the mesh and save it into a file
-  set_mesh(&pars, xsol);
-  save_mesh(&pars, xsol, "mesh.txt");
 
   // initialize pnm_writer
   pnm_writers.push_back(pnm_writer("magn.pnm"));
+  pnm_writers.begin()->legend(50,200);
 
   write_pars(out_c);
 
@@ -356,24 +365,24 @@ try{
         read_cmd(in_c, out_c, STAGE_RUN)) break;
 
     // do the next step
-    if (solvers.size()>0) {
+    if (solver) {
       pars.time += pars.tstep;
-      solvers.begin()->step(pars.time);
-    }
+      solver->step(pars.time);
 
-    // write results
-    write_magn(out_m, xsol, usol);
-    std::list<pnm_writer>::iterator i;
-    for (i=pnm_writers.begin(); i!=pnm_writers.end(); i++){
-      i->write(xsol, usol, NPDE);
+      // write results
+      write_magn(out_m, solver->get_crd_vec(), solver->get_sol_vec());
+      std::list<pnm_writer>::iterator i;
+      for (i=pnm_writers.begin(); i!=pnm_writers.end(); i++){
+        i->write(solver->get_crd_vec(), solver->get_sol_vec(), npde);
+      }
+      write_pars(out_c);
     }
-
-    write_pars(out_c);
 
     // flush files
     out_c.flush();
     out_m.flush();
   }
+  if (solver) delete solver;
 
 } catch (pdecol_solver::Err e){
   std::cerr << "Error: " << e.str() << "\n";
