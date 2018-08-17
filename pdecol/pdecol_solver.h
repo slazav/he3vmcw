@@ -69,6 +69,18 @@ class pdecol_solver {
   // get reference to the solution vector
   std::vector<double> & get_sol_vec() {return USOL;}
 
+  // get number of points in the coordinate vector
+  int get_npts() const {return NPTS;}
+
+  // get number of equations
+  int get_npde() const {return NPDE;}
+
+  // get number of derivatives in the solution vector
+  int get_nder() const {return NDERV;}
+
+  // get coordinate span
+  int get_len() const {return *XSOL.rbegin()-*XSOL.begin();}
+
   /// Do calculation until time t.
   // TODO: some more exotic calculations can be done (INDEX=2,3)
   int step(double t);
