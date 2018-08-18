@@ -23,10 +23,13 @@ FOBJ=pdecol/pde_dp.o vmcw_func.o he3_funcs.o
 
 # C++ object files
 COBJ=vmcw.o pdecol/pdecol_solver.o vmcw_pars.o vmcw_mesh.o pnm_writer.o
+pdecol/pdecol_solver.o: pdecol/pdecol_solver.h
+vmcw_mesh.o: vmcw_mesh.h
 
 $(COBJ): %.o: %.cpp
 $(FOBJ): %.o: %.f par.fh
-vmcw.o pdecol_solver.o: pdecol/pdecol_solver.h vmcw_pars.h pnm_writer.h
+vmcw.o: pdecol/pdecol_solver.h vmcw_pars.h pnm_writer.h vmcw_mesh.h
+
 
 vmcw: $(FOBJ) $(COBJ)
 
