@@ -63,8 +63,15 @@ pdecol_solver::pdecol_solver(
   int MAXDER = option_.MAXDER; // set in /OPTION/
 
   // prepare working arrays
+#ifdef SOLVER_EPDE_DP
+  int IDIMWORK = KORD + 4*NPDE + NCPTS*(3*KORD + 2) +
+                 NPDE*NCPTS*(MAXDER + 6) + NPDE*NPDE*(13+KORD*(KORD-NCC)*NINT);
+#endif
+#ifdef SOLVER_PDE_DP
   int IDIMWORK = KORD + 4*NPDE + 9*NPDE*NPDE + NCPTS*(3*KORD+2)+
                  NPDE*NCPTS*(3*ML + MAXDER + 7);
+#endif
+
   WORK = std::vector<double>(IDIMWORK, 0.0);
 
   int IDIMIWORK = NCPTS*(NPDE+1);
