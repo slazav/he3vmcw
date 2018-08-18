@@ -1,8 +1,9 @@
-#include <string>
 #include <fstream>
-#include <vector>
-#include <cmath>
 #include <iostream>
+#include <iomanip>
+#include <vector>
+#include <string>
+#include <cmath>
 #include "vmcw_pars.h"
 
 // Aerogel profile.
@@ -62,7 +63,8 @@ set_mesh(struct pars_t *p, std::vector<double> & x){
 void
 save_mesh(struct pars_t *p, const std::vector<double> &x, const char *fname){
   std::ofstream ff(fname);
-  ff << "# N X AER AER'\n";
+  ff << "# N X AER AER'\n"
+     << std::scientific << std::setprecision(6);
   for (int i=0; i<x.size(); i++){
     double xx = x[i];
     double a0 = aer_step(p,xx,0);
