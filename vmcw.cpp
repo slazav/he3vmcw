@@ -93,22 +93,7 @@ check_nargs(const std::string &line, int n1, int n2){
   return false;
 }
 
-bool
-check_init(const std::string &line, int stage){
-  if (stage<1) return true;
-  std::cerr << "  Warning: this command works only before starting calculations:\n";
-  return false;
-}
 /******************************************************************/
-
-/// calculation stages
-#define STAGE_INIT 1
-#define STAGE_RUN  2
-
-/// command types
-#define CMD_INIT  1 // can appear before calculations, in STAGE_INIT
-#define CMD_RUN   2 // can appear during calculations, in STAGE_RUN
-#define CMD_SWEEP 4 // can be used for sweeps
 
 // process SET command
 // return 1 if command have been found (correct or wrong)
@@ -116,20 +101,10 @@ template <typename T>
 bool
 cmd_set(const std::vector<std::string> & args, // splitted command line
              const char *name, // parameter name
-             T *ref,           // parameter reference
-             const int stage,  // calculation stage
-             const int cmdtype // type of command
+             T *ref            // parameter reference
              ){
   if (args.size() < 1 || strcasecmp(args[0].c_str(),name)!=0) return false;
 
-  if (stage == STAGE_INIT && (cmdtype & CMD_INIT == 0)){
-    std::cerr << "  Warning: skip bad command (can appear only before calculations)\n";
-    return true;
-  }
-  if (stage == STAGE_RUN && (cmdtype & CMD_RUN == 0)){
-    std::cerr << "  Warning: skip bad command (can appear only during calculations)\n";
-    return true;
-  }
   if (args.size() != 2){
     std::cerr << "  Warning: skip bad command (wrong number of arguments)\n";
     return true;
@@ -147,11 +122,9 @@ cmd_set(const std::vector<std::string> & args, // splitted command line
 }
 
 /// Read one or more commends from a stream.
-/// stage = 0: pre-configure (before solver is started)
-/// stage = 1: configuration during solving
 /// Return 1 if file is finished, 0 otherwise.
 int
-read_cmd(std::istream &in_c, std::ostream & out_c, int stage){
+read_cmd(std::istream &in_c, std::ostream & out_c){
   // reset sweeps
   pars.HR0=pars.HR0+tcurr*pars.HRT;          pars.HRT=0.0;
   pars.LP0=pars.LP0+tcurr*pars.LP_SWR;       pars.LP_SWR=0.0;
@@ -187,26 +160,26 @@ read_cmd(std::istream &in_c, std::ostream & out_c, int stage){
     if (args.size()<1) continue;
 
     // commands
-    if (cmd_set(args, "beta",      &pars.BETA,      stage, CMD_INIT)) continue;
-    if (cmd_set(args, "IBN",       &pars.IBN,       stage, CMD_INIT)) continue;
-    if (cmd_set(args, "CELL_LEN",  &pars.CELL_LEN,  stage, CMD_INIT)) continue;
-    if (cmd_set(args, "XMESH_K",   &pars.XMESH_K,   stage, CMD_INIT)) continue;
-    if (cmd_set(args, "XMESH_ACC", &pars.XMESH_ACC, stage, CMD_INIT)) continue;
-    if (cmd_set(args, "AER",       &pars.AER,       stage, CMD_INIT)) continue;
-    if (cmd_set(args, "AER_LEN",   &pars.AER_LEN,   stage, CMD_INIT)) continue;
-    if (cmd_set(args, "AER_CNT",   &pars.AER_CNT,   stage, CMD_INIT)) continue;
-    if (cmd_set(args, "AER_TRW",   &pars.AER_TRW,   stage, CMD_INIT)) continue;
+    if (cmd_set(args, "beta",      &pars.BETA      )) continue;
+    if (cmd_set(args, "IBN",       &pars.IBN       )) continue;
+    if (cmd_set(args, "CELL_LEN",  &pars.CELL_LEN  )) continue;
+    if (cmd_set(args, "XMESH_K",   &pars.XMESH_K   )) continue;
+    if (cmd_set(args, "XMESH_ACC", &pars.XMESH_ACC )) continue;
+    if (cmd_set(args, "AER",       &pars.AER       )) continue;
+    if (cmd_set(args, "AER_LEN",   &pars.AER_LEN   )) continue;
+    if (cmd_set(args, "AER_CNT",   &pars.AER_CNT   )) continue;
+    if (cmd_set(args, "AER_TRW",   &pars.AER_TRW   )) continue;
 
-    if (cmd_set(args, "t1c",    &pars.T1C,    stage, CMD_INIT | CMD_RUN)) continue;
-    if (cmd_set(args, "H",      &pars.H,      stage, CMD_INIT | CMD_RUN)) continue;
-    if (cmd_set(args, "grad",   &pars.grad,   stage, CMD_INIT | CMD_RUN)) continue;
-    if (cmd_set(args, "Hr",     &pars.HR0,    stage, CMD_INIT | CMD_RUN | CMD_SWEEP)) continue;
-    if (cmd_set(args, "Hrg",    &pars.HRG,    stage, CMD_INIT | CMD_RUN | CMD_SWEEP)) continue;
-    if (cmd_set(args, "Hrq",    &pars.HRQ,    stage, CMD_INIT | CMD_RUN | CMD_SWEEP)) continue;
-    if (cmd_set(args, "DF0",    &pars.DF0,    stage, CMD_INIT | CMD_RUN | CMD_SWEEP)) continue;
-    if (cmd_set(args, "LF0",    &pars.LF0,    stage, CMD_INIT | CMD_RUN | CMD_SWEEP)) continue;
-    if (cmd_set(args, "CPAR",    &pars.CPAR0,    stage, CMD_INIT | CMD_RUN | CMD_SWEEP)) continue;
-    if (cmd_set(args, "tstep",  &tstep,  stage, CMD_INIT | CMD_RUN)) continue;
+    if (cmd_set(args, "t1c",    &pars.T1C    )) continue;
+    if (cmd_set(args, "H",      &pars.H      )) continue;
+    if (cmd_set(args, "grad",   &pars.grad   )) continue;
+    if (cmd_set(args, "Hr",     &pars.HR0    )) continue;
+    if (cmd_set(args, "Hrg",    &pars.HRG    )) continue;
+    if (cmd_set(args, "Hrq",    &pars.HRQ    )) continue;
+    if (cmd_set(args, "DF0",    &pars.DF0    )) continue;
+    if (cmd_set(args, "LF0",    &pars.LF0    )) continue;
+    if (cmd_set(args, "CPAR",    &pars.CPAR0 )) continue;
+    if (cmd_set(args, "tstep",  &tstep       )) continue;
 
 //    if (args[0] == "temp_press") {
 //      if (!check_nargs(line, args.size(), 3)) continue;
@@ -216,44 +189,76 @@ read_cmd(std::istream &in_c, std::ostream & out_c, int stage){
 //      continue;
 //    }
 
+    /*******************************************************/
+    // solver
 
+    // (re)start the solver
     if (args[0] == "start") {
       if (!check_nargs(line, args.size(), 1)) continue;
-      if (!check_init(line, stage)) continue;
-      out_c << "Start calculation\n";
-      return 0;
+
+      // stop solver if it already exists
+      if (solver) delete solver;
+
+      // initialize new solver
+      solver = new pdecol_solver(tcurr, mindt, acc, npts, npde);
+      if (!solver) throw pdecol_solver::Err() << "can't create solver";
+      // set up the mesh and save it into a file
+      set_mesh(&pars, solver->get_crd_vec());
+      save_mesh(&pars, solver->get_crd_vec(), "mesh.txt");
+      continue;
     }
+
+    // stop the solver
     if (args[0] == "stop") {
       if (!check_nargs(line, args.size(), 1)) continue;
-      out_c << "Stop calculations\n";
+      if (solver) delete solver;
+      solver=NULL;
+      continue;
+    }
+
+    // exit the program
+    if (args[0] == "exit") {
+      if (!check_nargs(line, args.size(), 1)) continue;
+      if (solver) delete solver;
+      solver=NULL;
       return 1;
     }
 
+    // write function profiles to a file
     if (args[0] == "profile") {
       if (!check_nargs(line, args.size(), 2)) continue;
-      out_c << "Write function profiles\n";
       std::ofstream ss(args[1].c_str());
       if (solver) solver->write_profile(ss);
-      return 0;
+      continue;
     }
 
+    // do calculations for some time
     if (args[0] == "wait") {
       if (!check_nargs(line, args.size(), 2)) continue;
       double dt = atof(args[1].c_str());
       tend = tcurr + dt*1e-3;
-      out_c << "Wait " << dt << " ms\n";
       return 0;
     }
 
-    if (args[0] == "acc2") {
+    // change accuracy
+    if (args[0] == "acc") {
       if (!check_nargs(line, args.size(), 2)) continue;
       double v = atof(args[1].c_str());
-      acc=pow(2, -v);
-      out_c << "accuracy: " << acc << "\n";
       if (solver) solver->ch_eps(acc);
       continue;
     }
 
+    // change accuracy (power of two)
+    if (args[0] == "acc2") {
+      if (!check_nargs(line, args.size(), 2)) continue;
+      double v = atof(args[1].c_str());
+      acc=pow(2, -v);
+      if (solver) solver->ch_eps(acc);
+      continue;
+    }
+
+    /*******************************************************/
+    // pnm writer
 
     // initialize a pnm_writer
     if (args[0] == "pnm_start") {
@@ -287,6 +292,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c, int stage){
       continue;
     }
 
+    /*******************************************************/
 
     if (args[0] == "LP") {
       if (!check_nargs(line, args.size(), 2)) continue;
@@ -390,35 +396,22 @@ try{
   std::ofstream out_c("cmd_log.dat"); // log commands and main parameters
   out_c << "# Commands and main parameters\n";
 
-  // read all commands until start or eof
-  if (read_cmd(in_c, out_c, STAGE_INIT)) return 0;
-
-  // initialize the solver
-  if (solver==NULL){
-    solver = new pdecol_solver(tcurr, mindt, acc, npts, npde);
-    if (!solver) throw pdecol_solver::Err() << "can't create solver";
-    // set up the mesh and save it into a file
-    set_mesh(&pars, solver->get_crd_vec());
-    save_mesh(&pars, solver->get_crd_vec(), "mesh.txt");
-  }
-
-
   write_pars(out_c);
+
 
   // main cycle
   int n=0;
   while (1) {
 
+    // If we reach final time, read new cmd.
+    // If it returns 1, finish the program
+    if (tcurr >= tend && read_cmd(in_c, out_c)) break;
 
 
 //    if (fabs(pars.TTC_ST) >  1e-5) {
 //      pars.TTC += pars.TTC_ST;
 //      set_he3pt_();
 //    }
-    // If we reach final time, read new cmd.
-    // If it returns 1, finish the program
-    if (tcurr >= tend &&
-        read_cmd(in_c, out_c, STAGE_RUN)) break;
 
     // do the next step
     if (solver) {
@@ -435,7 +428,6 @@ try{
     out_c.flush();
     out_m.flush();
   }
-  if (solver) delete solver;
 
 } catch (pdecol_solver::Err e){
   std::cerr << "Error: " << e.str() << "\n";
