@@ -136,7 +136,7 @@ pdecol_solver::step(double t) {
     }
     if (INDEX==4){
       std::cerr << "PDECOL call with EPS or MF reset (index==4) parameters:\n";
-      std::cerr << "  eps:    " << EPS  << " -- the maximum step size allowed\n";
+      std::cerr << "  eps:    " << EPS  << " -- the relative time error bound\n";
       std::cerr << "  mf:     " << MF   << " -- the method flag\n";
     }
     std::cerr << tt.tv_sec << "." << std::setw(6) << std::setfill('0') << tt.tv_usec << ": ";
