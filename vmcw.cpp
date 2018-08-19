@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <iomanip>
 #include <string>
 #include <vector>
 #include <map>
@@ -587,7 +588,8 @@ write_magn(std::ostream & s,
   smy/=sz;
   smz/=sz;
 
-  s << tcurr << "  " << H0 + tcurr*HT << "  "
+  s << std::scientific << std::setprecision(6)
+    << tcurr << "  " << H0 + tcurr*HT << "  "
     << smx << " " << smy << " " << smz << "\n";
 }
 
