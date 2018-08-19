@@ -46,6 +46,47 @@ double tend = tcurr;
 
 
 
+/* NMR frequency and constant magnetic field.
+   Total field is: H = H0 + HG*x + HQ*x^2 + HT*t. */
+
+/* Magnetic field [G].*/
+double H0 = 284;
+
+/* Magnetic field sweep rate, dH/dt [G/s].*/
+double HT = 0;
+
+/* Magnetic field gradient, dH/dz [G/cm]. */
+double HG = 0.1;
+
+/* Magnetic field quadratic term, d^2H/dz^2 [G/cm^2]. */
+double HQ = 0;
+
+/* Gyromagnetic ratio. */
+const double gyro = 20378.0;
+
+/* NMR frequency [Hz]. The calculation is done at fixed frequency. Magnetic
+fiels should be changed to observe the resonance. Default value, 921085.6 Hz
+corresponds to default magnetic field. */
+double f0 = gyro*H0/2/M_PI;
+
+/* Radio-frequncy field.
+Total field is: HR = (HR0 + HRT*t) * (1 + x/xRG + (x/xRQ)^2).
+Gradient and quadratic terms change proportiannaly with the field. */
+
+/* RF field [G].*/
+double HR0 = 1e-3;
+
+/* RF-field sweep rate, dHr/dt [G/s].*/
+double HRT = 0;
+
+/* RF-field gradient profile [1/cm]. */
+double HRGP = 0;
+
+/* Magnetic field quadratic profile [1/cm^2]. */
+double HRQP = 0;
+
+
+
 struct pars_t pars; // parameter structure
 
 /* PDECOL solver pointer */
@@ -62,10 +103,11 @@ extern "C" {
                  double *Wr, double *Wz, double *W0,
                  double *WB, double *Cpar, double *dCpar,
                  double *Diff, double *Tf, double *T1, int *IBN){
-    double gyro = 20378.0; // Gyromagnetic ratio. Use from he3lib?
-    *Wr = gyro*(pars.HR0 + pars.HRG*(*x) + pars.HRQ*(*x)*(*x) + pars.HRT*(*t));
-    *Wz = gyro*(pars.H + pars.grad*(*x));
-    *W0 = gyro*(pars.H + pars.grad*(pars.LP0 + pars.LP_SWR*(*t)));
+
+    *W0 = 2*M_PI*f0;
+    *Wz = gyro*(H0 + HG*(*x) + HQ*(*x)*(*x) + HT*(*t));
+    *Wr = gyro*(HR0 + HRT*(*t)) * (1.0 + (*x)*HRGP + (*x)*(*x)*HRQP);
+
     *WB = (pars.LF0 + pars.LF_SWR*(*t))*2*M_PI;
     *Cpar = pars.CPAR0 + pars.CPAR_SWR*(*t);
     *dCpar = 0;
@@ -108,6 +150,17 @@ check_nargs(int nargs, int n1, int n2=-1){
     throw Err() << "command requires "  << n1 << " to " << n2 << " arguments";
 }
 
+// Read an argument of arbitrary type from string. Throw Err in case of
+// error.
+template <typename T> T
+read_arg(const std::string &str){
+  std::istringstream ss(str);
+  T v; ss >> v;
+  if (!ss.eof() || ss.fail())
+    throw Err() << "can't parse argument \"" << str << "\"";
+  return v;
+}
+
 /******************************************************************/
 
 // process SET command
@@ -131,11 +184,13 @@ int
 read_cmd(std::istream &in_c, std::ostream & out_c){
   // reset sweeps
   pars.HR0=pars.HR0+tcurr*pars.HRT;          pars.HRT=0.0;
-  pars.LP0=pars.LP0+tcurr*pars.LP_SWR;       pars.LP_SWR=0.0;
   pars.DF0=pars.DF0+tcurr*pars.DF_SWR;       pars.DF_SWR=0.0;
   pars.TF0=pars.TF0+tcurr*pars.TF_SWR;       pars.TF_SWR=0.0;
   pars.LF0=pars.LF0+tcurr*pars.LF_SWR;       pars.LF_SWR=0.0;
   pars.CPAR0=pars.CPAR0+tcurr*pars.CPAR_SWR; pars.CPAR_SWR = 0.0;
+
+  H0  = H0  + tcurr*HT;  HT=0.0;
+  HR0 = HR0 + tcurr*HRT; HRT=0.0;
 
   // read input string line by line
   std::string line;
@@ -169,35 +224,6 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
     // from the exception should be printed and next command started.
     try {
 
-      // commands
-      if (cmd == "beta")      { cmd_set(args, &pars.BETA      ); continue;}
-      if (cmd == "IBN")       { cmd_set(args, &pars.IBN       ); continue;}
-      if (cmd == "CELL_LEN")  { cmd_set(args, &pars.CELL_LEN  ); continue;}
-      if (cmd == "XMESH_K")   { cmd_set(args, &pars.XMESH_K   ); continue;}
-      if (cmd == "XMESH_ACC") { cmd_set(args, &pars.XMESH_ACC ); continue;}
-      if (cmd == "AER")       { cmd_set(args, &pars.AER       ); continue;}
-      if (cmd == "AER_LEN")   { cmd_set(args, &pars.AER_LEN   ); continue;}
-      if (cmd == "AER_CNT")   { cmd_set(args, &pars.AER_CNT   ); continue;}
-      if (cmd == "AER_TRW")   { cmd_set(args, &pars.AER_TRW   ); continue;}
-
-      if (cmd == "t1c")   { cmd_set(args, &pars.T1C    ); continue;}
-      if (cmd == "H")     { cmd_set(args, &pars.H      ); continue;}
-      if (cmd == "grad")  { cmd_set(args, &pars.grad   ); continue;}
-      if (cmd == "Hr")    { cmd_set(args, &pars.HR0    ); continue;}
-      if (cmd == "Hrg")   { cmd_set(args, &pars.HRG    ); continue;}
-      if (cmd == "Hrq")   { cmd_set(args, &pars.HRQ    ); continue;}
-      if (cmd == "DF0")   { cmd_set(args, &pars.DF0    ); continue;}
-      if (cmd == "LF0")   { cmd_set(args, &pars.LF0    ); continue;}
-      if (cmd == "CPAR")  { cmd_set(args, &pars.CPAR0  ); continue;}
-      if (cmd == "tstep") { cmd_set(args, &tstep       ); continue;}
-
-//    if (cmd == "temp_press") {
-//      check_nargs(narg, 2);
-//      pars.TTC   = atof(args[0].c_str());
-//      pars.PRESS = atof(args[1].c_str());
-//      set_he3pt_();
-//      continue;
-//    }
 
       /*******************************************************/
       // solver
@@ -254,7 +280,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       // Do calculations for some time.
       if (cmd == "wait") {
         check_nargs(narg, 1);
-        double dt = atof(args[0].c_str());
+        double dt = read_arg<double>(args[0]);
         if (!solver) throw Err() << "solver is not running";
         tend = tcurr + dt*1e-3;
         return 0;
@@ -264,7 +290,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       // the value will be used after start.
       if (cmd == "acc") {
         check_nargs(narg, 1);
-        acc = atof(args[0].c_str());
+        acc = read_arg<double>(args[0]);
         if (solver) solver->ch_eps(acc);
         continue;
       }
@@ -273,7 +299,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       // the value will be used after start.
       if (cmd == "acc2") {
         check_nargs(narg, 1);
-        double v = atof(args[0].c_str());
+        double v = read_arg<double>(args[0]);
         acc=pow(2, -v);
         if (solver) solver->ch_eps(acc);
         continue;
@@ -283,7 +309,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       // but real change happenes when the solver is (re)started.
       if (cmd == "mindt") {
         check_nargs(narg, 1);
-        mindt = atof(args[0].c_str());
+        mindt = read_arg<double>(args[0]);
         continue;
       }
 
@@ -291,9 +317,17 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       // but real change happenes when the solver is (re)started.
       if (cmd == "npts") {
         check_nargs(narg, 1);
-        npts = atoi(args[0].c_str());
+        npts = read_arg<int>(args[0]);
         continue;
       }
+
+      // Change time step. Can be changed during calculation.
+      if (cmd == "tstep") {
+        check_nargs(narg, 1);
+        tstep = read_arg<double>(args[0]);
+        continue;
+      }
+
 
       /*******************************************************/
       // pnm writer
@@ -330,42 +364,192 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         continue;
       }
 
+
       /*******************************************************/
-
-      if (cmd == "LP") {
+      // set NMR frequency
+      if (cmd == "set_freq") {
         check_nargs(narg, 1);
-        double v = atof(args[0].c_str());
-        out_c << "larmor position: " << v << " cm\n";
-        pars.LP0 = v - tcurr*pars.LP_SWR;
+        f0 = read_arg<double>(args[0]);
         continue;
       }
 
-      if (cmd == "LP_ADD") {
+      // Set uniform field [G].
+      if (cmd == "set_field") {
         check_nargs(narg, 1);
-        double v = atof(args[0].c_str());
-        out_c << "larmor position step: " << v << " cm\n";
-        pars.LP0 += v;
+        H0 = read_arg<double>(args[0]);
         continue;
       }
 
-      if (cmd == "LP_SWEEP_TO") {
+      // Uniform field step [G].
+      if (cmd == "step_field_hz") {
+        check_nargs(narg, 1);
+        H0 += read_arg<double>(args[0]);
+        continue;
+      }
+
+      // Set field gradient [G/cm].
+      if (cmd == "set_field_grad") {
+        check_nargs(narg, 1);
+        HG = read_arg<double>(args[0]);
+        continue;
+      }
+
+      // Set field quadratic term [G/cm^2].
+      if (cmd == "set_field_quad") {
+        check_nargs(narg, 1);
+        HQ = read_arg<double>(args[0]);
+        continue;
+      }
+
+      // Sweep uniform field: destination [G], rate [G/s].
+      if (cmd == "sweep_field") {
         check_nargs(narg, 2);
-        double v = atof(args[0].c_str());
-        double r = fabs(atof(args[1].c_str()));
-        out_c << "sweep larmor position to " << v << " cm at " << r << " cm/s\n";
-        int steps = abs(rint((v-pars.LP0)/r/tstep));
-
-        if (steps==0){
-          out_c << "Warning: zero steps, skip the command.\n";
-          continue;
-        }
-        pars.LP0 = pars.LP0+tcurr*pars.LP_SWR;
-        pars.LP_SWR = (v-pars.LP0)/(steps*tstep);
-        pars.LP0   -= tcurr*pars.LP_SWR;
+        double v = read_arg<double>(args[0]); // destination, G
+        double r = read_arg<double>(args[1]); // rate, G/s
+        int steps = abs(rint((v-H0)/r/tstep));
+        if (steps==0) throw Err() << "zero steps";
+        HT = (v-H0)/(steps*tstep);
+        H0 -= tcurr*HT;
         tend  = tcurr + steps*tstep;
-        out_c << "  real rate: " << pars.LP_SWR << " cm/s\n";
         return 0;
       }
+
+      // Set uniform field in frequency shift units [Hz from NMR freq].
+      if (cmd == "set_field_hz") {
+        check_nargs(narg, 1);
+        H0 = (read_arg<double>(args[0]) + f0) * 2*M_PI/gyro;
+        continue;
+      }
+
+      // Uniform field step [Hz].
+      if (cmd == "step_field_hz") {
+        check_nargs(narg, 1);
+        H0 += read_arg<double>(args[0]) * 2*M_PI/gyro;
+        continue;
+      }
+
+      // Sweep uniform field: destination [Hz], rate [Hz/s].
+      if (cmd == "sweep_field_hz") {
+        check_nargs(narg, 2);
+        double v = read_arg<double>(args[0]);
+        double r = read_arg<double>(args[1]);
+        double o = H0/2.0/M_PI*gyro - f0;
+        int steps = abs(rint((v-o)/r/tstep));
+        if (steps==0) throw Err() << "zero steps";
+        HT = (v-o)/(steps*tstep) * 2*M_PI/gyro;
+        H0 -= tcurr*HT;
+        tend  = tcurr + steps*tstep;
+        return 0;
+      }
+
+      // Set uniform field in Larmor position units [cm].
+      // Gradient term is used to convert field to cm. Quadratic term is not used.
+      // Lower Larmor positon means higher field.
+      if (cmd == "set_field_cm") {
+        check_nargs(narg, 1);
+        if (HG == 0.0) throw Err() << "can't set Larmor position if "
+                                      "field gradient is zero";
+        H0 = 2*M_PI*f0/gyro - read_arg<double>(args[0])*HG;
+        continue;
+      }
+
+      // Uniform field step [cm].
+      if (cmd == "step_field_cm") {
+        check_nargs(narg, 1);
+        if (HG == 0.0) throw Err() << "can't set Larmor position if "
+                                      "field gradient is zero";
+        H0 -= read_arg<double>(args[0])*HG;
+        continue;
+      }
+
+      // Sweep uniform field: destination [cm], rate [cm/s].
+      if (cmd == "sweep_field_cm") {
+        check_nargs(narg, 2);
+        if (HG == 0.0) throw Err() << "can't set Larmor position if "
+                                      "field gradient is zero";
+        double v = read_arg<double>(args[0]); // destination, cm
+        double r = read_arg<double>(args[1]); // rate cm/s
+        double o = (2*M_PI*f0/gyro-H0)/HG;    // old value, cm
+        int steps = abs(rint((v-o)/r/tstep));
+        if (steps==0) throw Err() << "zero steps";
+        HT = -(v-o)/(steps*tstep)*HG;
+        H0 -= tcurr*HT;
+        tend  = tcurr + steps*tstep;
+        return 0;
+      }
+      /*******************************************************/
+
+      // RF-field gradient profile, distance where field goes to zero [cm].
+      if (cmd == "set_rf_gdist") {
+        check_nargs(narg, 1);
+        HRGP = read_arg<double>(args[0]);
+        continue;
+      }
+
+      // RF-field quadratic profile, distance where field goes to zero [cm].
+      if (cmd == "set_rf_qdist") {
+        check_nargs(narg, 1);
+        HRQP = read_arg<double>(args[0]);
+        continue;
+      }
+
+      // Set RF field [G].
+      if (cmd == "set_rf_field") {
+        check_nargs(narg, 1);
+        HR0 = read_arg<double>(args[0]);
+        continue;
+      }
+
+      // Do RF-field step [G].
+      if (cmd == "step_rf_field") {
+        check_nargs(narg, 1);
+        HR0 += read_arg<double>(args[0]);
+        continue;
+      }
+
+      // Sweep RF field: destination [G], rate [G/s].
+      if (cmd == "sweep_rf_field") {
+        check_nargs(narg, 2);
+        double v = read_arg<double>(args[0]); // destination, G
+        double r = read_arg<double>(args[1]); // rate, G/s
+        int steps = abs(rint((v-HR0)/r/tstep));
+        if (steps==0) throw Err() << "zero steps";
+        HRT = (v-HR0)/(steps*tstep);
+        HR0 -= tcurr*HT;
+        tend  = tcurr + steps*tstep;
+        return 0;
+      }
+
+      /*******************************************************/
+
+      // commands
+      if (cmd == "IBN")       { cmd_set(args, &pars.IBN       ); continue;}
+      if (cmd == "CELL_LEN")  { cmd_set(args, &pars.CELL_LEN  ); continue;}
+      if (cmd == "XMESH_K")   { cmd_set(args, &pars.XMESH_K   ); continue;}
+      if (cmd == "XMESH_ACC") { cmd_set(args, &pars.XMESH_ACC ); continue;}
+      if (cmd == "AER")       { cmd_set(args, &pars.AER       ); continue;}
+      if (cmd == "AER_LEN")   { cmd_set(args, &pars.AER_LEN   ); continue;}
+      if (cmd == "AER_CNT")   { cmd_set(args, &pars.AER_CNT   ); continue;}
+      if (cmd == "AER_TRW")   { cmd_set(args, &pars.AER_TRW   ); continue;}
+
+      if (cmd == "t1c")   { cmd_set(args, &pars.T1C    ); continue;}
+      if (cmd == "Hr")    { cmd_set(args, &pars.HR0    ); continue;}
+      if (cmd == "Hrg")   { cmd_set(args, &pars.HRG    ); continue;}
+      if (cmd == "Hrq")   { cmd_set(args, &pars.HRQ    ); continue;}
+      if (cmd == "DF0")   { cmd_set(args, &pars.DF0    ); continue;}
+      if (cmd == "LF0")   { cmd_set(args, &pars.LF0    ); continue;}
+      if (cmd == "CPAR")  { cmd_set(args, &pars.CPAR0  ); continue;}
+
+//    if (cmd == "temp_press") {
+//      check_nargs(narg, 2);
+//      pars.TTC   = read_arg<double>(args[0]);
+//      pars.PRESS = atof(args[1].c_str());
+//      set_he3pt_();
+//      continue;
+//    }
+
+
+      /*******************************************************/
       throw Err() << "skipping unknown command.\n";
     }
     catch (Err e){
@@ -403,14 +587,14 @@ write_magn(std::ostream & s,
   smy/=sz;
   smz/=sz;
 
-  s << tcurr << "  " << pars.LP0 + tcurr*pars.LP_SWR << "  "
+  s << tcurr << "  " << H0 + tcurr*HT << "  "
     << smx << " " << smy << " " << smz << "\n";
 }
 
 void
 write_pars(std::ostream & s){
   s << " T=" << tcurr*1000 << " ms, "
-    << "LP=" << pars.LP0+pars.LP_SWR*tcurr << " cm, "
+    << "H0=" << H0+HT*tcurr << " G, "
     << "HR=" << 1e3*(pars.HR0+pars.HRT*tcurr) << " mOe, "
     << "TF=" << 1e6*(pars.TF0+pars.TF_SWR*tcurr) << " mks, "
     << "LF=" << 1e-3*(pars.LF0+pars.LF_SWR*tcurr) << " kHz, "

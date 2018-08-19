@@ -1,23 +1,22 @@
 pnm_start vectors.pnm   # draw M and N vectors to this file
 pnm_legend vectors.pnm  # draw legend on the figure
 
-hr 2e-3    # RF-field
-LP -0.3    # larmor position
-grad 0.1   # field gradient, G/cm
+set_rf_field   2e-3    # RF-field
+set_field_cm   -0.3    # larmor position
+set_field_grad  0.1    # field gradient, G/cm
 
-
-npts 300
+npts 257
 mindt 1e-20
 start               # start the solver
 save_mesh mesh.dat  # save mesh to a file
 
-LP_SWEEP_TO -0.1 0.1   # sweep field
+sweep_field_cm -0.1 0.1   # sweep field
 
 pnm_hline vectors.pnm
 profile prof1.dat
-LP_SWEEP_TO 0.1 0.1
+sweep_field_cm  0.1 0.1
 
 pnm_hline vectors.pnm
 profile prof2.dat
-LP_SWEEP_TO 0.2 0.1
+sweep_field_cm 0.2 0.1
 

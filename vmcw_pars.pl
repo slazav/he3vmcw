@@ -7,14 +7,10 @@ use warnings;
 # parameters (type, name, default, comment):
 my $pars ="
 double t11       1.0     1/t1, s^-1
-double H         284.0   constant part of magnetic field, G
-double grad      0.1     gradient of magnetic field, G/cm
 double HR0       1e-3    RF field, G
 double HRG       0.0     RF gradient component, G/cm
 double HRQ       0.0     RF quadratic component, G/cm^2
 double HRT       0.0     RF field sweep rate, G/s
-double LP0      -1.0     Larmor position, cm
-double LP_SWR    0.0     Larmor position sweep rate, cm/s
 double DF0       0.1     Spin diffusion, cm^2/s
 double DF_SWR    0.0     Spin diffusion sweep rate (cm^2/s)/s
 double TF0       1e-5    Leggett-Takagi relaxation time, s
@@ -29,7 +25,6 @@ double AER_TRW   6e-3    transition width / cell length
 double CELL_LEN  0.4     cell length, cm
 double XMESH_K   0.2     mesh step: CELL_LEN/(NPTS-1) / (1+XMESH_K*AER_STEP)
 double XMESH_ACC 1e-10   mesh accuracy
-double BETA      0.0     initial tipping angle
 double PRESS     0.0     pressure, bar
 double TTC       0.0     temperature T/Tc
 double TTC_ST    0.0     temperature step
