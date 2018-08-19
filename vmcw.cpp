@@ -114,14 +114,15 @@ check_nargs(int nargs, int n1, int n2=-1){
 // return 1 if command have been found (correct or wrong)
 template <typename T>
 bool
-cmd_set(const std::vector<std::string> & args, // splitted command line
-             const char *name, // parameter name
-             T *ref            // parameter reference
-             ){
-  if (args.size() < 1 || strcasecmp(args[0].c_str(),name)!=0) return false;
+cmd_set(const std::string & cmd,
+        const std::vector<std::string> & args, // splitted command line
+        const char *name, // parameter name
+        T *ref            // parameter reference
+        ){
+  if (args.size() < 1 || strcasecmp(cmd.c_str(),name)!=0) return false;
 
-  check_nargs(args.size(), 2);
-  std::istringstream ss(args[1]);
+  check_nargs(args.size(), 1);
+  std::istringstream ss(args[0]);
   T v;
   ss >> v;
   if (!ss.eof() || ss.fail())
@@ -152,8 +153,15 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       line = line.substr(0, c);
     }
 
-    // split the line into words
+    // logging to out_c
+    out_c << "Command: " << line << "\n";
+
+    // split the line into command and arguments
     std::istringstream in(line);
+    std::string cmd;
+    in >> cmd;
+    if (!in) continue; // empty command
+
     std::vector<std::string> args;
     while (1) {
       std::string a;
@@ -161,43 +169,38 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       if (!in) break;
       args.push_back(a);
     }
-
-    // logging to out_c
-    out_c << "Command: " << line << "\n";
-
-    // empty string
-    if (args.size()<1) continue;
+    int narg = args.size();
 
     // Commands can throw Err exceptions. In this case error message
     // from the exception should be printed and next command started.
     try {
 
       // commands
-      if (cmd_set(args, "beta",      &pars.BETA      )) continue;
-      if (cmd_set(args, "IBN",       &pars.IBN       )) continue;
-      if (cmd_set(args, "CELL_LEN",  &pars.CELL_LEN  )) continue;
-      if (cmd_set(args, "XMESH_K",   &pars.XMESH_K   )) continue;
-      if (cmd_set(args, "XMESH_ACC", &pars.XMESH_ACC )) continue;
-      if (cmd_set(args, "AER",       &pars.AER       )) continue;
-      if (cmd_set(args, "AER_LEN",   &pars.AER_LEN   )) continue;
-      if (cmd_set(args, "AER_CNT",   &pars.AER_CNT   )) continue;
-      if (cmd_set(args, "AER_TRW",   &pars.AER_TRW   )) continue;
+      if (cmd_set(cmd, args, "beta",      &pars.BETA      )) continue;
+      if (cmd_set(cmd, args, "IBN",       &pars.IBN       )) continue;
+      if (cmd_set(cmd, args, "CELL_LEN",  &pars.CELL_LEN  )) continue;
+      if (cmd_set(cmd, args, "XMESH_K",   &pars.XMESH_K   )) continue;
+      if (cmd_set(cmd, args, "XMESH_ACC", &pars.XMESH_ACC )) continue;
+      if (cmd_set(cmd, args, "AER",       &pars.AER       )) continue;
+      if (cmd_set(cmd, args, "AER_LEN",   &pars.AER_LEN   )) continue;
+      if (cmd_set(cmd, args, "AER_CNT",   &pars.AER_CNT   )) continue;
+      if (cmd_set(cmd, args, "AER_TRW",   &pars.AER_TRW   )) continue;
 
-      if (cmd_set(args, "t1c",    &pars.T1C    )) continue;
-      if (cmd_set(args, "H",      &pars.H      )) continue;
-      if (cmd_set(args, "grad",   &pars.grad   )) continue;
-      if (cmd_set(args, "Hr",     &pars.HR0    )) continue;
-      if (cmd_set(args, "Hrg",    &pars.HRG    )) continue;
-      if (cmd_set(args, "Hrq",    &pars.HRQ    )) continue;
-      if (cmd_set(args, "DF0",    &pars.DF0    )) continue;
-      if (cmd_set(args, "LF0",    &pars.LF0    )) continue;
-      if (cmd_set(args, "CPAR",    &pars.CPAR0 )) continue;
-      if (cmd_set(args, "tstep",  &tstep       )) continue;
+      if (cmd_set(cmd, args, "t1c",    &pars.T1C    )) continue;
+      if (cmd_set(cmd, args, "H",      &pars.H      )) continue;
+      if (cmd_set(cmd, args, "grad",   &pars.grad   )) continue;
+      if (cmd_set(cmd, args, "Hr",     &pars.HR0    )) continue;
+      if (cmd_set(cmd, args, "Hrg",    &pars.HRG    )) continue;
+      if (cmd_set(cmd, args, "Hrq",    &pars.HRQ    )) continue;
+      if (cmd_set(cmd, args, "DF0",    &pars.DF0    )) continue;
+      if (cmd_set(cmd, args, "LF0",    &pars.LF0    )) continue;
+      if (cmd_set(cmd, args, "CPAR",    &pars.CPAR0 )) continue;
+      if (cmd_set(cmd, args, "tstep",  &tstep       )) continue;
 
-//    if (args[0] == "temp_press") {
-//      check_nargs(args.size(), 3);
-//      pars.TTC   = atof(args[1].c_str());
-//      pars.PRESS = atof(args[2].c_str());
+//    if (cmd == "temp_press") {
+//      check_nargs(narg, 2);
+//      pars.TTC   = atof(args[0].c_str());
+//      pars.PRESS = atof(args[1].c_str());
 //      set_he3pt_();
 //      continue;
 //    }
@@ -206,8 +209,8 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       // solver
 
       // (re)start the solver
-      if (args[0] == "start") {
-        check_nargs(args.size(), 1);
+      if (cmd == "start") {
+        check_nargs(narg, 0);
 
         // stop solver if it already exists
         if (solver) delete solver;
@@ -222,56 +225,56 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       }
 
       // stop the solver
-      if (args[0] == "stop") {
-        check_nargs(args.size(), 1);
+      if (cmd == "stop") {
+        check_nargs(narg, 0);
         if (solver) delete solver;
         solver=NULL;
         continue;
       }
 
       // exit the program
-      if (args[0] == "exit") {
-        check_nargs(args.size(), 1);
+      if (cmd == "exit") {
+        check_nargs(narg, 0);
         if (solver) delete solver;
         solver=NULL;
         return 1;
       }
 
       // write function profiles to a file
-      if (args[0] == "profile") {
-        check_nargs(args.size(), 2);
-        std::ofstream ss(args[1].c_str());
+      if (cmd == "profile") {
+        check_nargs(narg, 1);
+        std::ofstream ss(args[0].c_str());
         if (solver) solver->write_profile(ss);
         continue;
       }
 
       // save mesh into file
-      if (args[0] == "save_mesh") {
-        check_nargs(args.size(), 2);
-        if (solver) save_mesh(&pars, solver->get_crd_vec(), args[1]);
+      if (cmd == "save_mesh") {
+        check_nargs(narg, 1);
+        if (solver) save_mesh(&pars, solver->get_crd_vec(), args[0]);
         continue;
       }
 
       // do calculations for some time
-      if (args[0] == "wait") {
-        check_nargs(args.size(), 2);
-        double dt = atof(args[1].c_str());
+      if (cmd == "wait") {
+        check_nargs(narg, 1);
+        double dt = atof(args[0].c_str());
         tend = tcurr + dt*1e-3;
         return 0;
       }
 
       // Change solver accuracy.
-      if (args[0] == "acc") {
-        check_nargs(args.size(), 2);
-        acc = atof(args[1].c_str());
+      if (cmd == "acc") {
+        check_nargs(narg, 1);
+        acc = atof(args[0].c_str());
         if (solver) solver->ch_eps(acc);
         continue;
       }
 
       // change accuracy (power of two)
-      if (args[0] == "acc2") {
-        check_nargs(args.size(), 2);
-        double v = atof(args[1].c_str());
+      if (cmd == "acc2") {
+        check_nargs(narg, 1);
+        double v = atof(args[0].c_str());
         acc=pow(2, -v);
         if (solver) solver->ch_eps(acc);
         continue;
@@ -279,17 +282,17 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
 
       // Change min. time step (recommended 1e-10). It can be changes at any time,
       // but real change happenes when the solver is (re)started.
-      if (args[0] == "mindt") {
-        check_nargs(args.size(), 2);
-        mindt = atof(args[1].c_str());
+      if (cmd == "mindt") {
+        check_nargs(narg, 1);
+        mindt = atof(args[0].c_str());
         continue;
       }
 
       // Change number of points. It can be changed at any time,
       // but real change happenes when the solver is (re)started.
-      if (args[0] == "npts") {
-        check_nargs(args.size(), 2);
-        npts = atoi(args[1].c_str());
+      if (cmd == "npts") {
+        check_nargs(narg, 1);
+        npts = atoi(args[0].c_str());
         continue;
       }
 
@@ -297,59 +300,59 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       // pnm writer
 
       // initialize a pnm_writer
-      if (args[0] == "pnm_start") {
-        check_nargs(args.size(), 2);
-        if (!pnm_writers.add(args[1]))
+      if (cmd == "pnm_start") {
+        check_nargs(narg, 1);
+        if (!pnm_writers.add(args[0]))
           throw Err() << "can't open create pnm_writer";
         continue;
       }
 
       // pnm_legend: start draw a legend
-      if (args[0] == "pnm_legend") {
-        check_nargs(args.size(), 2);
-        if (!pnm_writers.legend(args[1], 50, 100))
+      if (cmd == "pnm_legend") {
+        check_nargs(narg, 1);
+        if (!pnm_writers.legend(args[0], 50, 100))
           throw Err() << "no such writer";
         continue;
       }
 
       // pnm_hline: draw a horizontal line
-      if (args[0] == "pnm_hline") {
-        check_nargs(args.size(), 2);
-        if (!pnm_writers.hline(args[1]))
+      if (cmd == "pnm_hline") {
+        check_nargs(narg, 1);
+        if (!pnm_writers.hline(args[0]))
           throw Err() << "no such writer";
         continue;
       }
 
       // stop a pnm_writer
-      if (args[0] == "pnm_stop") {
-        check_nargs(args.size(), 2);
-        if (!pnm_writers.del(args[1]))
+      if (cmd == "pnm_stop") {
+        check_nargs(narg, 1);
+        if (!pnm_writers.del(args[0]))
           throw Err() << "no such writer";
         continue;
       }
 
       /*******************************************************/
 
-      if (args[0] == "LP") {
-        check_nargs(args.size(), 2);
-        double v = atof(args[1].c_str());
+      if (cmd == "LP") {
+        check_nargs(narg, 1);
+        double v = atof(args[0].c_str());
         out_c << "larmor position: " << v << " cm\n";
         pars.LP0 = v - tcurr*pars.LP_SWR;
         continue;
       }
 
-      if (args[0] == "LP_ADD") {
-        check_nargs(args.size(), 2);
-        double v = atof(args[1].c_str());
+      if (cmd == "LP_ADD") {
+        check_nargs(narg, 1);
+        double v = atof(args[0].c_str());
         out_c << "larmor position step: " << v << " cm\n";
         pars.LP0 += v;
         continue;
       }
 
-      if (args[0] == "LP_SWEEP_TO") {
-        check_nargs(args.size(), 3);
-        double v = atof(args[1].c_str());
-        double r = fabs(atof(args[2].c_str()));
+      if (cmd == "LP_SWEEP_TO") {
+        check_nargs(narg, 2);
+        double v = atof(args[0].c_str());
+        double r = fabs(atof(args[1].c_str()));
         out_c << "sweep larmor position to " << v << " cm at " << r << " cm/s\n";
         int steps = abs(rint((v-pars.LP0)/r/tstep));
 
