@@ -114,7 +114,7 @@ extern "C" {
     *dCpar = 0;
     *Diff = pars.DF0 + pars.DF_SWR*(*t);
     *Tf   = pars.TF0 + pars.TF_SWR*(*t);
-    *T1   = 1/pars.t11;
+    *T1   = 1.0/pars.t11;
 
     // spatial modulation
     if (pars.AER){
@@ -382,7 +382,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       }
 
       // Uniform field step [G].
-      if (cmd == "step_field_hz") {
+      if (cmd == "step_field") {
         check_nargs(narg, 1);
         H0 += read_arg<double>(args[0]);
         continue;
@@ -480,17 +480,11 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       }
       /*******************************************************/
 
-      // RF-field gradient profile, distance where field goes to zero [cm].
-      if (cmd == "set_rf_gdist") {
-        check_nargs(narg, 1);
+      // RF-field profile, gradient term [1/cm], quadratic term [1/cm^2].
+      if (cmd == "set_rf_prof") {
+        check_nargs(narg, 1,2);
         HRGP = read_arg<double>(args[0]);
-        continue;
-      }
-
-      // RF-field quadratic profile, distance where field goes to zero [cm].
-      if (cmd == "set_rf_qdist") {
-        check_nargs(narg, 1);
-        HRQP = read_arg<double>(args[0]);
+        if (narg>1) HRQP = read_arg<double>(args[1]);
         continue;
       }
 
@@ -533,6 +527,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       if (cmd == "AER_CNT")   { cmd_set(args, &pars.AER_CNT   ); continue;}
       if (cmd == "AER_TRW")   { cmd_set(args, &pars.AER_TRW   ); continue;}
 
+      if (cmd == "t11")   { cmd_set(args, &pars.t11    ); continue;}
       if (cmd == "t1c")   { cmd_set(args, &pars.T1C    ); continue;}
       if (cmd == "Hr")    { cmd_set(args, &pars.HR0    ); continue;}
       if (cmd == "Hrg")   { cmd_set(args, &pars.HRG    ); continue;}
