@@ -37,7 +37,7 @@ int vec_to_cal(const double vx, const double vy, const double vz){
 }
 
 pnm_writer_t::pnm_writer_t(const std::string & fname_):
-  H(0),W(0),fname(fname_), br(0), bx0(0), by0(0){
+  H(0),W(0),fname(fname_), br(0), bx0(0), by0(0), hline_n(0){
 }
 
 void
@@ -60,15 +60,19 @@ pnm_writer_t::write(const std::vector<double> zsol,
     ss << "                  \n255\n";
   }
 
-  int x0=100, y0=100, r=50;
+  char ck=0;
+  for (; hline_n>0; hline_n--){
+    for (int i=0; i<W; i++) ss << ck << ck << ck;
+    H++;
+  }
 
   double smx=0, smy=0, smz=0, sz = 0;
   for (int i=0; i<zsol.size(); i++){
 
     double mx,my,mz;
     if (br && (i-bx0)*(i-bx0) + (H-by0)*(H-by0) <= br*br){
-      mx = (i-bx0)/(double)r;
-      my = -(H-by0)/(double)r;
+      mx = (i-bx0)/(double)br;
+      my = -(H-by0)/(double)br;
       mz = sqrt(1-mx*mx-my*my);
     }
     else {
@@ -76,23 +80,22 @@ pnm_writer_t::write(const std::vector<double> zsol,
       my = usol[i*NPDE+1];
       mz = usol[i*NPDE+2];
     }
-    int c = vec_to_cal(mx,my,mz);
+    int col = vec_to_cal(mx,my,mz);
 
-    ss << ((char)((c>>16)&0xFF))
-      << ((char)((c>>8)&0xFF))
-      << ((char)(c&0xFF));
+    ss << ((char)((col>>16)&0xFF))
+       << ((char)((col>>8)&0xFF))
+       << ((char)(col&0xFF));
   }
-  char c=0;
-  ss << c << c << c;
+  ss << ck << ck << ck;
 
   for (int i=0; i<zsol.size(); i++){
     double nx = usol[i*NPDE+3];
     double ny = usol[i*NPDE+4];
     double nz = usol[i*NPDE+5];
-    int c = vec_to_cal(nx,ny,nz);
-    ss << ((char)((c>>16)&0xFF))
-       << ((char)((c>>8)&0xFF))
-       << ((char)(c&0xFF));
+    int col = vec_to_cal(nx,ny,nz);
+    ss << ((char)((col>>16)&0xFF))
+       << ((char)((col>>8)&0xFF))
+       << ((char)(col&0xFF));
   }
   H++;
   ss.seekp(width_pos);
@@ -100,21 +103,7 @@ pnm_writer_t::write(const std::vector<double> zsol,
 }
 
 void
-pnm_writer_t::hline(){
-
-  // open file for appending; write to its end
-  std::ofstream ss;
-  std::ios_base::openmode flags =
-     (H==0)? std::fstream::out | std::fstream::trunc:
-             std::fstream::out | std::fstream::in | std::fstream::ate;
-  ss.open (fname, flags);
-
-  char c = 0;
-  for (int i=0; i<W; i++) ss << c << c << c;
-  H++;
-  ss.seekp(width_pos);
-  ss << H;
-}
+pnm_writer_t::hline(){ hline_n++; }
 
 void
 pnm_writer_t::legend(int r, int x0){

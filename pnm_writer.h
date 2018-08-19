@@ -23,6 +23,7 @@ class pnm_writer_t{
     int width_pos;
     int W,H;
     int br, bx0, by0;
+    int hline_n;
 };
 
 #include <map>
