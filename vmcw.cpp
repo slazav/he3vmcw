@@ -208,7 +208,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       /*******************************************************/
       // solver
 
-      // (re)start the solver
+      // (Re)start the solver.
       if (cmd == "start") {
         check_nargs(narg, 0);
 
@@ -218,16 +218,16 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         // initialize new solver
         tend=tcurr;
         solver = new pdecol_solver(tcurr, mindt, acc, npts, npde);
-        if (!solver) throw pdecol_solver::Err() << "can't create solver";
-        // set up the mesh and save it into a file
-        set_mesh(&pars, solver->get_crd_vec());
+        if (!solver) throw Err() << "can't create solver";
+        else set_mesh(&pars, solver->get_crd_vec());
         continue;
       }
 
       // stop the solver
       if (cmd == "stop") {
         check_nargs(narg, 0);
-        if (solver) delete solver;
+        if (!solver) throw Err() << "solver is not running";
+        else delete solver;
         solver=NULL;
         continue;
       }
@@ -244,26 +244,30 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       if (cmd == "profile") {
         check_nargs(narg, 1);
         std::ofstream ss(args[0].c_str());
-        if (solver) solver->write_profile(ss);
+        if (!solver) throw Err() << "solver is not running";
+        else solver->write_profile(ss);
         continue;
       }
 
       // save mesh into file
       if (cmd == "save_mesh") {
         check_nargs(narg, 1);
-        if (solver) save_mesh(&pars, solver->get_crd_vec(), args[0]);
+        if (!solver) throw Err() << "solver is not running";
+        else save_mesh(&pars, solver->get_crd_vec(), args[0]);
         continue;
       }
 
-      // do calculations for some time
+      // Do calculations for some time.
       if (cmd == "wait") {
         check_nargs(narg, 1);
         double dt = atof(args[0].c_str());
+        if (!solver) throw Err() << "solver is not running";
         tend = tcurr + dt*1e-3;
         return 0;
       }
 
-      // Change solver accuracy.
+      // Change solver accuracy. If solver is not running,
+      // the value will be used after start.
       if (cmd == "acc") {
         check_nargs(narg, 1);
         acc = atof(args[0].c_str());
@@ -271,7 +275,8 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         continue;
       }
 
-      // change accuracy (power of two)
+      // Change accuracy (power of two). If solver is not running,
+      // the value will be used after start.
       if (cmd == "acc2") {
         check_nargs(narg, 1);
         double v = atof(args[0].c_str());
