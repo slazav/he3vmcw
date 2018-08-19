@@ -20,8 +20,8 @@ const int npde = 7;
 /* How many derivatives to calculate. Can not be changed. */
 const int nder = 3;
 
-/* Number of points. It can be set by user at any time, but real change
-happened when the solver is (re)started. In the code it can be used only
+/* Number of points. It can be changed at any time, but real change
+happenes when the solver is (re)started. In the code it can be used only
 to initialize the solver. In other places solver->get_npts() should be
 used (it corresponds to the actual number of points in the running solver). */
 int npts=257;
@@ -30,8 +30,8 @@ int npts=257;
 if it is a power of 2 solver runs faster */
 double acc = pow(2,-20);
 
-/* Min time step (recommended 1e-10). It can be set by user at any time,
-but real change happened when the solver is (re)started. */
+/* Min time step (recommended 1e-10). It can be changes at any time,
+but real change happenes when the solver is (re)started. */
 double mindt = 1e-10;
 
 /* Current time [s]. Changes only before doing solver->step(). */
@@ -200,11 +200,11 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       if (solver) delete solver;
 
       // initialize new solver
+      tend=tcurr;
       solver = new pdecol_solver(tcurr, mindt, acc, npts, npde);
       if (!solver) throw pdecol_solver::Err() << "can't create solver";
       // set up the mesh and save it into a file
       set_mesh(&pars, solver->get_crd_vec());
-      save_mesh(&pars, solver->get_crd_vec(), "mesh.txt");
       continue;
     }
 
@@ -232,6 +232,13 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       continue;
     }
 
+    // save mesh into file
+    if (args[0] == "save_mesh") {
+      if (!check_nargs(line, args.size(), 2)) continue;
+      if (solver) save_mesh(&pars, solver->get_crd_vec(), args[1]);
+      continue;
+    }
+
     // do calculations for some time
     if (args[0] == "wait") {
       if (!check_nargs(line, args.size(), 2)) continue;
@@ -240,10 +247,10 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       return 0;
     }
 
-    // change accuracy
+    // Change solver accuracy.
     if (args[0] == "acc") {
       if (!check_nargs(line, args.size(), 2)) continue;
-      double v = atof(args[1].c_str());
+      acc = atof(args[1].c_str());
       if (solver) solver->ch_eps(acc);
       continue;
     }
@@ -254,6 +261,22 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       double v = atof(args[1].c_str());
       acc=pow(2, -v);
       if (solver) solver->ch_eps(acc);
+      continue;
+    }
+
+    // Change min. time step (recommended 1e-10). It can be changes at any time,
+    // but real change happenes when the solver is (re)started.
+    if (args[0] == "mindt") {
+      if (!check_nargs(line, args.size(), 2)) continue;
+      mindt = atof(args[1].c_str());
+      continue;
+    }
+
+    // Change number of points. It can be changed at any time,
+    // but real change happenes when the solver is (re)started.
+    if (args[0] == "npts") {
+      if (!check_nargs(line, args.size(), 2)) continue;
+      npts = atoi(args[1].c_str());
       continue;
     }
 

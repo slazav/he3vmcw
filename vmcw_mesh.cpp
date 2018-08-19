@@ -61,7 +61,9 @@ set_mesh(struct pars_t *p, std::vector<double> & x){
 
 // Save the mesh to file
 void
-save_mesh(struct pars_t *p, const std::vector<double> &x, const char *fname){
+save_mesh(struct pars_t *p,
+          const std::vector<double> &x,
+          const std::string & fname){
   std::ofstream ff(fname);
   ff << "# N X AER AER'\n"
      << std::scientific << std::setprecision(6);
