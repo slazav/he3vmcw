@@ -114,13 +114,7 @@ check_nargs(int nargs, int n1, int n2=-1){
 // return 1 if command have been found (correct or wrong)
 template <typename T>
 bool
-cmd_set(const std::string & cmd,
-        const std::vector<std::string> & args, // splitted command line
-        const char *name, // parameter name
-        T *ref            // parameter reference
-        ){
-  if (args.size() < 1 || strcasecmp(cmd.c_str(),name)!=0) return false;
-
+cmd_set(const std::vector<std::string> & args, T *ref){
   check_nargs(args.size(), 1);
   std::istringstream ss(args[0]);
   T v;
@@ -176,26 +170,26 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
     try {
 
       // commands
-      if (cmd_set(cmd, args, "beta",      &pars.BETA      )) continue;
-      if (cmd_set(cmd, args, "IBN",       &pars.IBN       )) continue;
-      if (cmd_set(cmd, args, "CELL_LEN",  &pars.CELL_LEN  )) continue;
-      if (cmd_set(cmd, args, "XMESH_K",   &pars.XMESH_K   )) continue;
-      if (cmd_set(cmd, args, "XMESH_ACC", &pars.XMESH_ACC )) continue;
-      if (cmd_set(cmd, args, "AER",       &pars.AER       )) continue;
-      if (cmd_set(cmd, args, "AER_LEN",   &pars.AER_LEN   )) continue;
-      if (cmd_set(cmd, args, "AER_CNT",   &pars.AER_CNT   )) continue;
-      if (cmd_set(cmd, args, "AER_TRW",   &pars.AER_TRW   )) continue;
+      if (cmd == "beta")      { cmd_set(args, &pars.BETA      ); continue;}
+      if (cmd == "IBN")       { cmd_set(args, &pars.IBN       ); continue;}
+      if (cmd == "CELL_LEN")  { cmd_set(args, &pars.CELL_LEN  ); continue;}
+      if (cmd == "XMESH_K")   { cmd_set(args, &pars.XMESH_K   ); continue;}
+      if (cmd == "XMESH_ACC") { cmd_set(args, &pars.XMESH_ACC ); continue;}
+      if (cmd == "AER")       { cmd_set(args, &pars.AER       ); continue;}
+      if (cmd == "AER_LEN")   { cmd_set(args, &pars.AER_LEN   ); continue;}
+      if (cmd == "AER_CNT")   { cmd_set(args, &pars.AER_CNT   ); continue;}
+      if (cmd == "AER_TRW")   { cmd_set(args, &pars.AER_TRW   ); continue;}
 
-      if (cmd_set(cmd, args, "t1c",    &pars.T1C    )) continue;
-      if (cmd_set(cmd, args, "H",      &pars.H      )) continue;
-      if (cmd_set(cmd, args, "grad",   &pars.grad   )) continue;
-      if (cmd_set(cmd, args, "Hr",     &pars.HR0    )) continue;
-      if (cmd_set(cmd, args, "Hrg",    &pars.HRG    )) continue;
-      if (cmd_set(cmd, args, "Hrq",    &pars.HRQ    )) continue;
-      if (cmd_set(cmd, args, "DF0",    &pars.DF0    )) continue;
-      if (cmd_set(cmd, args, "LF0",    &pars.LF0    )) continue;
-      if (cmd_set(cmd, args, "CPAR",    &pars.CPAR0 )) continue;
-      if (cmd_set(cmd, args, "tstep",  &tstep       )) continue;
+      if (cmd == "t1c")   { cmd_set(args, &pars.T1C    ); continue;}
+      if (cmd == "H")     { cmd_set(args, &pars.H      ); continue;}
+      if (cmd == "grad")  { cmd_set(args, &pars.grad   ); continue;}
+      if (cmd == "Hr")    { cmd_set(args, &pars.HR0    ); continue;}
+      if (cmd == "Hrg")   { cmd_set(args, &pars.HRG    ); continue;}
+      if (cmd == "Hrq")   { cmd_set(args, &pars.HRQ    ); continue;}
+      if (cmd == "DF0")   { cmd_set(args, &pars.DF0    ); continue;}
+      if (cmd == "LF0")   { cmd_set(args, &pars.LF0    ); continue;}
+      if (cmd == "CPAR")  { cmd_set(args, &pars.CPAR0  ); continue;}
+      if (cmd == "tstep") { cmd_set(args, &tstep       ); continue;}
 
 //    if (cmd == "temp_press") {
 //      check_nargs(narg, 2);
