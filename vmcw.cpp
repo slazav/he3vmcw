@@ -184,7 +184,6 @@ cmd_set(const std::vector<std::string> & args, T *ref){
 int
 read_cmd(std::istream &in_c, std::ostream & out_c){
   // reset sweeps
-  pars.HR0=pars.HR0+tcurr*pars.HRT;          pars.HRT=0.0;
   pars.DF0=pars.DF0+tcurr*pars.DF_SWR;       pars.DF_SWR=0.0;
   pars.TF0=pars.TF0+tcurr*pars.TF_SWR;       pars.TF_SWR=0.0;
   pars.LF0=pars.LF0+tcurr*pars.LF_SWR;       pars.LF_SWR=0.0;
@@ -529,9 +528,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
 
       if (cmd == "t11")   { cmd_set(args, &pars.t11    ); continue;}
       if (cmd == "t1c")   { cmd_set(args, &pars.T1C    ); continue;}
-      if (cmd == "Hr")    { cmd_set(args, &pars.HR0    ); continue;}
-      if (cmd == "Hrg")   { cmd_set(args, &pars.HRG    ); continue;}
-      if (cmd == "Hrq")   { cmd_set(args, &pars.HRQ    ); continue;}
+      if (cmd == "TF0")   { cmd_set(args, &pars.TF0    ); continue;}
       if (cmd == "DF0")   { cmd_set(args, &pars.DF0    ); continue;}
       if (cmd == "LF0")   { cmd_set(args, &pars.LF0    ); continue;}
       if (cmd == "CPAR")  { cmd_set(args, &pars.CPAR0  ); continue;}
@@ -592,7 +589,7 @@ void
 write_pars(std::ostream & s){
   s << " T=" << tcurr*1000 << " ms, "
     << "H0=" << H0+HT*tcurr << " G, "
-    << "HR=" << 1e3*(pars.HR0+pars.HRT*tcurr) << " mOe, "
+    << "HR=" << 1e3*(HR0+HRT*tcurr) << " mOe, "
     << "TF=" << 1e6*(pars.TF0+pars.TF_SWR*tcurr) << " mks, "
     << "LF=" << 1e-3*(pars.LF0+pars.LF_SWR*tcurr) << " kHz, "
     << "DF=" << (pars.DF0+pars.DF_SWR*tcurr) << " cm^2/s, "

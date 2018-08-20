@@ -7,10 +7,6 @@ use warnings;
 # parameters (type, name, default, comment):
 my $pars ="
 double t11       1.0     1/t1, s^-1
-double HR0       1e-3    RF field, G
-double HRG       0.0     RF gradient component, G/cm
-double HRQ       0.0     RF quadratic component, G/cm^2
-double HRT       0.0     RF field sweep rate, G/s
 double DF0       0.1     Spin diffusion, cm^2/s
 double DF_SWR    0.0     Spin diffusion sweep rate (cm^2/s)/s
 double TF0       1e-5    Leggett-Takagi relaxation time, s
