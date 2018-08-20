@@ -125,7 +125,7 @@ pdecol_solver::step(double t) {
     if (INDEX==1){
       std::cerr << "PDECOL first-call parameters (index==1):\n";
       std::cerr << "  t0:     " << t0 << " -- the inital value of T\n";
-      std::cerr << "  dt:     " << t  << " -- the initial step size in T\n";
+      std::cerr << "  dt:     " << t-t0  << " -- the initial step size in T\n";
       std::cerr << "  xleft:  " << *(XSOL.begin())  << " -- left X value\n";
       std::cerr << "  xright: " << *(XSOL.rbegin())  << " -- right X value\n";
       std::cerr << "  eps:    " << EPS  << " -- the relative time error bound\n";
@@ -201,10 +201,6 @@ pdecol_solver::step(double t) {
 
 void
 pdecol_solver::write_profile(std::ostream &ss) {
-
-  // remake values
-//  values_(XSOL.data(),USOL.data(),
-//          SCTCH.data(),&NPDE,&NPTS,&NPTS,&NDERV,WORK.data());
 
   // pront legend: # coord  U(0) U(1) ... U(0)' U(1)' ...
   ss << "# coord.     ";
