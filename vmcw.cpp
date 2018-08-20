@@ -601,14 +601,18 @@ write_pars(std::ostream & s){
 
 /********************************************************************/
 int
-main(){
+main(int argc, char *argv[]){
 try{
 
+  if (argc!=2){
+    std::cerr << "Usage: " << argv[0] << " <command file>\n";
+    return 1;
+  }
 
   // set default parameters
   set_def_pars(&pars);
 
-  std::ifstream in_c("cmd.txt");   // read commands
+  std::ifstream in_c(argv[1]);   // read commands
   std::ofstream out_m("magn.dat"); // log total magnetization
   out_m << "# Integral magnetization log: T, LP, Mx, Mx, Mz\n";
   std::ofstream out_c("cmd_log.dat"); // log commands and main parameters
