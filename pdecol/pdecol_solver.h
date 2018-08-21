@@ -26,7 +26,7 @@ class pdecol_solver {
   /// Constructor. Allocate memory, initialize PDECOL
   /// arguments:
   ///   t0 -- Initial time.
-  ///   dt -- Min time step.
+  ///   dt -- Min time step (recommended 1e-10).
   ///   eps -- Accuracy. Can be changed during calculations (see ch_eps() below)
   ///   XBKPT -- strictly increasing array of piecewise polynomial breakpoints
   ///   NPDE  -- number of differential equations
@@ -45,7 +45,27 @@ class pdecol_solver {
   int step(double t);
 
   /// Get function values
-  std::vector<double> values(std::vector<double> xsol, int NDERV);
+  /// Arguments:
+  ///   xsol  -- Cordinate values.
+  ///   usol  -- storage to be filled.
+  ///            Will be resized to xsol.size()*npde*(nderv+1) if needed.
+  ///   nderv -- Number of derivatives to get.
+  void values(std::vector<double> & xsol, std::vector<double> & usol, int nderv);
+
+  /// Create the storage and get function values.
+  std::vector<double> values(std::vector<double> & xsol, int nderv);
+
+  /// Get value from the array returned by values().
+  /// No range checking.
+  /// Arguments:
+  ///   NPTS -- size of X vector used in values()
+  ///   ix   -- coordinate index, 0..NPTS-1
+  ///   ie   -- equation index, 0..NPDE-1
+  ///   id   -- derivative index, 0..nderv
+  double get_value(const std::vector<double> & usol,
+                   const int NPTS, const int ix,
+                   const int ie, const int id) const{
+    return usol[id*(NPDE*NPTS) + ix*NPDE + ie];}
 
 
   /// change EPS during calculation

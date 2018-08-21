@@ -153,21 +153,30 @@ pdecol_solver::step(double t) {
 
 
 // values
-std::vector<double>
-pdecol_solver::values(std::vector<double> xsol, int NDERV){
+void
+pdecol_solver::values(std::vector<double> & xsol,
+                      std::vector<double> & usol, int NDERV){
 
   int NPTS = xsol.size();
 
   // array for values
-  std::vector<double> usol(NPTS*NPDE*(NDERV+1),0);
+  if (usol.size()<NPTS*NPDE*(NDERV+1)) usol.resize(NPTS*NPDE*(NDERV+1));
 
   // Working storage array
   std::vector<double> SCTCH(KORD*(NDERV+1), 0.0);
 
   values_(xsol.data(),usol.data(),
           SCTCH.data(),&NPDE,&NPTS,&NPTS,&NDERV,WORK.data());
+}
+
+
+std::vector<double>
+pdecol_solver::values(std::vector<double> & xsol, int NDERV){
+  std::vector<double> usol;
+  values(xsol, usol, NDERV);
   return usol;
 }
+
 
 
 /********************************************************************/

@@ -93,7 +93,7 @@ struct pars_t pars; // parameter structure
 /* PDECOL solver pointer */
 pdecol_solver *solver = NULL;
 
-/* Container for PNM writers. Kay is the file name. */
+/* Container for PNM writers. Key is the file name. */
 pnm_writers_t pnm_writers;
 
 /******************************************************************/
@@ -234,6 +234,8 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
 
         // stop solver if it already exists
         if (solver) delete solver;
+        // destroy all writers
+        pnm_writers.clear();
 
         // initialize new solver
         tend=tcurr;
@@ -250,6 +252,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         check_nargs(narg, 0);
         if (!solver) throw Err() << "solver is not running";
         else delete solver;
+        pnm_writers.clear();
         solver=NULL;
         continue;
       }
@@ -258,6 +261,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       if (cmd == "exit") {
         check_nargs(narg, 0);
         if (solver) delete solver;
+        pnm_writers.clear();
         solver=NULL;
         return 1;
       }
@@ -335,10 +339,12 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       /*******************************************************/
       // pnm writer
 
-      // initialize a pnm_writer
+      // Initialize a pnm_writer. Solver should be startded.
       if (cmd == "pnm_start") {
         check_nargs(narg, 1);
-        if (!pnm_writers.add(args[0]))
+        if (!solver)
+          throw Err() << "can't start pnm_writer if solver is not running";
+        if (!pnm_writers.add(args[0], solver))
           throw Err() << "can't open create pnm_writer";
         continue;
       }
@@ -648,7 +654,7 @@ try{
       std::vector<double> usol = solver->values(xsol, nder);
       // write results
       write_magn(out_m, xsol, usol);
-      pnm_writers.write(xsol, usol, npde);
+      pnm_writers.write(xsol, usol);
       write_pars(out_c);
     }
 

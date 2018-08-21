@@ -38,13 +38,20 @@ int vec_to_cal(const double vx, const double vy, const double vz){
 
 /****************************************************************/
 
-pnm_writer_t::pnm_writer_t(const std::string & fname_, const writer_type_t type_):
-  H(0),W(0),fname(fname_), br(0), bx0(0), by0(0), hline_n(0), type(type_){
+pnm_writer_t::pnm_writer_t(
+    const std::string & fname_,
+    const pdecol_solver *s,
+    const writer_type_t type_):
+  H(0),W(0),fname(fname_),solver(s),
+  br(0), bx0(0), by0(0), hline_n(0), type(type_){
 }
 
 void
 pnm_writer_t::write(const std::vector<double> & zsol,
-                    const std::vector<double> & usol, int NPDE){
+                    const std::vector<double> & usol){
+  if (!solver) return;
+
+  int NPDE = solver->get_npde();
 
   // open file for appending; write to its end
   std::ofstream ss;
@@ -147,10 +154,12 @@ pnm_writer_t::legend(int r, int x0){
 /****************************************************************/
 
 bool
-pnm_writers_t::add(const std::string & fname, const writer_type_t type){
+pnm_writers_t::add(const std::string & fname,
+                   const pdecol_solver *solver,
+                   const writer_type_t type){
    iterator w = find(fname);
    if (w != end()) return false;
-   insert(std::make_pair(fname, pnm_writer_t(fname, type)));
+   insert(std::make_pair(fname, pnm_writer_t(fname, solver, type)));
   return true;
 }
 
@@ -181,9 +190,9 @@ pnm_writers_t::hline(const std::string & fname){
 
 void
 pnm_writers_t::write(const std::vector<double> zsol,
-           const std::vector<double> usol, int NPDE){
+           const std::vector<double> usol){
   for (iterator i=begin(); i!=end(); i++)
-    i->second.write(zsol, usol, NPDE);
+    i->second.write(zsol, usol);
 }
 
 

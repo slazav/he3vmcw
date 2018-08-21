@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <string>
+#include "pdecol/pdecol_solver.h"
 
 typedef enum {
   WRITER_PNM,
@@ -12,11 +13,12 @@ typedef enum {
 class pnm_writer_t{
   public:
     pnm_writer_t(const std::string & fname,
+                 const pdecol_solver *solver,
                  const writer_type_t type_);
 
     // write line of data
     void write(const std::vector<double> & zsol,
-               const std::vector<double> & usol, int NPDE);
+               const std::vector<double> & usol);
 
     // draw a horisontal line (to mark some position)
     void hline();
@@ -31,6 +33,7 @@ class pnm_writer_t{
     int W,H;
     int br, bx0, by0;
     int hline_n;
+    const pdecol_solver *solver;
 
 };
 
@@ -42,7 +45,9 @@ class pnm_writers_t : public std::map<std::string, pnm_writer_t>{
 
     // Add a pnm_writer for file fname, return false if
     // it already exists.
-    bool add(const std::string & fname, const writer_type_t type = WRITER_PNM);
+    bool add(const std::string & fname,
+             const pdecol_solver *s,
+             const writer_type_t type = WRITER_PNM);
 
     // Delete a pnm_writer for file fname. Return false if
     // pnm_writer did not exist, true if it has been deleted
@@ -58,8 +63,7 @@ class pnm_writers_t : public std::map<std::string, pnm_writer_t>{
 
     // write line of data by all writers
     void write(const std::vector<double> zsol,
-               const std::vector<double> usol, int NPDE);
-
+               const std::vector<double> usol);
 };
 
 
