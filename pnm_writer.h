@@ -4,13 +4,19 @@
 #include <vector>
 #include <string>
 
+typedef enum {
+  WRITER_PNM,
+  WRITER_TXT
+} writer_type_t;
+
 class pnm_writer_t{
   public:
-    pnm_writer_t(const std::string & fname);
+    pnm_writer_t(const std::string & fname,
+                 const writer_type_t type_);
 
     // write line of data
-    void write(const std::vector<double> zsol,
-               const std::vector<double> usol, int NPDE);
+    void write(const std::vector<double> & zsol,
+               const std::vector<double> & usol, int NPDE);
 
     // draw a horisontal line (to mark some position)
     void hline();
@@ -20,10 +26,12 @@ class pnm_writer_t{
 
   private:
     std::string fname;
+    writer_type_t type;
     int width_pos;
     int W,H;
     int br, bx0, by0;
     int hline_n;
+
 };
 
 #include <map>
@@ -34,7 +42,7 @@ class pnm_writers_t : public std::map<std::string, pnm_writer_t>{
 
     // Add a pnm_writer for file fname, return false if
     // it already exists.
-    bool add(const std::string & fname);
+    bool add(const std::string & fname, const writer_type_t type = WRITER_PNM);
 
     // Delete a pnm_writer for file fname. Return false if
     // pnm_writer did not exist, true if it has been deleted

@@ -36,13 +36,15 @@ int vec_to_cal(const double vx, const double vy, const double vz){
   return (r<<16) + (g<<8) + b;
 }
 
-pnm_writer_t::pnm_writer_t(const std::string & fname_):
-  H(0),W(0),fname(fname_), br(0), bx0(0), by0(0), hline_n(0){
+/****************************************************************/
+
+pnm_writer_t::pnm_writer_t(const std::string & fname_, const writer_type_t type_):
+  H(0),W(0),fname(fname_), br(0), bx0(0), by0(0), hline_n(0), type(type_){
 }
 
 void
-pnm_writer_t::write(const std::vector<double> zsol,
-                  const std::vector<double> usol, int NPDE){
+pnm_writer_t::write(const std::vector<double> & zsol,
+                    const std::vector<double> & usol, int NPDE){
 
   // open file for appending; write to its end
   std::ofstream ss;
@@ -51,55 +53,87 @@ pnm_writer_t::write(const std::vector<double> zsol,
              std::fstream::out | std::fstream::in | std::fstream::ate;
   ss.open (fname, flags);
 
-  // if it is the first line
-  if (H==0){
-    ss.seekp(0);
-    W = zsol.size()*2+1;
-    ss << "P6\n" << W << " ";
-    width_pos = ss.tellp();
-    ss << "                  \n255\n";
-  }
+  int NPTS = zsol.size();
+  int NDER = usol.size()/NPTS/NPDE;
+  if (NDER<1) return;
 
-  char ck=0;
-  for (; hline_n>0; hline_n--){
-    for (int i=0; i<W; i++) ss << ck << ck << ck;
+  if (type==WRITER_PNM) {
+    // if it is the first line
+    if (H==0){
+      ss.seekp(0);
+      W = NPTS*2+1;
+      ss << "P6\n" << W << " ";
+      width_pos = ss.tellp();
+      ss << "                  \n255\n";
+    }
+
+    char ck=0;
+    for (; hline_n>0; hline_n--){
+      for (int i=0; i<W; i++) ss << ck << ck << ck;
+      H++;
+    }
+
+    double smx=0, smy=0, smz=0, sz = 0;
+    for (int i=0; i<NPTS; i++){
+
+      double mx,my,mz;
+      if (br && (i-bx0)*(i-bx0) + (H-by0)*(H-by0) <= br*br){
+        mx = (i-bx0)/(double)br;
+        my = -(H-by0)/(double)br;
+        mz = sqrt(1-mx*mx-my*my);
+      }
+      else {
+        mx = usol[i*NPDE+0];
+        my = usol[i*NPDE+1];
+        mz = usol[i*NPDE+2];
+      }
+      int col = vec_to_cal(mx,my,mz);
+
+      ss << ((char)((col>>16)&0xFF))
+         << ((char)((col>>8)&0xFF))
+         << ((char)(col&0xFF));
+    }
+    ss << ck << ck << ck;
+
+    for (int i=0; i<NPTS; i++){
+      double nx = usol[i*NPDE+3];
+      double ny = usol[i*NPDE+4];
+      double nz = usol[i*NPDE+5];
+      int col = vec_to_cal(nx,ny,nz);
+      ss << ((char)((col>>16)&0xFF))
+         << ((char)((col>>8)&0xFF))
+         << ((char)(col&0xFF));
+    }
     H++;
+    ss.seekp(width_pos);
+    ss << H;
+    return;
   }
 
-  double smx=0, smy=0, smz=0, sz = 0;
-  for (int i=0; i<zsol.size(); i++){
+  if (type==WRITER_TXT){
 
-    double mx,my,mz;
-    if (br && (i-bx0)*(i-bx0) + (H-by0)*(H-by0) <= br*br){
-      mx = (i-bx0)/(double)br;
-      my = -(H-by0)/(double)br;
-      mz = sqrt(1-mx*mx-my*my);
+    // print header
+    if (H==0) ss << "# n  M\n";
+
+    // print blank lines
+    for (; hline_n>0; hline_n--){ ss << "\n"; }
+
+    double smx=0, smy=0, smz=0, sz = 0;
+    for (int i=0; i<NPTS; i++){
+
+      double z  = zsol[i];
+      double mx = usol[i*NPDE+0];
+      double my = usol[i*NPDE+1];
+      double mz = usol[i*NPDE+2];
+
+      double nx = usol[i*NPDE+3];
+      double ny = usol[i*NPDE+4];
+      double nz = usol[i*NPDE+5];
     }
-    else {
-      mx = usol[i*NPDE+0];
-      my = usol[i*NPDE+1];
-      mz = usol[i*NPDE+2];
-    }
-    int col = vec_to_cal(mx,my,mz);
-
-    ss << ((char)((col>>16)&0xFF))
-       << ((char)((col>>8)&0xFF))
-       << ((char)(col&0xFF));
+    ss << "\n";
+    return;
   }
-  ss << ck << ck << ck;
 
-  for (int i=0; i<zsol.size(); i++){
-    double nx = usol[i*NPDE+3];
-    double ny = usol[i*NPDE+4];
-    double nz = usol[i*NPDE+5];
-    int col = vec_to_cal(nx,ny,nz);
-    ss << ((char)((col>>16)&0xFF))
-       << ((char)((col>>8)&0xFF))
-       << ((char)(col&0xFF));
-  }
-  H++;
-  ss.seekp(width_pos);
-  ss << H;
 }
 
 void
@@ -113,10 +147,10 @@ pnm_writer_t::legend(int r, int x0){
 /****************************************************************/
 
 bool
-pnm_writers_t::add(const std::string & fname){
+pnm_writers_t::add(const std::string & fname, const writer_type_t type){
    iterator w = find(fname);
    if (w != end()) return false;
-   insert(std::make_pair(fname, pnm_writer_t(fname)));
+   insert(std::make_pair(fname, pnm_writer_t(fname, type)));
   return true;
 }
 
@@ -151,3 +185,6 @@ pnm_writers_t::write(const std::vector<double> zsol,
   for (iterator i=begin(); i!=end(); i++)
     i->second.write(zsol, usol, NPDE);
 }
+
+
+
