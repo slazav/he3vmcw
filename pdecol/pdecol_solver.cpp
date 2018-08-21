@@ -50,6 +50,8 @@ pdecol_solver::pdecol_solver(
 
   // number of intervals
   int NINT = XBKPT.size()-1;
+  xmin = XBKPT[0];
+  xmax = XBKPT[NINT];
 
   // some tests
   if (NINT<1 ) throw Err() << "pdecol_solver: NINT should be >= 1";

@@ -75,7 +75,14 @@ class pdecol_solver {
 
 
   // get coordinate span
-//  int get_len() const {return *XSOL.rbegin()-*XSOL.begin();}
+  int get_xlen() const {return xmax-xmin;}
+
+  // get min coordinate
+  int get_xmin() const {return xmin;}
+
+  // get min coordinate
+  int get_xmax() const {return xmax;}
+
 
   /// Write functions and derivatives vs. the coordinate.
 //  void write_profile(std::ostream &ss);
@@ -104,6 +111,7 @@ class pdecol_solver {
   int KORD;   // polynom.order (used in the first call and in values())
   int MF;     // The method flag. Can be changed during calculations
               // 11,12,21 or 22
+  double xmin, xmax; // min/max value of the coordinate
 
   std::vector<double> WORK;  // FLOATING POINT WORKING ARRAY FOR PDECOL.
   std::vector<int>   IWORK;  // INTEGER WORKING ARRAY FOR PDECOL.
