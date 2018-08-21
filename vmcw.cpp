@@ -237,9 +237,11 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
 
         // initialize new solver
         tend=tcurr;
-        solver = new pdecol_solver(tcurr, mindt, acc, npts, npde);
+        std::vector<double> xbrpt(npts);
+        set_mesh(&pars, xbrpt);
+        save_mesh(&pars, xbrpt, "mesh.txt");
+        solver = new pdecol_solver(tcurr, mindt, acc, xbrpt, npde);
         if (!solver) throw Err() << "can't create solver";
-        else set_mesh(&pars, solver->get_crd_vec());
         continue;
       }
 
@@ -259,7 +261,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         solver=NULL;
         return 1;
       }
-
+/*
       // write function profiles to a file
       if (cmd == "profile") {
         check_nargs(narg, 1);
@@ -268,7 +270,8 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         else solver->write_profile(ss);
         continue;
       }
-
+*/
+/*
       // save mesh into file
       if (cmd == "save_mesh") {
         check_nargs(narg, 1);
@@ -276,7 +279,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         else save_mesh(&pars, solver->get_crd_vec(), args[0]);
         continue;
       }
-
+*/
       // Do calculations for some time.
       if (cmd == "wait") {
         check_nargs(narg, 1);
@@ -639,9 +642,13 @@ try{
       tcurr += tstep;
       solver->step(tcurr);
 
+      std::vector<double> xsol(npts);
+      set_mesh(&pars, xsol);
+
+      std::vector<double> usol = solver->values(xsol, nder);
       // write results
-      write_magn(out_m, solver->get_crd_vec(), solver->get_sol_vec());
-      pnm_writers.write(solver->get_crd_vec(), solver->get_sol_vec(), npde);
+      write_magn(out_m, xsol, usol);
+      pnm_writers.write(xsol, usol, npde);
       write_pars(out_c);
     }
 

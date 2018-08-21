@@ -25,28 +25,35 @@ class pdecol_solver {
 
   /// Constructor. Allocate memory, initialize PDECOL
   /// arguments:
-  ///   XSOL
-  ///   USOL
   ///   t0 -- Initial time.
   ///   dt -- Min time step.
   ///   eps -- Accuracy. Can be changed during calculations (see ch_eps() below)
+  ///   XBKPT -- strictly increasing array of piecewise polynomial breakpoints
   ///   NPDE  -- number of differential equations
-  ///   NDERV -- How many derivatives return into USOL.
   ///   KORD  -- polynom.order (recommended 4)
   ///   NCC   -- number of cont.cond (recommended 2)
   ///   MF    -- The method flag (11,12,21 or 22).
   ///            Can be changed during calculations (see ch_mf() below)
   ///   verbose -- verbosity level
   pdecol_solver(
-    double t0, double dt, double eps,
-    int NPTS, int NPDE, int NDERV=2, int KORD=4, int NCC=2, int MF=22, int verbose=1
+    double t0, double dt, double eps, std::vector<double> & XBKPT,
+    int NPDE, int KORD=4, int NCC=2, int MF=22, int verbose=1
   );
+
+  /// Do calculation until time t.
+  // TODO: some more exotic calculations can be done (INDEX=2,3)
+  int step(double t);
+
+  /// Get function values
+  std::vector<double> values(std::vector<double> xsol, int NDERV);
+
 
   /// change EPS during calculation
   void ch_eps(double new_eps);
 
   /// change MF during calculation
   void ch_mf(int new_mf);
+
 
   /// get step size last used (sucsessfully)
   double get_dtused() const;
@@ -63,30 +70,16 @@ class pdecol_solver {
   // get number of matrix evaluations fo far (PSETIB calls)
   int get_nje() const;
 
-  // get reference to the coordinate vector
-  std::vector<double> & get_crd_vec() {return XSOL;}
-
-  // get reference to the solution vector
-  std::vector<double> & get_sol_vec() {return USOL;}
-
-  // get number of points in the coordinate vector
-  int get_npts() const {return NPTS;}
-
   // get number of equations
   int get_npde() const {return NPDE;}
 
-  // get number of derivatives in the solution vector
-  int get_nder() const {return NDERV;}
 
   // get coordinate span
-  int get_len() const {return *XSOL.rbegin()-*XSOL.begin();}
-
-  /// Do calculation until time t.
-  // TODO: some more exotic calculations can be done (INDEX=2,3)
-  int step(double t);
+//  int get_len() const {return *XSOL.rbegin()-*XSOL.begin();}
 
   /// Write functions and derivatives vs. the coordinate.
-  void write_profile(std::ostream &ss);
+//  void write_profile(std::ostream &ss);
+
   /************************************/
   // Error class for exceptions
   public:
@@ -103,22 +96,17 @@ class pdecol_solver {
   /************************************/
   private:
 
-  double t0, dt; // initial time (used only on first call), min time step
-  std::vector<double> XSOL; // coordinate vector
-  std::vector<double> USOL; // solution vector
+  void check_error(const int index); // throw Err if index!=0;
 
-  int INDEX; // type of call -- result
-  double EPS;                // Accuracy. Can be changed during calculations
-  int NPTS, NINT, NPDE, KORD, NCC; // num.points, num.intervals, num.eq,
-                                   // polynom.order (recommended 4), number of cont.cond (recommended 2)
-                                   // Used only on first call.
-  int MF;                    // The method flag. Can be changed during calculations
-                             // 11,12,21 or 22
-  int NDERV;                 // How many derivatives return into USOL
+  int INDEX;  // type of call -- result
+  double EPS; // Accuracy. Can be changed during calculations
+  int NPDE;   // number of equations
+  int KORD;   // polynom.order (used in the first call and in values())
+  int MF;     // The method flag. Can be changed during calculations
+              // 11,12,21 or 22
 
   std::vector<double> WORK;  // FLOATING POINT WORKING ARRAY FOR PDECOL.
   std::vector<int>   IWORK;  // INTEGER WORKING ARRAY FOR PDECOL.
-  std::vector<double> SCTCH; // WORKING STORAGE ARRAY FOR VALUES.
 
   int verbose;
 };

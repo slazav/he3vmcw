@@ -32,7 +32,7 @@ extern "C"{
 /********************************************************************/
 // PDECOL functions
 extern "C"{
-  void pdecol_(double *t0, double *t, double *dt, double *XSOL,
+  void pdecol_(double *t0, double *t, double *dt, double *XBKPT,
         double *EPS, int *NINT, int *KORD, int *NCC, int *NPDE, int *MF,
         int *INDEX, double *WORK, int *IWORK);
 
@@ -42,27 +42,26 @@ extern "C"{
 /********************************************************************/
 // wrapper class methods
 
+// Constructor. Do the first call of PCECOL
 pdecol_solver::pdecol_solver(
-  double t0_, double dt_, double EPS_,
-  int NPTS_, int NPDE_, int NDERV_, int KORD_, int NCC_, int MF_, int verbose_
-): XSOL(NPTS_,0), USOL(NPTS_*NPDE_*(NDERV_+1),0), t0(t0_), dt(dt_), EPS(EPS_),
-   NPTS(NPTS_), NPDE(NPDE_), NDERV(NDERV_), KORD(KORD_), NCC(NCC_), MF(MF_),
-   verbose(verbose_){
+  double t0, double dt, double EPS_, std::vector<double> & XBKPT,
+  int NPDE_, int KORD_, int NCC, int MF_, int verbose_
+): EPS(EPS_), NPDE(NPDE_), KORD(KORD_), MF(MF_), verbose(verbose_){
 
-  NINT = NPTS-1;
-  INDEX=1;  // type of call (first call)
+  // number of intervals
+  int NINT = XBKPT.size()-1;
 
   // some tests
   if (NINT<1 ) throw Err() << "pdecol_solver: NINT should be >= 1";
+  if (NPDE<1) throw Err() << "pdecol_solver: NPDE should be > 0";
   if (KORD<3 || KORD>20) throw Err() << "pdecol_solver: KORD should be 3..20";
   if (NCC<2 || NCC>=KORD) throw Err() << "pdecol_solver: NCC should be 2..KORD-1";
-  if (NPDE<1) throw Err() << "pdecol_solver: NPDE should be > 0";
 
+  // prepare working arrays
   int ML = NPDE*(KORD-1)-1;
   int NCPTS = KORD*NINT-NCC*(NINT-1);
   int MAXDER = option_.MAXDER; // set in /OPTION/
 
-  // prepare working arrays
 #ifdef SOLVER_EPDE_DP
   int IDIMWORK = KORD + 4*NPDE + NCPTS*(3*KORD + 2) +
                  NPDE*NCPTS*(MAXDER + 6) + NPDE*NPDE*(13+KORD*(KORD-NCC)*NINT);
@@ -79,11 +78,97 @@ pdecol_solver::pdecol_solver(
   IWORK[0] = IDIMWORK;
   IWORK[1] = IDIMIWORK;
 
-  SCTCH = std::vector<double>(KORD*(NDERV+1), 0.0);
 
-  iounit_.LOUT = 0; // send messages to stderr by default
+  // send messages to stderr by default
+  iounit_.LOUT = 0;
+
+  // log parameters
+  if (verbose){
+    std::cerr << "PDECOL first-call parameters (index==1):\n";
+    std::cerr << "  t0:     " << t0 << " -- the inital value of T\n";
+    std::cerr << "  dt:     " << dt << " -- the initial step size in T\n";
+    std::cerr << "  xleft:  " << *(XBKPT.begin())  << " -- left X value\n";
+    std::cerr << "  xright: " << *(XBKPT.rbegin())  << " -- right X value\n";
+    std::cerr << "  eps:    " << EPS  << " -- the relative time error bound\n";
+    std::cerr << "  nint:   " << NINT << " -- the number of subintervals\n";
+    std::cerr << "  kord:   " << KORD << " -- the order of the piecewise polinomial space to be used\n";
+    std::cerr << "  ncc:    " << NCC  << " -- the number of continuity conditins\n";
+    std::cerr << "  npde:   " << NPDE << " -- the number of partial differential equations in the system\n";
+    std::cerr << "  mf:     " << MF   << " -- the method flag\n";
+    std::cerr << "  work size:  " << IWORK[0]  << " -- length of WORK array\n";
+    std::cerr << "  iwork size: " << IWORK[1]  << " -- length of IWORK array\n";
+  }
+
+  INDEX=1;  // type of call (first call)
+  double t = t0;
+  pdecol_(&t0,&t,&dt,XBKPT.data(),
+    &EPS,&NINT,&KORD,&NCC,&NPDE,&MF,&INDEX,
+    WORK.data(), IWORK.data() );
+
 }
 
+// step
+int
+pdecol_solver::step(double t) {
+
+  struct timeval tt;
+  gettimeofday(&tt, NULL);
+
+  // Here INDEX should be always 0 or 4. For call type 3
+  // additional method should be done.
+  if (verbose){
+    if (INDEX==0){
+      std::cerr << tt.tv_sec << "." << std::setw(6) << std::setfill('0') << tt.tv_usec << ": ";
+      std::cerr << "PDECOL: INDEX: " << INDEX <<
+                   " TOUT:" << std::scientific << std::setprecision(4) << t  << " ";
+    }
+    else if (INDEX==3){
+      std::cerr << "PDECOL one-step call (index==3) parameters:\n";
+      std::cerr << "  dt:     " << t  << " -- the maximum step size allowed\n";
+    }
+    else if (INDEX==4){
+      std::cerr << "PDECOL call with EPS or MF reset (index==4) parameters:\n";
+      std::cerr << "  eps:    " << EPS  << " -- the relative time error bound\n";
+      std::cerr << "  mf:     " << MF   << " -- the method flag\n";
+    }
+    else throw Err() << "bad or unknown INDEX setting in pdecol_solver::step";
+  }
+
+  // run pdecol (EPS nd MF used only if INDEX==4)
+  double dummy = 0;
+  int   idummy = 0;
+  pdecol_(&dummy,&t,&dummy,&dummy,
+    &EPS,&idummy,&idummy,&idummy,&idummy,&MF,&INDEX,
+    WORK.data(), IWORK.data() );
+
+  // check INDEX after run (0 or error)
+  check_error(INDEX);
+
+  if (verbose) {
+    std::cerr << " DT: " << get_dtused() << " NQ: " << get_nqused() << "\n";
+  }
+}
+
+
+// values
+std::vector<double>
+pdecol_solver::values(std::vector<double> xsol, int NDERV){
+
+  int NPTS = xsol.size();
+
+  // array for values
+  std::vector<double> usol(NPTS*NPDE*(NDERV+1),0);
+
+  // Working storage array
+  std::vector<double> SCTCH(KORD*(NDERV+1), 0.0);
+
+  values_(xsol.data(),usol.data(),
+          SCTCH.data(),&NPDE,&NPTS,&NPTS,&NDERV,WORK.data());
+  return usol;
+}
+
+
+/********************************************************************/
 // It is possible to change accuracy and method during calcultion.
 // In this case INDEX is set to 4;
 void
@@ -100,6 +185,7 @@ pdecol_solver::ch_mf(int new_mf){
   if (INDEX==0) INDEX = 4;
 }
 
+/********************************************************************/
 double
 pdecol_solver::get_dtused() const { return gear0_.DTUSED;}
 
@@ -115,45 +201,41 @@ pdecol_solver::get_nfe() const { return gear0_.NFE;}
 int
 pdecol_solver::get_nje() const { return gear0_.NJE;}
 
-int
-pdecol_solver::step(double t) {
 
-  struct timeval tt;
-  gettimeofday(&tt, NULL);
 
-  if (verbose){
-    if (INDEX==1){
-      std::cerr << "PDECOL first-call parameters (index==1):\n";
-      std::cerr << "  t0:     " << t0 << " -- the inital value of T\n";
-      std::cerr << "  dt:     " << t-t0  << " -- the initial step size in T\n";
-      std::cerr << "  xleft:  " << *(XSOL.begin())  << " -- left X value\n";
-      std::cerr << "  xright: " << *(XSOL.rbegin())  << " -- right X value\n";
-      std::cerr << "  eps:    " << EPS  << " -- the relative time error bound\n";
-      std::cerr << "  nint:   " << NINT << " -- the number of subintervals\n";
-      std::cerr << "  kord:   " << KORD << " -- the order of the piecewise polinomial space to be used\n";
-      std::cerr << "  ncc:    " << NCC  << " -- the number of continuity conditins\n";
-      std::cerr << "  npde:   " << NPDE << " -- the number of partial differential equations in the system\n";
-      std::cerr << "  mf:     " << MF   << " -- the method flag\n";
-      std::cerr << "  work size:  " << IWORK[0]  << " -- length of WORK array\n";
-      std::cerr << "  iwork size: " << IWORK[1]  << " -- length of IWORK array\n";
+
+/*
+void
+pdecol_solver::write_profile(std::ostream &ss) {
+
+  // pront legend: # coord  U(0) U(1) ... U(0)' U(1)' ...
+  ss << "# coord.     ";
+  for (int d = 0; d<NDERV; d++){
+    ss << "  ";
+    for (int n = 0; n<NPDE; n++){
+      ss << "U(" << n << ")";
+      for (int i=0; i<d; i++) ss << "'";
+      ss << "      ";
     }
-    if (INDEX==3){
-      std::cerr << "PDECOL one-step call (index==3) parameters:\n";
-      std::cerr << "  dt:     " << t  << " -- the maximum step size allowed\n";
-    }
-    if (INDEX==4){
-      std::cerr << "PDECOL call with EPS or MF reset (index==4) parameters:\n";
-      std::cerr << "  eps:    " << EPS  << " -- the relative time error bound\n";
-      std::cerr << "  mf:     " << MF   << " -- the method flag\n";
-    }
-    std::cerr << tt.tv_sec << "." << std::setw(6) << std::setfill('0') << tt.tv_usec << ": ";
-    std::cerr << "PDECOL: INDEX: " << INDEX <<
-                 " TOUT:" << std::scientific << std::setprecision(4) << t  << " ";
   }
+  ss << "\n" << std::scientific << std::setprecision(6);
 
-  pdecol_(&t0,&t,&dt,XSOL.data(),
-    &EPS,&NINT,&KORD,&NCC,&NPDE,&MF,&INDEX,
-    WORK.data(), IWORK.data() );
+  //print values
+  for (int i=0; i< XSOL.size(); i++){
+    ss << XSOL[i];
+    for (int d = 0; d<NDERV; d++){
+      ss << "  ";
+      for (int n = 0; n<NPDE; n++){
+        ss << " " << USOL[d*(NPDE*NPTS) + i*NPDE + n];
+      }
+    }
+    ss << "\n";
+  }
+}
+*/
+
+void
+pdecol_solver::check_error(const int index) {
   switch (INDEX){
   case  0: break;
   case -1: throw Err() <<
@@ -191,38 +273,5 @@ pdecol_solver::step(double t) {
   case -15: throw Err() << "PDECOL: ILLEGAL BREAKPOINTS - NOT STRICTLY INCREASING.";
   case -16: throw Err() << "PDECOL: INSUFFICIENT STORAGE FOR WORK OR IWORK.";
   default: throw Err() << "unknown error";
-  }
-  if (verbose) {
-    std::cerr << " DT: " << get_dtused() << " NQ: " << get_nqused() << "\n";
-  }
-  values_(XSOL.data(),USOL.data(),
-          SCTCH.data(),&NPDE,&NPTS,&NPTS,&NDERV,WORK.data());
-}
-
-void
-pdecol_solver::write_profile(std::ostream &ss) {
-
-  // pront legend: # coord  U(0) U(1) ... U(0)' U(1)' ...
-  ss << "# coord.     ";
-  for (int d = 0; d<NDERV; d++){
-    ss << "  ";
-    for (int n = 0; n<NPDE; n++){
-      ss << "U(" << n << ")";
-      for (int i=0; i<d; i++) ss << "'";
-      ss << "      ";
-    }
-  }
-  ss << "\n" << std::scientific << std::setprecision(6);
-
-  //print values
-  for (int i=0; i< XSOL.size(); i++){
-    ss << XSOL[i];
-    for (int d = 0; d<NDERV; d++){
-      ss << "  ";
-      for (int n = 0; n<NPDE; n++){
-        ss << " " << USOL[d*(NPDE*NPTS) + i*NPDE + n];
-      }
-    }
-    ss << "\n";
   }
 }
