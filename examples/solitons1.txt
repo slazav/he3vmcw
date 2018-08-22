@@ -1,0 +1,30 @@
+# Short RF pulse (20ms) in a large gradient.
+# Two n-solitons appear.
+
+npts 257
+mindt 1e-20
+acc2 16
+tstep 5e-5
+t11 10
+
+set_field_hz    0
+set_field_grad  0.1
+set_field_quad  0
+set_rf_field 0
+
+start
+pnm_start solitons1.pic.pnm
+wait 5
+pnm_hline solitons1.pic.pnm
+set_rf_field 7e-3
+wait 20
+pnm_hline solitons1.pic.pnm
+set_rf_field 0
+
+
+profile solitons1.prof1.dat
+wait 2
+profile solitons1.prof2.dat
+wait 30
+profile solitons1.prof3.dat
+

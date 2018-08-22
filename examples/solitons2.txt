@@ -1,0 +1,29 @@
+# Short RF pulse (20ms) in a large gradient.
+# Two n-solitons appear.
+# Same as solitons1.txt, but gradient is larger and RF pumping is smaller
+
+npts 257
+mindt 1e-20
+acc2 18
+tstep 5e-5
+t11 1
+
+set_field_hz    0
+set_field_grad  0.2
+set_field_quad  0
+set_rf_field 0
+
+start
+pnm_start solitons2.pic.pnm
+wait 5
+pnm_hline solitons2.pic.pnm
+set_rf_field 1.8e-2
+wait 20
+pnm_hline solitons2.pic.pnm
+set_rf_field 0
+
+profile solitons2.prof1.dat
+wait 2
+profile solitons2.prof2.dat
+wait 30
+profile solitons2.prof3.dat

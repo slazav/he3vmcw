@@ -1,0 +1,20 @@
+npts 257
+mindt 1e-20
+tstep 5e-4
+t11 20
+
+set_field_hz    0
+set_field_grad  0
+set_field_quad  0
+set_rf_field 0
+
+start
+pnm_start pulse_low.pic.pnm
+wait 50
+pnm_hline pulse_low.pic.pnm
+set_rf_field 1e-3
+wait 50
+pnm_hline pulse_low.pic.pnm
+set_rf_field 0
+wait 1000
+

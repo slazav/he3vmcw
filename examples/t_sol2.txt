@@ -1,0 +1,25 @@
+acc2 8
+icond_type 2
+mindt 1e-10
+tstep 0.001
+
+CELL_LEN 0.9
+f0 1124000
+
+
+set_rf_field   1.05e-3   # RF-field
+set_field_grad 15.7e-3   # field gradient, 15.7 G/cm/A
+set_field_hz   30
+t11   1
+
+LF0 50000
+
+npts 267
+mindt 1e-10
+
+start                     # start the solver
+pnm_start t_sol2.pic.pnm  # draw M and N vectors to this file
+#save_mesh mesh.dat       # save mesh to a file
+
+sweep_field_hz -30 100    # sweep field, 1.5kHz/min
+
