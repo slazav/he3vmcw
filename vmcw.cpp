@@ -45,13 +45,19 @@ double tstep = 5e-3;
 without reading new commands. Should be equal to "time" in the begining. */
 double tend = tcurr;
 
-
-
 /* NMR frequency and constant magnetic field.
-   Total field is: H = H0 + HG*x + HQ*x^2 + HT*t. */
+   Total field is: H = 2pi*f0/gyro + H0 + HG*x + HQ*x^2 + HT*t. */
 
-/* Magnetic field [G].*/
-double H0 = 284;
+/* Gyromagnetic ratio. */
+const double gyro = 20378.0;
+
+/* NMR frequency [Hz]. The calculation is done at fixed frequency. Magnetic
+fiels should be changed to observe the resonance. Default value 1MHz
+corresponds to default magnetic field. */
+double f0 = 1e6;
+
+/* Magnetic field [G], measured from 2pi*f0/gyro.*/
+double H0 = 0;
 
 /* Magnetic field sweep rate, dH/dt [G/s].*/
 double HT = 0;
@@ -62,13 +68,6 @@ double HG = 0.1;
 /* Magnetic field quadratic term, d^2H/dz^2 [G/cm^2]. */
 double HQ = 0;
 
-/* Gyromagnetic ratio. */
-const double gyro = 20378.0;
-
-/* NMR frequency [Hz]. The calculation is done at fixed frequency. Magnetic
-fiels should be changed to observe the resonance. Default value, 921085.6 Hz
-corresponds to default magnetic field. */
-double f0 = gyro*H0/2/M_PI;
 
 /* Radio-frequncy field.
 Total field is: HR = (HR0 + HRT*t) * (1 + x/xRG + (x/xRQ)^2).
@@ -106,7 +105,7 @@ extern "C" {
                  double *Diff, double *Tf, double *T1, int *IBN){
 
     *W0 = 2*M_PI*f0;
-    *Wz = gyro*(H0 + HG*(*x) + HQ*(*x)*(*x) + HT*(*t));
+    *Wz = *W0 + gyro*(H0 + HG*(*x) + HQ*(*x)*(*x) + HT*(*t));
     *Wr = gyro*(HR0 + HRT*(*t)) * (1.0 + (*x)*HRGP + (*x)*(*x)*HRQP);
 
     *WB = (pars.LF0 + pars.LF_SWR*(*t))*2*M_PI;
@@ -397,7 +396,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         continue;
       }
 
-      // Set uniform field [G].
+      // Set uniform field [G, from larmor].
       if (cmd == "set_field") {
         check_nargs(narg, 1);
         H0 = read_arg<double>(args[0]);
@@ -441,7 +440,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       // Set uniform field in frequency shift units [Hz from NMR freq].
       if (cmd == "set_field_hz") {
         check_nargs(narg, 1);
-        H0 = (read_arg<double>(args[0]) + f0) * 2*M_PI/gyro;
+        H0 = read_arg<double>(args[0]) * 2*M_PI/gyro;
         continue;
       }
 
@@ -457,7 +456,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         check_nargs(narg, 2);
         double v = read_arg<double>(args[0]);
         double r = read_arg<double>(args[1]);
-        double o = H0/2.0/M_PI*gyro - f0;
+        double o = H0/2.0/M_PI*gyro;
         int steps = abs(rint((v-o)/r/tstep));
         if (steps==0) throw Err() << "zero steps";
         HT = (v-o)/(steps*tstep) * 2*M_PI/gyro;
@@ -473,7 +472,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         check_nargs(narg, 1);
         if (HG == 0.0) throw Err() << "can't set Larmor position if "
                                       "field gradient is zero";
-        H0 = 2*M_PI*f0/gyro - read_arg<double>(args[0])*HG;
+        H0 = - read_arg<double>(args[0])*HG;
         continue;
       }
 
@@ -493,7 +492,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
                                       "field gradient is zero";
         double v = read_arg<double>(args[0]); // destination, cm
         double r = read_arg<double>(args[1]); // rate cm/s
-        double o = (2*M_PI*f0/gyro-H0)/HG;    // old value, cm
+        double o = -H0/HG;    // old value, cm
         int steps = abs(rint((v-o)/r/tstep));
         if (steps==0) throw Err() << "zero steps";
         HT = -(v-o)/(steps*tstep)*HG;
