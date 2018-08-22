@@ -636,10 +636,15 @@ try{
     return 1;
   }
 
+  std::ifstream in_c(argv[1]);   // read commands
+  if (!in_c.good()){
+    std::cerr << "Can't open command file: " << argv[1] << "\n";
+    return 1;
+  }
+
   // set default parameters
   set_def_pars(&pars);
 
-  std::ifstream in_c(argv[1]);   // read commands
   std::ofstream out_m("magn.dat"); // log total magnetization
   out_m << "# Integral magnetization log: T, LP, Mx, Mx, Mz\n";
   std::ofstream out_c("cmd_log.dat"); // log commands and main parameters
