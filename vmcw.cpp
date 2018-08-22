@@ -129,6 +129,21 @@ extern "C" {
   }
 }
 
+#ifdef HE3LIB
+extern "C" {
+#include <he3.h>
+}
+// set parameters using temperature, pressure and he3lib
+void set_he3tp(double ttc, double p){
+  double nu_b = he3_nu_b_(&ttc,&p);
+  pars.CPAR0 = he3_cpar_(&ttc,&p) - pars.CPAR_SWR*tcurr;
+  pars.LF0   = nu_b  - pars.LF_SWR*tcurr;
+  pars.DF0   = he3_diff_perp_zz_(&ttc,&p,&f0) - pars.DF_SWR*tcurr;
+  double tr  = 1.2e-7/sqrt(1.0-ttc);
+  pars.TF0   = 1.0/ (4.0*M_PI*M_PI * nu_b*nu_b * tr);
+}
+#endif
+
 /******************************************************************/
 
 // Error class for exceptions
@@ -542,13 +557,17 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       if (cmd == "LF0")   { cmd_set(args, &pars.LF0    ); continue;}
       if (cmd == "CPAR")  { cmd_set(args, &pars.CPAR0  ); continue;}
 
-//    if (cmd == "temp_press") {
-//      check_nargs(narg, 2);
-//      pars.TTC   = read_arg<double>(args[0]);
-//      pars.PRESS = atof(args[1].c_str());
-//      set_he3pt_();
-//      continue;
-//    }
+      /*******************************************************/
+
+#ifdef HE3LIB
+      if (cmd == "set_ttc_press") {
+        check_nargs(narg, 2);
+        double T = read_arg<double>(args[0]);
+        double P = read_arg<double>(args[1]);
+        set_he3tp(T, P);
+        continue;
+      }
+#endif
 
 
       /*******************************************************/
@@ -637,11 +656,6 @@ try{
     // If we reach final time, read new cmd.
     // If it returns 1, finish the program
     if (tcurr >= tend && read_cmd(in_c, out_c)) break;
-
-//    if (fabs(pars.TTC_ST) >  1e-5) {
-//      pars.TTC += pars.TTC_ST;
-//      set_he3pt_();
-//    }
 
     // do the next step
     if (solver) {

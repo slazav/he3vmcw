@@ -8,17 +8,25 @@ FFLAGS= -Werror -Wconversion\
 #  - pde_dp -- oroginal one
 #  - epde_dp -- does not work yet
 SOLVER = pde_dp
+# link with he3lib
+HE3LIB = 1
 
-ifeq ($(SOLVER), pde_dp)
-  CPPFLAGS=-DSOLVER_PDE_DP
-else ifeq ($(SOLVER), epde_dp)
-  CPPFLAGS=-DSOLVER_EPDE_DP
-endif
 
 TARGETS=vmcw
-LDLIBS=-lhe3 -lgfortran -lm
+LDLIBS= -lgfortran -lm
 FFLAGS=-I/usr/include -fno-range-check
 CC=g++
+
+ifeq ($(SOLVER), pde_dp)
+  CPPFLAGS+=-DSOLVER_PDE_DP
+else ifeq ($(SOLVER), epde_dp)
+  CPPFLAGS+=-DSOLVER_EPDE_DP
+endif
+
+ifeq ($(HE3LIB), 1)
+  CPPFLAGS+=-DHE3LIB
+  LDLIBS+=-lhe3
+endif
 
 
 all: $(TARGETS)
