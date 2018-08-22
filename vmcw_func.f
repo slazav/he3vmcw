@@ -53,35 +53,40 @@ C       Normilize n vector length
         AF=-Cpar**2/Wz
         DAF = -2D0*Cpar*dCpar/Wz
 
-C       something..
-        DD45=UNx*UX(5)-UX(4)*UNy ! Nx Ny` - Nx` Ny
+C       nx ny' - ny nx'
+        DD45=UNx*UX(5)-UX(4)*UNy
+C       (1-ct)*(nx ny' - ny nx') - st*nz' - nz t'
         FTN=CTM*DD45-ST*UX(6)-UX(7)*UNz
+C       FTN'
         DFTN=CTM*(UNx*UXX(5)-UXX(4)*UNy)-ST*UXX(6)-UXX(7)*UNz-
-     *   CT1*UX(7)*UX(6)+ST*UX(7)*DD45   ! dFTN/dz
+     *   CT1*UX(7)*UX(6)+ST*UX(7)*DD45
 
-C       components of spin current, Ji
-        UJX=2.0D0*(UX(7)*UNx+ST*UX(4)+CTM*(UNy*UX(6)-UX(5)*UNz))+
-     *   (CTM*UNx*UNz+UNy*ST)*FTN
-        UJY=2.0D0*(UX(7)*UNy+ST*UX(5)-CTM*(UNx*UX(6)-UX(4)*UNz))+
-     *   (CTM*UNy*UNz-UNx*ST)*FTN
-        UJZ=2.0D0*(UX(7)*UNz+ST*UX(6)+CTM*(UNx*UX(5)-UX(4)*UNy))+
-     *   (CTM*UNz**2+CT)*FTN
+C       components of spin current, Jiz (without AF factor!)
+        UJX=2.0D0*(UX(7)*UNx+ST*UX(4)+CTM*(UNy*UX(6)-UX(5)*UNz))
+     *     + (CTM*UNx*UNz+UNy*ST)*FTN
+        UJY=2.0D0*(UX(7)*UNy+ST*UX(5)-CTM*(UNx*UX(6)-UX(4)*UNz))
+     *     + (CTM*UNy*UNz-UNx*ST)*FTN
+        UJZ=2.0D0*(UX(7)*UNz+ST*UX(6)+CTM*(UNx*UX(5)-UX(4)*UNy))
+     *     + (CTM*UNz**2+CT)*FTN
 
-C       dJi/dz
-        DJX=AF*(2.0D0*(UXX(7)*UNx+CT1*UX(7)*UX(4)+ST*UXX(4)+
+C       derivative of the spin flow: d/dz(Jiz - Diff*Mi')
+C       Note: here non-uniform spin-wave velocity (DAF!=0) can be used,
+C             but spin diffusion should be uniform
+        DJX = AF*(2.0D0*(UXX(7)*UNx+CT1*UX(7)*UX(4)+ST*UXX(4)+
      *   ST*UX(7)*(UNy*UX(6)-UX(5)*UNz)+CTM*(UNy*UXX(6)-UXX(5)*UNz))+
      *   (CTM*UNx*UNz+UNy*ST)*DFTN+(ST*UX(7)*UNx*UNz+
-     *   CTM*(UX(4)*UNz+UNx*UX(6))+UX(5)*ST+UNy*CT*UX(7))*FTN)-
-     *   DIFF*UXX(1)+DAF*UJX
+     *   CTM*(UX(4)*UNz+UNx*UX(6))+UX(5)*ST+UNy*CT*UX(7))*FTN)
+     *   + DAF*UJX - DIFF*UXX(1)
         DJY=AF*(2.0D0*(UXX(7)*UNy+CT1*UX(7)*UX(5)+ST*UXX(5)-
      *   ST*UX(7)*(UNx*UX(6)-UX(4)*UNz)-CTM*(UNx*UXX(6)-UXX(4)*UNz))+
      *   (CTM*UNy*UNz-UNx*ST)*DFTN+(ST*UX(7)*UNy*UNz+
-     *   CTM*(UX(5)*UNz+UNy*UX(6))-UX(4)*ST-UNx*CT*UX(7))*FTN)-   !!!!!!!!!
-     *   DIFF*UXX(2)+DAF*UJY
+     *   CTM*(UX(5)*UNz+UNy*UX(6))-UX(4)*ST-UNx*CT*UX(7))*FTN)
+     *   + DAF*UJY - DIFF*UXX(2)
         DJZ=AF*(2.0D0*(UXX(7)*UNz+CT1*UX(7)*UX(6)+ST*UXX(6)+
      *   ST*UX(7)*DD45+CTM*(UNx*UXX(5)-UXX(4)*UNy))+
      *   (CTM*UNz**2+CT)*DFTN+(ST*UX(7)*UNz**2+
-     *   CTM*2.0D0*UNz*UX(6)-ST*UX(7))*FTN)-DIFF*UXX(3)+DAF*UJZ
+     *   CTM*2.0D0*UNz*UX(6)-ST*UX(7))*FTN)
+     *   + DAF*UJZ - DIFF*UXX(3)
 
         B = UNx*UMxm + UMym*UNy + UMzm*UNz
 
@@ -129,7 +134,7 @@ C-- BNDRY ------ BOUNDARY CONDITIONS -- B(U,UX)=Z(T) ------------
         enddo
 
 !       Closed cell: no spin flow through walls
-!       D Mz' - Jiz' Mz - = 0 ??
+!       Jiz - Diff Mi' = 0
         if(IBN.EQ.2)THEN       ! CLOSED CELL
 C         fix n vector length
           UN=dsqrt(U(4)**2+U(5)**2+U(6)**2)
@@ -142,8 +147,10 @@ C         fix n vector length
           CT=dcos(U(7))
           CTM=1.0D0-CT
           CTM2=2.0D0*CTM
+
           DD45=UNx*UX(5)-UX(4)*UNy
           FTN=CTM*DD45-ST*UX(6)-UX(7)*UNz
+
           CTF=CTM*FTN
           STF=ST*FTN
           FTN4=CTM*UX(5)
