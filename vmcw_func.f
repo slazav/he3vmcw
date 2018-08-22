@@ -213,8 +213,13 @@ C          DBDUX(7,6)=UNz         !!
 
 C-- UINIT ------ INITIAL CONDITIONS ---------------------------------
       subroutine UINIT(XI,UI,NPDEI)
-        integer NPDEI
+        integer NPDEI,IIN
         real*8 XI, UI(NPDEI)
+
+!       set type of initial contitions:
+        call set_icond(IIN)
+
+!       default
         UI(1)=0D0      ! Mx
         UI(2)=0D0      ! My
         UI(3)=1D0      ! Mz
@@ -222,6 +227,30 @@ C-- UINIT ------ INITIAL CONDITIONS ---------------------------------
         UI(5)=0D0      ! Ny
         UI(6)=1D0      ! Nz
         UI(7)=acos(-0.25D0) ! TETA
+
+!       n-soliton at z=0
+        if (IIN.EQ.1) then
+          if (XI.LT.0D0) then
+            UI(6)=-1D0      ! Nz
+          endif
+          if (XI.EQ.0D0) then
+            UI(5)=1D0      ! Ny
+            UI(6)=0D0      ! Nz
+          endif
+          return
+        endif
+
+!       theta-soliton at z=0
+        if (IIN.EQ.2) then
+          if (XI.LT.0D0) then
+            UI(7)=-acos(-0.25D0) ! TETA
+          endif
+          if (XI.EQ.0D0) then
+            UI(7)=0 ! TETA
+              endif
+          return
+        endif
+
         return
       end
 C-- DERIVF ----- SET UP DERIVATIVES ---------------------------------

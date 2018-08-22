@@ -86,6 +86,9 @@ double HRGP = 0;
 double HRQP = 0;
 
 
+/* Type of initial conditions: 0 - plain, 1 - n-soliton, 2 - theta-soliton. */
+double icond_type = 0;
+
 
 struct pars_t pars; // parameter structure
 
@@ -125,6 +128,10 @@ extern "C" {
     }
     // type of boundary condition
     *IBN = pars.IBN;
+  }
+
+  void set_icond_(int *IIN){
+    *IIN = icond_type;
   }
 }
 
@@ -540,7 +547,8 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       /*******************************************************/
 
       // commands
-      if (cmd == "IBN")       { cmd_set(args, &pars.IBN       ); continue;}
+      if (cmd == "IBN")        { cmd_set(args, &pars.IBN       ); continue;}
+      if (cmd == "icond_type") { cmd_set(args, &icond_type     ); continue;}
       if (cmd == "CELL_LEN")  { cmd_set(args, &pars.CELL_LEN  ); continue;}
       if (cmd == "XMESH_K")   { cmd_set(args, &pars.XMESH_K   ); continue;}
       if (cmd == "XMESH_ACC") { cmd_set(args, &pars.XMESH_ACC ); continue;}
