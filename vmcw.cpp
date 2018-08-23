@@ -79,6 +79,9 @@ double HR0=1e-3, HRT=0.0, HRGP=0.0, HRQP=0.0;
 // Type of initial conditions: 0 - plain, 1 - n-soliton, 2 - theta-soliton.
 double icond_type = 0;
 
+// Type of boundary conditions: 1 - open cell, 2 - no spin currents.
+int bcond_type = 2;
+
 /*****************************/
 // He3 properties
 
@@ -111,10 +114,10 @@ pnm_writers_t pnm_writers;
 // Set parameters for Leggett equations using main parameter structure.
 // This function is called from F and BNDRY
 extern "C" {
-  void set_pars_(double *t, double *x,
+  void set_bulk_pars_(double *t, double *x,
                  double *Wr, double *Wz, double *W0,
                  double *WB, double *Cpar, double *dCpar,
-                 double *Diff, double *Tf, double *T1, int *IBN){
+                 double *Diff, double *Tf, double *T1){
 
     *W0 = 2*M_PI*f0;
     *Wz = *W0 + gyro*(H0 + HG*(*x) + HQ*(*x)*(*x) + HT*(*t));
@@ -128,17 +131,30 @@ extern "C" {
 
     // spatial modulation
     if (pars.AER){
-      int d0=0, d1=1;
       *Cpar *= 1.0 - 0.5*aer_step(&pars, *x,0);
       *dCpar =(*Cpar) * 0.5*aer_step(&pars, *x,1);
       *Diff *= 1.0 - 0.835 * aer_step(&pars, *x,0);
       *Tf   *= 1.0 - 0.5 * aer_step(&pars, *x,0);
     }
-    // type of boundary condition
-    *IBN = pars.IBN;
   }
 
-  void set_icond_(int *IIN){
+  void set_bndry_pars_(double *t, double *x, double *W0,
+                 double *Cpar, double *Diff, int *IBN){
+
+    *W0 = 2*M_PI*f0;
+    *Cpar = CP0 + CPT*(*t);
+    *Diff = DF0 + DFT*(*t);
+
+    // spatial modulation
+    if (pars.AER){
+      *Cpar *= 1.0 - 0.5*aer_step(&pars, *x,0);
+      *Diff *= 1.0 - 0.835 * aer_step(&pars, *x,0);
+    }
+    // type of boundary condition
+    *IBN = bcond_type;
+  }
+
+  void set_init_pars_(int *IIN){
     *IIN = icond_type;
   }
 }
@@ -514,7 +530,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       /*******************************************************/
 
       // commands
-      if (cmd == "IBN")       { pars.IBN = get_one_arg<double>(args); continue;}
+      if (cmd == "bcond_type"){ bcond_type = get_one_arg<int>(args); continue;}
       if (cmd == "icond_type"){ icond_type = get_one_arg<int>(args); continue;}
 
       if (cmd == "CELL_LEN")  { pars.CELL_LEN  = get_one_arg<double>(args); continue;}

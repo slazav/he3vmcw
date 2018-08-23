@@ -16,7 +16,6 @@ double PRESS     0.0     pressure, bar
 double TTC       0.0     temperature T/Tc
 double TTC_ST    0.0     temperature step
 int    AER       0       use aerogel
-int    IBN       2       type of boundary condition: 1 - open cell, 2 - closed cell
 ";
 
 # type conversion C->F

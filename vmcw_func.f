@@ -13,6 +13,7 @@
 
 C-- F ---------- EVALUATION OF F ------------------------------------
       subroutine F(T,X,U,UX,UXX,FV,NPDE)
+        implicit none
         integer NPDE
         real*8 T,X,U,UX,UXX,FV
         dimension U(NPDE),UX(NPDE),UXX(NPDE),FV(NPDE)
@@ -21,7 +22,6 @@ C-- F ---------- EVALUATION OF F ------------------------------------
 !       Leggett freq (rad/s), Cpar (cm/s) and it's z derivative,
 !       D (cm^2/s), Tf (s), T1 (s)
         real*8 WB, Cpar, dCpar, Diff, Tf, T1
-        integer IBN ! used only as argument of set_pars
 
         real*8 UN, UNx,UNy,UNz
         real*8 UMxm,UMym,UMzm
@@ -29,8 +29,8 @@ C-- F ---------- EVALUATION OF F ------------------------------------
         real*8 UJX,UJY,UJZ,DJX,DJY,DJZ ! spin current J and dJ/dz
 
 !       set parameters:
-        call set_pars(T,X, Wr,Wz,W0,WB,
-     *                Cpar, dCpar, Diff, Tf, T1, IBN)
+        call set_bulk_pars(T,X, Wr,Wz,W0,WB,
+     *                     Cpar, dCpar, Diff, Tf, T1)
 
 C       Normilize n vector length
         UN=dsqrt(U(4)**2+U(5)**2+U(6)**2)
@@ -104,7 +104,7 @@ C       Leggett equations
 C-- BNDRY ------ BOUNDARY CONDITIONS -- B(U,UX)=Z(T) ------------
 
       subroutine BNDRY(T,X,U,UX,DBDU,DBDUX,DZDT,NPDE)
-
+        implicit none
         integer NPDE
         dimension U(NPDE),UX(NPDE),DZDT(NPDE),
      *   DBDU(NPDE,NPDE),DBDUX(NPDE,NPDE)
@@ -116,13 +116,11 @@ C-- BNDRY ------ BOUNDARY CONDITIONS -- B(U,UX)=Z(T) ------------
         integer I,J
 
 !       paramaters, same as in F (only Cpar, Diff used)
-        real*8 Wr, Wz, W0
-        real*8 WB, Cpar, dCpar, Diff, Tf, T1
+        real*8 Cpar, Diff, W0
         integer IBN
 
 !       set parameters:
-        call set_pars(T,X, Wr,Wz,W0,WB,
-     *                Cpar, dCpar, Diff, Tf, T1, IBN)
+        call set_bndry_pars(T,X, W0, Cpar, Diff, IBN)
 
 
         do I=1,NPDE
@@ -213,11 +211,12 @@ C          DBDUX(7,6)=UNz         !!
 
 C-- UINIT ------ INITIAL CONDITIONS ---------------------------------
       subroutine UINIT(XI,UI,NPDEI)
+        implicit none
         integer NPDEI,IIN
         real*8 XI, UI(NPDEI)
 
 !       set type of initial contitions:
-        call set_icond(IIN)
+        call set_init_pars(IIN)
 
 !       default
         UI(1)=0D0      ! Mx
@@ -256,6 +255,7 @@ C-- UINIT ------ INITIAL CONDITIONS ---------------------------------
 C-- DERIVF ----- SET UP DERIVATIVES ---------------------------------
 CCC ATTENTION :   DERIVF IS WRONG
       subroutine DERIVF(T,X,U,UX,UXX,DFDU,DFDUX,DFDUXX,NPDE)
+        implicit none
         dimension U(NPDE),UX(NPDE),UXX(NPDE),
      *       DFDU(NPDE,NPDE),DFDUX(NPDE,NPDE),DFDUXX(NPDE,NPDE)
         integer I,J,NPDE
