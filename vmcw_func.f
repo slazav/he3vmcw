@@ -214,6 +214,7 @@ C-- UINIT ------ INITIAL CONDITIONS ---------------------------------
         implicit none
         integer NPDEI,IIN
         real*8 XI, UI(NPDEI)
+        real*8 PHI
 
 !       set type of initial contitions:
         call set_init_pars(IIN)
@@ -249,6 +250,48 @@ C-- UINIT ------ INITIAL CONDITIONS ---------------------------------
               endif
           return
         endif
+
+!       hpd
+        if (IIN.EQ.10) then
+          UI(7)=acos(-0.25D0) ! TETA
+          UI(1)=dsin(UI(7)) ! Mx
+          UI(3)=dcos(UI(7)) ! Mz
+          UI(5)=1D0      ! Ny
+          UI(6)=0D0      ! Nz
+          return
+        endif
+
+!       inversed hpd
+        if (IIN.EQ.11) then
+          UI(7)=acos(-0.25D0) ! TETA
+          UI(1)=-dsin(UI(7)) ! Mx
+          UI(3)=dcos(UI(7)) ! Mz
+          UI(5)=-1D0      ! Ny
+          UI(6)=0D0      ! Nz
+          return
+        endif
+
+!       hpd 2pi-soliton
+        if (IIN.EQ.12) then
+          PHI=XI/0.1D0 ! -1..1
+
+          if (PHI.GT.1.OR.PHI.LT.-1) then
+            UI(7)=acos(-0.25D0) ! TETA
+            UI(1)=dsin(UI(7)) ! Mx
+            UI(3)=dcos(UI(7)) ! Mz
+            UI(5)=1D0      ! Ny
+            UI(6)=0D0      ! Nz
+          else
+            UI(1)=-dcos(PHI*3.1415926D0) * dsin(UI(7)) ! Mx
+            UI(2)=dsin(PHI*3.1415926D0) * dsin(UI(7)) ! Mx
+            UI(3)=dcos(UI(7)) ! Mz
+            UI(5)=-dcos(PHI*3.1415926D0) ! ny
+            UI(4)=-dsin(PHI*3.1415926D0) ! nx
+            UI(6)=0D0      ! Nz
+          endif
+          return
+        endif
+
 
         return
       end
