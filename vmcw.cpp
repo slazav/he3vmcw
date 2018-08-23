@@ -183,7 +183,7 @@ check_nargs(int nargs, int n1, int n2=-1){
 // Read an argument of arbitrary type from string. Throw Err in case of
 // error.
 template <typename T> T
-read_arg(const std::string &str){
+get_arg(const std::string &str){
   std::istringstream ss(str);
   T v; ss >> v;
   if (!ss.eof() || ss.fail())
@@ -191,20 +191,16 @@ read_arg(const std::string &str){
   return v;
 }
 
-/******************************************************************/
-
-// process SET command
-template <typename T>
-void
-cmd_set(const std::vector<std::string> & args, T *ref){
+// check that there is one argument in the list and read it.
+// (for set, step commands)
+template <typename T> T
+get_one_arg(const std::vector<std::string> & args){
   check_nargs(args.size(), 1);
-  std::istringstream ss(args[0]);
-  T v;
-  ss >> v;
-  if (!ss.eof() || ss.fail())
-    throw Err() << "unreadable argument\n";
-  *ref=v;
+  return get_arg<T>(args[0]);
 }
+
+
+/******************************************************************/
 
 // Process SWEEP command.
 // Modify P0, PT, change global variable tend.
@@ -212,8 +208,8 @@ template <typename T>
 void
 cmd_sweep(const std::vector<std::string> & args, T *P0, T *PT, T factor=1){
   check_nargs(args.size(), 2);
-  double VD = read_arg<double>(args[0]); // destination
-  double R = read_arg<double>(args[1]);  // rate
+  double VD = get_arg<double>(args[0]); // destination
+  double R = get_arg<double>(args[1]);  // rate
   double VO = *P0/factor;                // old value
   int steps = abs(rint((VD-VO)/R/tstep));
   if (steps==0) throw Err() << "zero steps for sweep";
@@ -338,8 +334,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
 */
       // Do calculations for some time.
       if (cmd == "wait") {
-        check_nargs(narg, 1);
-        double dt = read_arg<double>(args[0]);
+        double dt = get_one_arg<double>(args);
         if (!solver) throw Err() << "solver is not running";
         tend = tcurr + dt*1e-3;
         continue;
@@ -348,8 +343,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       // Change solver accuracy. If solver is not running,
       // the value will be used after start.
       if (cmd == "acc") {
-        check_nargs(narg, 1);
-        acc = read_arg<double>(args[0]);
+        acc = get_one_arg<double>(args);
         if (solver) solver->ch_eps(acc);
         continue;
       }
@@ -357,8 +351,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       // Change accuracy (power of two). If solver is not running,
       // the value will be used after start.
       if (cmd == "acc2") {
-        check_nargs(narg, 1);
-        double v = read_arg<double>(args[0]);
+        double v = get_one_arg<double>(args);
         acc=pow(2, -v);
         if (solver) solver->ch_eps(acc);
         continue;
@@ -366,27 +359,14 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
 
       // Change min. time step (recommended 1e-10). It can be changes at any time,
       // but real change happenes when the solver is (re)started.
-      if (cmd == "mindt") {
-        check_nargs(narg, 1);
-        mindt = read_arg<double>(args[0]);
-        continue;
-      }
+      if (cmd == "mindt") { mindt = get_one_arg<double>(args); continue; }
 
       // Change number of points. It can be changed at any time,
       // but real change happenes when the solver is (re)started.
-      if (cmd == "npts") {
-        check_nargs(narg, 1);
-        npts = read_arg<int>(args[0]);
-        continue;
-      }
+      if (cmd == "npts") { npts = get_one_arg<int>(args); continue; }
 
       // Change time step. Can be changed during calculation.
-      if (cmd == "tstep") {
-        check_nargs(narg, 1);
-        tstep = read_arg<double>(args[0]);
-        continue;
-      }
-
+      if (cmd == "tstep") { tstep = get_one_arg<double>(args); continue; }
 
       /*******************************************************/
       // pnm writer
@@ -429,197 +409,130 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       /*******************************************************/
       // set NMR frequency
       if (cmd == "set_freq") {
-        check_nargs(narg, 1);
-        f0 = read_arg<double>(args[0]);
-        continue;
-      }
+        f0 = get_one_arg<double>(args); continue; }
 
       // Set uniform field [G, from larmor].
       if (cmd == "set_field") {
-        check_nargs(narg, 1);
-        H0 = read_arg<double>(args[0]);
-        continue;
-      }
+        H0 = get_one_arg<double>(args); continue; }
 
       // Uniform field step [G].
       if (cmd == "step_field") {
-        check_nargs(narg, 1);
-        H0 += read_arg<double>(args[0]);
-        continue;
-      }
+        H0 += get_one_arg<double>(args); continue; }
 
       // Set field gradient [G/cm].
       if (cmd == "set_field_grad") {
-        check_nargs(narg, 1);
-        HG = read_arg<double>(args[0]);
-        continue;
-      }
+        HG = get_one_arg<double>(args); continue; }
 
       // Set field quadratic term [G/cm^2].
       if (cmd == "set_field_quad") {
-        check_nargs(narg, 1);
-        HQ = read_arg<double>(args[0]);
-        continue;
-      }
+        HQ = get_one_arg<double>(args); continue; }
 
       // Sweep uniform field: destination [G], rate [G/s].
       if (cmd == "sweep_field") {
-        cmd_sweep(args, &H0, &HT);
-        continue;
-      }
+        cmd_sweep(args, &H0, &HT); continue; }
 
       // Set uniform field in frequency shift units [Hz from NMR freq].
       if (cmd == "set_field_hz") {
-        check_nargs(narg, 1);
-        H0 = read_arg<double>(args[0]) * 2*M_PI/gyro;
-        continue;
-      }
+        H0 = get_one_arg<double>(args) * 2*M_PI/gyro; continue; }
 
       // Uniform field step [Hz].
       if (cmd == "step_field_hz") {
-        check_nargs(narg, 1);
-        H0 += read_arg<double>(args[0]) * 2*M_PI/gyro;
-        continue;
-      }
+        H0 += get_one_arg<double>(args) * 2*M_PI/gyro; continue; }
 
       // Sweep uniform field: destination [Hz], rate [Hz/s].
       if (cmd == "sweep_field_hz") {
-        cmd_sweep(args, &H0, &HT, 2*M_PI/gyro);
-        continue;
-      }
+        cmd_sweep(args, &H0, &HT, 2*M_PI/gyro); continue; }
 
       // Set uniform field in Larmor position units [cm].
       // Gradient term is used to convert field to cm. Quadratic term is not used.
       // Lower Larmor positon means higher field.
       if (cmd == "set_field_cm") {
-        check_nargs(narg, 1);
         if (HG == 0.0) throw Err() << "can't set Larmor position if "
                                       "field gradient is zero";
-        H0 = -read_arg<double>(args[0])*HG;
-        continue;
-      }
+        H0 = -get_one_arg<double>(args)*HG; continue; }
 
       // Uniform field step [cm].
       if (cmd == "step_field_cm") {
-        check_nargs(narg, 1);
         if (HG == 0.0) throw Err() << "can't set Larmor position if "
                                       "field gradient is zero";
-        H0 -= read_arg<double>(args[0])*HG;
-        continue;
-      }
+        H0 -= get_one_arg<double>(args)*HG; continue; }
 
       // Sweep uniform field: destination [cm], rate [cm/s].
       if (cmd == "sweep_field_cm") {
         if (HG == 0.0) throw Err() << "can't set Larmor position if "
                                       "field gradient is zero";
-        cmd_sweep(args, &H0, &HT, -HG);
-        continue;
-      }
+        cmd_sweep(args, &H0, &HT, -HG); continue; }
+
       /*******************************************************/
 
       // RF-field profile, gradient term [1/cm], quadratic term [1/cm^2].
       if (cmd == "set_rf_prof") {
-        check_nargs(narg, 1,2);
-        HRGP = read_arg<double>(args[0]);
-        if (narg>1) HRQP = read_arg<double>(args[1]);
+        check_nargs(narg, 2);
+        HRGP = get_arg<double>(args[0]);
+        HRQP = get_arg<double>(args[1]);
         continue;
       }
 
-      // Set RF field [G].
+      // Set/step/sweep RF field [G].
       if (cmd == "set_rf_field") {
-        check_nargs(narg, 1);
-        HR0 = read_arg<double>(args[0]);
-        continue;
-      }
-
-      // Do RF-field step [G].
+        HR0 = get_one_arg<double>(args); continue; }
       if (cmd == "step_rf_field") {
-        check_nargs(narg, 1);
-        HR0 += read_arg<double>(args[0]);
-        continue;
-      }
-
-      // Sweep RF field: destination [G], rate [G/s].
+        HR0 += get_one_arg<double>(args); continue; }
       if (cmd == "sweep_rf_field") {
-        cmd_sweep(args, &HR0, &HRT);
-        continue;
-      }
+        cmd_sweep(args, &HR0, &HRT); continue; }
 
-      // Set and sweep relaxation time t_1 [s]
+      // Set/sweep relaxation time t_1 [s]
       if (cmd == "set_t1") {
-        check_nargs(narg, 1);
-        T10 = read_arg<double>(args[0]);
-        continue;
-      }
+        T10 = get_one_arg<double>(args); continue; }
       if (cmd == "sweep_t1") {
-        cmd_sweep(args, &T10, &T1T);
-        continue;
-      }
+        cmd_sweep(args, &T10, &T1T); continue; }
 
-      // Setand sweep Leggett-Takagi relaxation time tau_f [s]
+      // Set/sweep Leggett-Takagi relaxation time tau_f [s]
       if (cmd == "set_tf") {
-        check_nargs(narg, 1);
-        TF0 = read_arg<double>(args[0]);
-        continue;
-      }
+        TF0 = get_one_arg<double>(args); continue; }
       if (cmd == "sweep_tf") {
-        cmd_sweep(args, &TF0, &TFT);
-        continue;
-      }
+        cmd_sweep(args, &TF0, &TFT); continue; }
 
-      // Set and sweep spin diffusion [cm^2/s]
+      // Set/sweep spin diffusion [cm^2/s]
       if (cmd == "set_diff") {
-        check_nargs(narg, 1);
-        DF0 = read_arg<double>(args[0]);
-        continue;
-      }
+        DF0 = get_one_arg<double>(args); continue; }
       if (cmd == "sweep_diff") {
-        cmd_sweep(args, &DF0, &DFT);
-        continue;
-      }
+        cmd_sweep(args, &DF0, &DFT); continue; }
 
       // Set and sweep spin-wave velocity c_parallel [cm/s]
       if (cmd == "set_cpar") {
-        check_nargs(narg, 1);
-        CP0 = read_arg<double>(args[0]);
-        continue;
-      }
+        CP0 = get_one_arg<double>(args); continue; }
       if (cmd == "sweep_cpar") {
-        cmd_sweep(args, &CP0, &CPT);
-        continue;
-      }
+        cmd_sweep(args, &CP0, &CPT); continue; }
 
       // Set and sweep Leggett frequency [Hz]
       if (cmd == "set_leggett_freq") {
-        check_nargs(narg, 1);
-        LF0 = read_arg<double>(args[0]);
-        continue;
-      }
+        LF0 = get_one_arg<double>(args); continue; }
       if (cmd == "sweep_leggett_freq") {
-        cmd_sweep(args, &LF0, &LFT);
-        continue;
-      }
+        cmd_sweep(args, &LF0, &LFT); continue; }
 
       /*******************************************************/
 
       // commands
-      if (cmd == "IBN")        { cmd_set(args, &pars.IBN       ); continue;}
-      if (cmd == "icond_type") { cmd_set(args, &icond_type     ); continue;}
-      if (cmd == "CELL_LEN")  { cmd_set(args, &pars.CELL_LEN  ); continue;}
-      if (cmd == "XMESH_K")   { cmd_set(args, &pars.XMESH_K   ); continue;}
-      if (cmd == "XMESH_ACC") { cmd_set(args, &pars.XMESH_ACC ); continue;}
-      if (cmd == "AER")       { cmd_set(args, &pars.AER       ); continue;}
-      if (cmd == "AER_LEN")   { cmd_set(args, &pars.AER_LEN   ); continue;}
-      if (cmd == "AER_CNT")   { cmd_set(args, &pars.AER_CNT   ); continue;}
-      if (cmd == "AER_TRW")   { cmd_set(args, &pars.AER_TRW   ); continue;}
+      if (cmd == "IBN")       { pars.IBN = get_one_arg<double>(args); continue;}
+      if (cmd == "icond_type"){ icond_type = get_one_arg<int>(args); continue;}
+
+      if (cmd == "CELL_LEN")  { pars.CELL_LEN  = get_one_arg<double>(args); continue;}
+      if (cmd == "XMESH_K")   { pars.XMESH_K   = get_one_arg<double>(args); continue;}
+      if (cmd == "XMESH_ACC") { pars.XMESH_ACC = get_one_arg<double>(args); continue;}
+
+      if (cmd == "AER")       { pars.AER     = get_one_arg<int>(args); continue;}
+      if (cmd == "AER_LEN")   { pars.AER_LEN = get_one_arg<double>(args); continue;}
+      if (cmd == "AER_CNT")   { pars.AER_CNT = get_one_arg<double>(args); continue;}
+      if (cmd == "AER_TRW")   { pars.AER_TRW = get_one_arg<double>(args); continue;}
 
       /*******************************************************/
 
 #ifdef HE3LIB
       if (cmd == "set_ttc_press") {
         check_nargs(narg, 2);
-        double T = read_arg<double>(args[0]);
-        double P = read_arg<double>(args[1]);
+        double T = get_arg<double>(args[0]);
+        double P = get_arg<double>(args[1]);
         set_he3tp(T, P);
         continue;
       }
