@@ -230,9 +230,9 @@ write_profile(pdecol_solver *solver, const std::string & fname) {
 
   std::vector<double> xsol(npts);
   set_mesh(&pars, xsol);
-  std::ofstream ss(fname);
   std::vector<double> usol = solver->values(xsol, nder);
 
+  std::ofstream ss(fname);
   // print legend: # coord  U(0) U(1) ... U(0)' U(1)' ...
   ss << "# coord.     ";
   for (int d = 0; d<nder; d++){
@@ -251,7 +251,7 @@ write_profile(pdecol_solver *solver, const std::string & fname) {
     for (int d = 0; d<nder; d++){
       ss << "  ";
       for (int n = 0; n<npde; n++){
-        ss << " " << solver->get_value(usol, npts, i, d, n);
+        ss << " " << solver->get_value(usol, npts, i, n, d);
       }
     }
     ss << "\n";
