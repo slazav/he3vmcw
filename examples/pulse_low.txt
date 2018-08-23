@@ -1,7 +1,7 @@
 npts 257
 mindt 1e-20
 tstep 5e-4
-t11 20
+set_t1 0.05
 
 set_field_hz    0
 set_field_grad  0

@@ -6,8 +6,6 @@ set_rf_field   0.61e-3     # RF-field
 set_field_grad 5.7e-3  # field gradient, 15.7 G/cm/A
 set_field_quad -25e-3     # field gradient, 15.7 G/cm/A
 set_field_hz   30
-t11   1
-
 
 tstep 0.005
 start                   # start the solver

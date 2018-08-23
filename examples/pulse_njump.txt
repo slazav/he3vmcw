@@ -2,8 +2,8 @@ npts 257
 mindt 1e-20
 acc2 18
 tstep 5e-4
-t11 20
-LF0 10000
+set_t1 0.05
+set_leggett_freq 10000
 
 set_field_hz    0
 set_field_grad  0

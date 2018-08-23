@@ -6,15 +6,6 @@ use warnings;
 
 # parameters (type, name, default, comment):
 my $pars ="
-double t11       1.0     1/t1, s^-1
-double DF0       0.1     Spin diffusion, cm^2/s
-double DF_SWR    0.0     Spin diffusion sweep rate (cm^2/s)/s
-double TF0       1e-5    Leggett-Takagi relaxation time, s
-double TF_SWR    0.0     Leggett-Takagi relaxation time sweep rate s/s
-double LF0       1e5     Leggett frequency, Hz
-double LF_SWR    0.0     Leggett frequency sweep rate, Hz/s
-double CPAR0     5e2     spin-wave velocity (c_par?), cm/s
-double CPAR_SWR  0.0     spin-wave velocity sweep rate, (cm/s)/s
 double AER_LEN   0.5     aerogel length / cell length
 double AER_CNT   0.0     center of aerogel area / cell length
 double AER_TRW   6e-3    transition width / cell length
@@ -24,7 +15,6 @@ double XMESH_ACC 1e-10   mesh accuracy
 double PRESS     0.0     pressure, bar
 double TTC       0.0     temperature T/Tc
 double TTC_ST    0.0     temperature step
-double T1C       6e14    T1=T1C*T
 int    AER       0       use aerogel
 int    IBN       2       type of boundary condition: 1 - open cell, 2 - closed cell
 ";

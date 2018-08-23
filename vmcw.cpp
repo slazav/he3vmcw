@@ -15,6 +15,9 @@
 // I use many global variables here. Maybe it would be better
 // to pack everything inside a class
 
+/*****************************/
+// Solver parameters.
+
 /* Number of equations. Can not be changed. */
 const int npde = 7;
 
@@ -45,8 +48,8 @@ double tstep = 5e-3;
 without reading new commands. Should be equal to "time" in the begining. */
 double tend = tcurr;
 
-/* NMR frequency and constant magnetic field.
-   Total field is: H = 2pi*f0/gyro + H0 + HG*x + HQ*x^2 + HT*t. */
+/*****************************/
+// NMR frequency, magnetic fields.
 
 /* Gyromagnetic ratio. */
 const double gyro = 20378.0;
@@ -56,39 +59,45 @@ fiels should be changed to observe the resonance. Default value 1MHz
 corresponds to default magnetic field. */
 double f0 = 1e6;
 
-/* Magnetic field [G], measured from 2pi*f0/gyro.*/
-double H0 = 0;
+// Magnetic field.
+// Total field is: H = 2pi*f0/gyro + H0 + HT*t + HG*x + HQ*x^2. */
+//  H0 - uniform field measured from 2pi*f0/gyro [G],
+//  HT - sweep rate, dH/dt [G/s],
+//  HG - gradient, dH/dz [G/cm],
+//  HQ - quadratic term, d^2H/dz^2 [G/cm^2].
+double H0=0.0,  HT = 0.0,  HG = 0.1,  HQ = 0.0;
 
-/* Magnetic field sweep rate, dH/dt [G/s].*/
-double HT = 0;
+// Radio-frequncy field.
+// Total field is: HR = (HR0 + HRT*t) * (1 + x/xRG + (x/xRQ)^2).
+// Gradient and quadratic terms change proportianally with the field.
+//  HR0 - Initial value [G],
+//  HRT - sweep rate, dHr/dt [G/s],
+//  HRGP - gradient profile [1/cm],
+//  HRQP - quadratic profile [1/cm^2].
+double HR0=1e-3, HRT=0.0, HRGP=0.0, HRQP=0.0;
 
-/* Magnetic field gradient, dH/dz [G/cm]. */
-double HG = 0.1;
-
-/* Magnetic field quadratic term, d^2H/dz^2 [G/cm^2]. */
-double HQ = 0;
-
-
-/* Radio-frequncy field.
-Total field is: HR = (HR0 + HRT*t) * (1 + x/xRG + (x/xRQ)^2).
-Gradient and quadratic terms change proportiannaly with the field. */
-
-/* RF field [G].*/
-double HR0 = 1e-3;
-
-/* RF-field sweep rate, dHr/dt [G/s].*/
-double HRT = 0;
-
-/* RF-field gradient profile [1/cm]. */
-double HRGP = 0;
-
-/* Magnetic field quadratic profile [1/cm^2]. */
-double HRQP = 0;
-
-
-/* Type of initial conditions: 0 - plain, 1 - n-soliton, 2 - theta-soliton. */
+// Type of initial conditions: 0 - plain, 1 - n-soliton, 2 - theta-soliton.
 double icond_type = 0;
 
+/*****************************/
+// He3 properties
+
+// t1 relaxation time, initial value [s] and sweep rate [s/s]
+double T10=1.0, T1T=0.0;
+
+// Leggett-Takagi relaxation time tau_f, initial value [s] and sweep rate [s/s]
+double TF0=1e-5, TFT=0.0;
+
+// Spin-wave velocity, c_par, initial value [cm/s] and sweep rate [(cm/s)/s]
+double CP0=500.0, CPT=0.0;
+
+// Leggett frequency Omega_B, initial value [Hz] and sweep rate [Hz/s]
+double LF0=1e5, LFT=0.0;
+
+// Spin diffusion, initial value [cm^2/s] and sweep rate [(cm^2/s)/s]
+double DF0=0.1, DFT=0.0;
+
+/*****************************/
 
 struct pars_t pars; // parameter structure
 
@@ -111,12 +120,11 @@ extern "C" {
     *Wz = *W0 + gyro*(H0 + HG*(*x) + HQ*(*x)*(*x) + HT*(*t));
     *Wr = gyro*(HR0 + HRT*(*t)) * (1.0 + (*x)*HRGP + (*x)*(*x)*HRQP);
 
-    *WB = (pars.LF0 + pars.LF_SWR*(*t))*2*M_PI;
-    *Cpar = pars.CPAR0 + pars.CPAR_SWR*(*t);
-    *dCpar = 0;
-    *Diff = pars.DF0 + pars.DF_SWR*(*t);
-    *Tf   = pars.TF0 + pars.TF_SWR*(*t);
-    *T1   = 1.0/pars.t11;
+    *WB = ( LF0 + LFT*(*t))*2*M_PI;
+    *Cpar = CP0 + CPT*(*t); *dCpar = 0;
+    *Diff = DF0 + DFT*(*t);
+    *Tf   = TF0 + TFT*(*t);
+    *T1   = T10 + T1T*(*t);
 
     // spatial modulation
     if (pars.AER){
@@ -142,11 +150,11 @@ extern "C" {
 // set parameters using temperature, pressure and he3lib
 void set_he3tp(double ttc, double p){
   double nu_b = he3_nu_b_(&ttc,&p);
-  pars.CPAR0 = he3_cpar_(&ttc,&p) - pars.CPAR_SWR*tcurr;
-  pars.LF0   = nu_b  - pars.LF_SWR*tcurr;
-  pars.DF0   = he3_diff_perp_zz_(&ttc,&p,&f0) - pars.DF_SWR*tcurr;
+  CP0 = he3_cpar_(&ttc,&p) - CPT*tcurr;
+  LF0 = nu_b  - LFT*tcurr;
+  DF0 = he3_diff_perp_zz_(&ttc,&p,&f0) - DFT*tcurr;
   double tr  = 1.2e-7/sqrt(1.0-ttc);
-  pars.TF0   = 1.0/ (4.0*M_PI*M_PI * nu_b*nu_b * tr);
+  TF0   = 1.0/ (4.0*M_PI*M_PI * nu_b*nu_b * tr) - TFT*tcurr;
 }
 #endif
 
@@ -205,13 +213,13 @@ cmd_set(const std::vector<std::string> & args, T *ref){
 int
 read_cmd(std::istream &in_c, std::ostream & out_c){
   // reset sweeps
-  pars.DF0=pars.DF0+tcurr*pars.DF_SWR;       pars.DF_SWR=0.0;
-  pars.TF0=pars.TF0+tcurr*pars.TF_SWR;       pars.TF_SWR=0.0;
-  pars.LF0=pars.LF0+tcurr*pars.LF_SWR;       pars.LF_SWR=0.0;
-  pars.CPAR0=pars.CPAR0+tcurr*pars.CPAR_SWR; pars.CPAR_SWR = 0.0;
-
   H0  = H0  + tcurr*HT;  HT=0.0;
   HR0 = HR0 + tcurr*HRT; HRT=0.0;
+  TF0 = TF0 + tcurr*TFT; TFT=0.0;
+  T10 = T10 + tcurr*T1T; T1T=0.0;
+  LF0 = LF0 + tcurr*LFT; LFT=0.0;
+  CP0 = CP0 + tcurr*CPT; CPT=0.0;
+  DF0 = DF0 + tcurr*DFT; DFT=0.0;
 
   // read input string line by line
   std::string line;
@@ -539,7 +547,98 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         int steps = abs(rint((v-HR0)/r/tstep));
         if (steps==0) throw Err() << "zero steps";
         HRT = (v-HR0)/(steps*tstep);
-        HR0 -= tcurr*HT;
+        HR0 -= tcurr*HRT;
+        tend  = tcurr + steps*tstep;
+        return 0;
+      }
+
+
+      // Set and sweep relaxation time t_1 [s]
+      if (cmd == "set_t1") {
+        check_nargs(narg, 1);
+        T10 = read_arg<double>(args[0]);
+        continue;
+      }
+      if (cmd == "sweep_t1") {
+        check_nargs(narg, 2);
+        double v = read_arg<double>(args[0]); // destination, G
+        double r = read_arg<double>(args[1]); // rate, G/s
+        int steps = abs(rint((v-T10)/r/tstep));
+        if (steps==0) throw Err() << "zero steps";
+        T1T = (v-T10)/(steps*tstep);
+        T10 -= tcurr*T10;
+        tend  = tcurr + steps*tstep;
+        return 0;
+      }
+
+      // Setand sweep Leggett-Takagi relaxation time tau_f [s]
+      if (cmd == "set_tf") {
+        check_nargs(narg, 1);
+        TF0 = read_arg<double>(args[0]);
+        continue;
+      }
+      if (cmd == "sweep_tf") {
+        check_nargs(narg, 2);
+        double v = read_arg<double>(args[0]); // destination, G
+        double r = read_arg<double>(args[1]); // rate, G/s
+        int steps = abs(rint((v-TF0)/r/tstep));
+        if (steps==0) throw Err() << "zero steps";
+        TFT = (v-TF0)/(steps*tstep);
+        TF0 -= tcurr*TF0;
+        tend  = tcurr + steps*tstep;
+        return 0;
+      }
+
+      // Set and sweep spin diffusion [cm^2/s]
+      if (cmd == "set_diff") {
+        check_nargs(narg, 1);
+        DF0 = read_arg<double>(args[0]);
+        continue;
+      }
+      if (cmd == "sweep_diff") {
+        check_nargs(narg, 2);
+        double v = read_arg<double>(args[0]); // destination, G
+        double r = read_arg<double>(args[1]); // rate, G/s
+        int steps = abs(rint((v-DF0)/r/tstep));
+        if (steps==0) throw Err() << "zero steps";
+        DFT = (v-DF0)/(steps*tstep);
+        DF0 -= tcurr*DF0;
+        tend  = tcurr + steps*tstep;
+        return 0;
+      }
+
+      // Set and sweep spin-wave velocity c_parallel [cm/s]
+      if (cmd == "set_cpar") {
+        check_nargs(narg, 1);
+        CP0 = read_arg<double>(args[0]);
+        continue;
+      }
+      if (cmd == "sweep_cpar") {
+        check_nargs(narg, 2);
+        double v = read_arg<double>(args[0]); // destination, G
+        double r = read_arg<double>(args[1]); // rate, G/s
+        int steps = abs(rint((v-CP0)/r/tstep));
+        if (steps==0) throw Err() << "zero steps";
+        CPT = (v-CP0)/(steps*tstep);
+        CP0 -= tcurr*CP0;
+        tend  = tcurr + steps*tstep;
+        return 0;
+      }
+
+      // Set and sweep Leggett frequency [Hz]
+      if (cmd == "set_leggett_freq") {
+        check_nargs(narg, 1);
+        LF0 = read_arg<double>(args[0]);
+        continue;
+      }
+      if (cmd == "sweep_leggett_freq") {
+        check_nargs(narg, 2);
+        double v = read_arg<double>(args[0]); // destination, G
+        double r = read_arg<double>(args[1]); // rate, G/s
+        int steps = abs(rint((v-LF0)/r/tstep));
+        if (steps==0) throw Err() << "zero steps";
+        LFT = (v-LF0)/(steps*tstep);
+        LF0 -= tcurr*LF0;
         tend  = tcurr + steps*tstep;
         return 0;
       }
@@ -556,13 +655,6 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       if (cmd == "AER_LEN")   { cmd_set(args, &pars.AER_LEN   ); continue;}
       if (cmd == "AER_CNT")   { cmd_set(args, &pars.AER_CNT   ); continue;}
       if (cmd == "AER_TRW")   { cmd_set(args, &pars.AER_TRW   ); continue;}
-
-      if (cmd == "t11")   { cmd_set(args, &pars.t11    ); continue;}
-      if (cmd == "t1c")   { cmd_set(args, &pars.T1C    ); continue;}
-      if (cmd == "TF0")   { cmd_set(args, &pars.TF0    ); continue;}
-      if (cmd == "DF0")   { cmd_set(args, &pars.DF0    ); continue;}
-      if (cmd == "LF0")   { cmd_set(args, &pars.LF0    ); continue;}
-      if (cmd == "CPAR")  { cmd_set(args, &pars.CPAR0  ); continue;}
 
       /*******************************************************/
 
@@ -625,10 +717,11 @@ write_pars(std::ostream & s){
   s << " T=" << tcurr*1000 << " ms, "
     << "H0=" << H0+HT*tcurr << " G, "
     << "HR=" << 1e3*(HR0+HRT*tcurr) << " mOe, "
-    << "TF=" << 1e6*(pars.TF0+pars.TF_SWR*tcurr) << " mks, "
-    << "LF=" << 1e-3*(pars.LF0+pars.LF_SWR*tcurr) << " kHz, "
-    << "DF=" << (pars.DF0+pars.DF_SWR*tcurr) << " cm^2/s, "
-    << "CPAR=" <<  (pars.CPAR0+pars.CPAR_SWR*tcurr) << " cm/s, "
+    << "LF=" << 1e-3*(LF0+LFT*tcurr) << " kHz, "
+    << "CP=" <<  (CP0+CPT*tcurr) << " cm/s, "
+    << "DF=" << (DF0+DFT*tcurr) << " cm^2/s, "
+    << "TF=" << 1e6*(TF0+TFT*tcurr) << " mks, "
+    << "T1=" <<  (T10+T1T*tcurr) << " cm/s, "
     << "\n";
 }
 
@@ -652,6 +745,7 @@ try{
 
   // set default parameters
   set_def_pars(&pars);
+
 
   std::ofstream out_m("magn.dat"); // log total magnetization
   out_m << "# Integral magnetization log: T, LP, Mx, Mx, Mz\n";

@@ -10,9 +10,8 @@ f0 1124000
 set_rf_field   1.05e-3     # RF-field
 set_field_grad -15.7e-3  # field gradient, 15.7 G/cm/A
 set_field_hz   30
-t11   1
 
-LF0 50000
+set_leggett_freq 50000
 
 npts 267
 mindt 1e-10
