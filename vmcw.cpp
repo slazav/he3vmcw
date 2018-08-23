@@ -101,6 +101,15 @@ double LF0=1e5, LFT=0.0;
 double DF0=0.1, DFT=0.0;
 
 /*****************************/
+// files
+
+// prefix for data files, command file name without extension
+std::string pref;
+
+// mesh, prof file counters
+int cnt_mesh=0, cnt_prof=0;
+
+/*****************************/
 
 struct pars_t pars; // parameter structure
 
@@ -215,6 +224,39 @@ get_one_arg(const std::vector<std::string> & args){
   return get_arg<T>(args[0]);
 }
 
+/******************************************************************/
+void
+write_profile(pdecol_solver *solver, const std::string & fname) {
+
+  std::vector<double> xsol(npts);
+  set_mesh(&pars, xsol);
+  std::ofstream ss(fname);
+  std::vector<double> usol = solver->values(xsol, nder);
+
+  // print legend: # coord  U(0) U(1) ... U(0)' U(1)' ...
+  ss << "# coord.     ";
+  for (int d = 0; d<nder; d++){
+    ss << "  ";
+    for (int n = 0; n<npde; n++){
+      ss << "U(" << n << ")";
+      for (int i=0; i<d; i++) ss << "'";
+      ss << "      ";
+    }
+  }
+  ss << "\n" << std::scientific << std::setprecision(6);
+
+  //print values
+  for (int i=0; i< xsol.size(); i++){
+    ss << xsol[i];
+    for (int d = 0; d<nder; d++){
+      ss << "  ";
+      for (int n = 0; n<npde; n++){
+        ss << " " << solver->get_value(usol, npts, i, d, n);
+      }
+    }
+    ss << "\n";
+  }
+}
 
 /******************************************************************/
 
@@ -305,9 +347,14 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         tend=tcurr;
         std::vector<double> xbrpt(npts);
         set_mesh(&pars, xbrpt);
-        save_mesh(&pars, xbrpt, "mesh.txt");
         solver = new pdecol_solver(tcurr, mindt, acc, xbrpt, npde);
         if (!solver) throw Err() << "can't create solver";
+
+        // save the mesh
+        std::ostringstream ss;
+        ss << pref << ".mesh" << cnt_mesh << ".dat";
+        save_mesh(&pars, xbrpt, ss.str());
+        cnt_mesh++;
         continue;
       }
 
@@ -329,25 +376,19 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         solver=NULL;
         return 1;
       }
-/*
+
       // write function profiles to a file
-      if (cmd == "profile") {
-        check_nargs(narg, 1);
-        std::ofstream ss(args[0].c_str());
+      if (cmd == "write_profile") {
+        check_nargs(narg, 0);
         if (!solver) throw Err() << "solver is not running";
-        else solver->write_profile(ss);
+        std::ostringstream ss;
+        ss << pref << ".prof" << cnt_prof << ".dat";
+        write_profile(solver, ss.str());
+        cnt_prof++;
         continue;
       }
-*/
-/*
-      // save mesh into file
-      if (cmd == "save_mesh") {
-        check_nargs(narg, 1);
-        if (!solver) throw Err() << "solver is not running";
-        else save_mesh(&pars, solver->get_crd_vec(), args[0]);
-        continue;
-      }
-*/
+
+
       // Do calculations for some time.
       if (cmd == "wait") {
         double dt = get_one_arg<double>(args);
@@ -615,27 +656,33 @@ int
 main(int argc, char *argv[]){
 try{
 
+  // program should be run with one argument - name of command file
   if (argc!=2){
     std::cerr << "Usage: " << argv[0] << " <command file>\n";
     return 1;
   }
 
-  std::ifstream in_c(argv[1]);   // read commands
+  // open command file
+  std::ifstream in_c(argv[1]);
   if (!in_c.good()){
     std::cerr << "Can't open command file: " << argv[1] << "\n";
     return 1;
   }
 
+  // find prefix (command file name without extension)
+  const char * pos = rindex(argv[1], '.');
+  pref = pos ? std::string(argv[1], pos-argv[1]) : argv[1];
+
   // set default parameters
   set_def_pars(&pars);
 
 
-  std::ofstream out_m("magn.dat"); // log total magnetization
+  std::ofstream out_m(pref + ".magn.dat"); // log total magnetization
   out_m << "# Integral magnetization log: T, LP, Mx, Mx, Mz\n";
-  std::ofstream out_c("cmd_log.dat"); // log commands and main parameters
-  out_c << "# Commands and main parameters\n";
+  std::ofstream out_l(pref + ".run.log"); // log commands
+  out_l << "# Commands and main parameters\n";
 
-  write_pars(out_c);
+  write_pars(out_l);
 
 
   // main cycle
@@ -644,7 +691,7 @@ try{
 
     // If we reach final time, read new cmd.
     // If it returns 1, finish the program
-    if (tcurr >= tend && read_cmd(in_c, out_c)) break;
+    if (tcurr >= tend && read_cmd(in_c, out_l)) break;
 
     // do the next step
     if (solver) {
@@ -658,11 +705,11 @@ try{
       // write results
       write_magn(out_m, xsol, usol);
       pnm_writers.write(xsol, usol);
-      write_pars(out_c);
+      write_pars(out_l);
     }
 
     // flush files
-    out_c.flush();
+    out_l.flush();
     out_m.flush();
   }
 

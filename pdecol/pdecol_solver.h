@@ -103,10 +103,6 @@ class pdecol_solver {
   // get min coordinate
   int get_xmax() const {return xmax;}
 
-
-  /// Write functions and derivatives vs. the coordinate.
-//  void write_profile(std::ostream &ss);
-
   /************************************/
   // Error class for exceptions
   public:

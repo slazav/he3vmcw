@@ -213,38 +213,6 @@ int
 pdecol_solver::get_nje() const { return gear0_.NJE;}
 
 
-
-
-/*
-void
-pdecol_solver::write_profile(std::ostream &ss) {
-
-  // pront legend: # coord  U(0) U(1) ... U(0)' U(1)' ...
-  ss << "# coord.     ";
-  for (int d = 0; d<NDERV; d++){
-    ss << "  ";
-    for (int n = 0; n<NPDE; n++){
-      ss << "U(" << n << ")";
-      for (int i=0; i<d; i++) ss << "'";
-      ss << "      ";
-    }
-  }
-  ss << "\n" << std::scientific << std::setprecision(6);
-
-  //print values
-  for (int i=0; i< XSOL.size(); i++){
-    ss << XSOL[i];
-    for (int d = 0; d<NDERV; d++){
-      ss << "  ";
-      for (int n = 0; n<NPDE; n++){
-        ss << " " << USOL[d*(NPDE*NPTS) + i*NPDE + n];
-      }
-    }
-    ss << "\n";
-  }
-}
-*/
-
 void
 pdecol_solver::check_error(const int index) {
   switch (INDEX){

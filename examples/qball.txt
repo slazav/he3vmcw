@@ -22,5 +22,5 @@ sweep_field_hz    0 2
 # mark larmor position with a horizontal line
 pnm_hline qball.pic.pnm
 sweep_field_hz    -40 2
-profile qball.prof1.dat
+write_profile
 

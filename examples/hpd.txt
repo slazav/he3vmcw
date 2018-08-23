@@ -14,15 +14,15 @@ pnm_legend hpd.pic.pnm  # draw legend on the figure
 sweep_field_cm -0.1 0.1   # sweep field
 
 pnm_hline hpd.pic.pnm
-profile prof1.dat
+write_profile
 sweep_field_cm  0.0 0.1
 
 pnm_hline hpd.pic.pnm
-profile prof2.dat
+write_profile
 sweep_field_cm  0.1 0.1
 
 pnm_hline hpd.pic.pnm
-profile prof3.dat
+write_profile
 sweep_field_cm 0.2 0.1
 
 acc2 20

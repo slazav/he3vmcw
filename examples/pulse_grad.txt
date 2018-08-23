@@ -21,4 +21,4 @@ pnm_hline pulse_grad.pic.pnm
 set_rf_field 0
 wait 50
 
-profile pulse_grad.prof1.dat
+write_profile
