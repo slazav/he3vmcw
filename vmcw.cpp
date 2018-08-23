@@ -194,9 +194,8 @@ read_arg(const std::string &str){
 /******************************************************************/
 
 // process SET command
-// return 1 if command have been found (correct or wrong)
 template <typename T>
-bool
+void
 cmd_set(const std::vector<std::string> & args, T *ref){
   check_nargs(args.size(), 1);
   std::istringstream ss(args[0]);
@@ -205,11 +204,27 @@ cmd_set(const std::vector<std::string> & args, T *ref){
   if (!ss.eof() || ss.fail())
     throw Err() << "unreadable argument\n";
   *ref=v;
-  return true;
 }
 
+// Process SWEEP command.
+// Modify P0, PT, change global variable tend.
+template <typename T>
+void
+cmd_sweep(const std::vector<std::string> & args, T *P0, T *PT, T factor=1){
+  check_nargs(args.size(), 2);
+  double VD = read_arg<double>(args[0]); // destination
+  double R = read_arg<double>(args[1]);  // rate
+  double VO = *P0/factor;                // old value
+  int steps = abs(rint((VD-VO)/R/tstep));
+  if (steps==0) throw Err() << "zero steps for sweep";
+  *PT = (VD-VO)/(steps*tstep) * factor;
+  *P0 -= tcurr*(*PT);
+  tend  = tcurr + steps*tstep;
+}
+
+
 /// Read one or more commends from a stream.
-/// Return 1 if file is finished, 0 otherwise.
+/// Return 1 if file is finished, 0 if more calculations are needed.
 int
 read_cmd(std::istream &in_c, std::ostream & out_c){
   // reset sweeps
@@ -221,9 +236,17 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
   CP0 = CP0 + tcurr*CPT; CPT=0.0;
   DF0 = DF0 + tcurr*DFT; DFT=0.0;
 
-  // read input string line by line
+  // Read input string line by line
+  // Stop reading is some command increase tend, then
+  // calculation is needed.
   std::string line;
-  while (getline(in_c, line)){
+  while (tend <= tcurr){
+
+    // return 1 at the end of command file
+    if (!getline(in_c, line)){
+      out_c << "End of command file, stop calculations\n";
+      return 1;
+    }
 
     // remove comments
     size_t c = line.find('#');
@@ -319,7 +342,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         double dt = read_arg<double>(args[0]);
         if (!solver) throw Err() << "solver is not running";
         tend = tcurr + dt*1e-3;
-        return 0;
+        continue;
       }
 
       // Change solver accuracy. If solver is not running,
@@ -441,15 +464,8 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
 
       // Sweep uniform field: destination [G], rate [G/s].
       if (cmd == "sweep_field") {
-        check_nargs(narg, 2);
-        double v = read_arg<double>(args[0]); // destination, G
-        double r = read_arg<double>(args[1]); // rate, G/s
-        int steps = abs(rint((v-H0)/r/tstep));
-        if (steps==0) throw Err() << "zero steps";
-        HT = (v-H0)/(steps*tstep);
-        H0 -= tcurr*HT;
-        tend  = tcurr + steps*tstep;
-        return 0;
+        cmd_sweep(args, &H0, &HT);
+        continue;
       }
 
       // Set uniform field in frequency shift units [Hz from NMR freq].
@@ -468,16 +484,8 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
 
       // Sweep uniform field: destination [Hz], rate [Hz/s].
       if (cmd == "sweep_field_hz") {
-        check_nargs(narg, 2);
-        double v = read_arg<double>(args[0]);
-        double r = read_arg<double>(args[1]);
-        double o = H0/2.0/M_PI*gyro;
-        int steps = abs(rint((v-o)/r/tstep));
-        if (steps==0) throw Err() << "zero steps";
-        HT = (v-o)/(steps*tstep) * 2*M_PI/gyro;
-        H0 -= tcurr*HT;
-        tend  = tcurr + steps*tstep;
-        return 0;
+        cmd_sweep(args, &H0, &HT, 2*M_PI/gyro);
+        continue;
       }
 
       // Set uniform field in Larmor position units [cm].
@@ -487,7 +495,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         check_nargs(narg, 1);
         if (HG == 0.0) throw Err() << "can't set Larmor position if "
                                       "field gradient is zero";
-        H0 = - read_arg<double>(args[0])*HG;
+        H0 = -read_arg<double>(args[0])*HG;
         continue;
       }
 
@@ -502,18 +510,10 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
 
       // Sweep uniform field: destination [cm], rate [cm/s].
       if (cmd == "sweep_field_cm") {
-        check_nargs(narg, 2);
         if (HG == 0.0) throw Err() << "can't set Larmor position if "
                                       "field gradient is zero";
-        double v = read_arg<double>(args[0]); // destination, cm
-        double r = read_arg<double>(args[1]); // rate cm/s
-        double o = -H0/HG;    // old value, cm
-        int steps = abs(rint((v-o)/r/tstep));
-        if (steps==0) throw Err() << "zero steps";
-        HT = -(v-o)/(steps*tstep)*HG;
-        H0 -= tcurr*HT;
-        tend  = tcurr + steps*tstep;
-        return 0;
+        cmd_sweep(args, &H0, &HT, -HG);
+        continue;
       }
       /*******************************************************/
 
@@ -541,17 +541,9 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
 
       // Sweep RF field: destination [G], rate [G/s].
       if (cmd == "sweep_rf_field") {
-        check_nargs(narg, 2);
-        double v = read_arg<double>(args[0]); // destination, G
-        double r = read_arg<double>(args[1]); // rate, G/s
-        int steps = abs(rint((v-HR0)/r/tstep));
-        if (steps==0) throw Err() << "zero steps";
-        HRT = (v-HR0)/(steps*tstep);
-        HR0 -= tcurr*HRT;
-        tend  = tcurr + steps*tstep;
-        return 0;
+        cmd_sweep(args, &HR0, &HRT);
+        continue;
       }
-
 
       // Set and sweep relaxation time t_1 [s]
       if (cmd == "set_t1") {
@@ -560,15 +552,8 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         continue;
       }
       if (cmd == "sweep_t1") {
-        check_nargs(narg, 2);
-        double v = read_arg<double>(args[0]); // destination, G
-        double r = read_arg<double>(args[1]); // rate, G/s
-        int steps = abs(rint((v-T10)/r/tstep));
-        if (steps==0) throw Err() << "zero steps";
-        T1T = (v-T10)/(steps*tstep);
-        T10 -= tcurr*T10;
-        tend  = tcurr + steps*tstep;
-        return 0;
+        cmd_sweep(args, &T10, &T1T);
+        continue;
       }
 
       // Setand sweep Leggett-Takagi relaxation time tau_f [s]
@@ -578,15 +563,8 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         continue;
       }
       if (cmd == "sweep_tf") {
-        check_nargs(narg, 2);
-        double v = read_arg<double>(args[0]); // destination, G
-        double r = read_arg<double>(args[1]); // rate, G/s
-        int steps = abs(rint((v-TF0)/r/tstep));
-        if (steps==0) throw Err() << "zero steps";
-        TFT = (v-TF0)/(steps*tstep);
-        TF0 -= tcurr*TF0;
-        tend  = tcurr + steps*tstep;
-        return 0;
+        cmd_sweep(args, &TF0, &TFT);
+        continue;
       }
 
       // Set and sweep spin diffusion [cm^2/s]
@@ -596,15 +574,8 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         continue;
       }
       if (cmd == "sweep_diff") {
-        check_nargs(narg, 2);
-        double v = read_arg<double>(args[0]); // destination, G
-        double r = read_arg<double>(args[1]); // rate, G/s
-        int steps = abs(rint((v-DF0)/r/tstep));
-        if (steps==0) throw Err() << "zero steps";
-        DFT = (v-DF0)/(steps*tstep);
-        DF0 -= tcurr*DF0;
-        tend  = tcurr + steps*tstep;
-        return 0;
+        cmd_sweep(args, &DF0, &DFT);
+        continue;
       }
 
       // Set and sweep spin-wave velocity c_parallel [cm/s]
@@ -614,15 +585,8 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         continue;
       }
       if (cmd == "sweep_cpar") {
-        check_nargs(narg, 2);
-        double v = read_arg<double>(args[0]); // destination, G
-        double r = read_arg<double>(args[1]); // rate, G/s
-        int steps = abs(rint((v-CP0)/r/tstep));
-        if (steps==0) throw Err() << "zero steps";
-        CPT = (v-CP0)/(steps*tstep);
-        CP0 -= tcurr*CP0;
-        tend  = tcurr + steps*tstep;
-        return 0;
+        cmd_sweep(args, &CP0, &CPT);
+        continue;
       }
 
       // Set and sweep Leggett frequency [Hz]
@@ -632,15 +596,8 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         continue;
       }
       if (cmd == "sweep_leggett_freq") {
-        check_nargs(narg, 2);
-        double v = read_arg<double>(args[0]); // destination, G
-        double r = read_arg<double>(args[1]); // rate, G/s
-        int steps = abs(rint((v-LF0)/r/tstep));
-        if (steps==0) throw Err() << "zero steps";
-        LFT = (v-LF0)/(steps*tstep);
-        LF0 -= tcurr*LF0;
-        tend  = tcurr + steps*tstep;
-        return 0;
+        cmd_sweep(args, &LF0, &LFT);
+        continue;
       }
 
       /*******************************************************/
@@ -668,7 +625,6 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       }
 #endif
 
-
       /*******************************************************/
       throw Err() << "skipping unknown command.\n";
     }
@@ -676,9 +632,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       std::cerr << line << ": " << e.str() << "\n";
     }
   }
-  // end of file
-  out_c << "End of command file, stop calculations\n";
-  return 1;
+  return 0;
 }
 /********************************************************************/
 
