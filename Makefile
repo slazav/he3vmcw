@@ -39,7 +39,7 @@ vmcw_pars.h vmcw_pars.cpp: vmcw_pars.pl
 	./$<
 
 # Fortran objects
-FOBJ=pdecol/$(SOLVER).o vmcw_func.o he3_funcs.o
+FOBJ=pdecol/$(SOLVER).o vmcw_func.o
 
 # C++ object files
 COBJ=vmcw.o pdecol/pdecol_solver.o vmcw_pars.o vmcw_mesh.o pnm_writer.o
@@ -47,7 +47,7 @@ pdecol/pdecol_solver.o: pdecol/pdecol_solver.h
 vmcw_mesh.o: vmcw_mesh.h
 
 $(COBJ): %.o: %.cpp
-$(FOBJ): %.o: %.f par.fh
+$(FOBJ): %.o: %.f
 vmcw.o: pdecol/pdecol_solver.h vmcw_pars.h pnm_writer.h vmcw_mesh.h
 
 
