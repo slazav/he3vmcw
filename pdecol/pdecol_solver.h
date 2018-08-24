@@ -69,6 +69,11 @@ class pdecol_solver {
                    const int ie, const int id) const{
     return usol[id*(NPDE*NPTS) + ix*NPDE + ie];}
 
+  /// save state to a file
+  void save_state(const std::string & fname);
+
+  /// restore state from a file
+  void load_state(const std::string & fname);
 
   /// change EPS during calculation
   void ch_eps(double new_eps);
@@ -104,6 +109,9 @@ class pdecol_solver {
 
   // get min coordinate
   double get_xmax() const {return *XBKPT.rbegin();}
+
+  // get current time
+  double get_t() const {return t;}
 
   // get array of breakpoints used in the first call
   std::vector<double> & get_xmesh() {return XBKPT;}

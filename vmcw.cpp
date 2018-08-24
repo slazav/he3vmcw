@@ -518,6 +518,26 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         return 1;
       }
 
+      // save state to a file
+      if (cmd == "save_state") {
+        check_nargs(narg, 1);
+        if (!solver) throw Err() << "solver is not running";
+        solver->save_state(args[0]);
+        continue;
+      }
+
+      // read state from a file
+      if (cmd == "load_state") {
+        check_nargs(narg, 1);
+        if (!solver){
+          std::vector<double> xbrpt(npts,0.0);
+          solver = new pdecol_solver(tcurr, mindt, acc, xbrpt, npde);
+        }
+        solver->load_state(args[0]);
+        tcurr = tend = solver->get_t();
+        continue;
+      }
+
       // write function profiles to a file
       if (cmd == "write_profile") {
         check_nargs(narg, 0,1);

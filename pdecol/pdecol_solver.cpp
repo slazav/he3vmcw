@@ -1,6 +1,7 @@
 #include <vector>
 #include <sstream>
 #include <iostream>
+#include <fstream>
 #include <iomanip>
 #include <sys/time.h>
 #include "pdecol_solver.h"
@@ -27,6 +28,25 @@ extern "C"{
     int NOGAUS; // set to 0 by default
     int MAXDER; // set to 5 by default
   } option_;
+
+  // other bloks are used only to save/restore state
+  extern struct {
+    double T,DTC,DTMN,DTMX,EPSC,UROUND;
+    int N,MFC,KFLAG,JSTART;
+  } gear1_;
+
+  extern struct {
+    double EPSJ,R0;
+    int ML,MU,MW,NM1,N0ML,N0W;
+  } gear9_;
+
+  extern struct {
+    int v[18];
+  } istart_;
+
+  extern struct {
+    int NINT,KORD,NCC,NPDE,NCPTS,NEQN,IQUAD;
+  } sizes_;
 }
 
 /********************************************************************/
@@ -142,6 +162,97 @@ pdecol_solver::values(std::vector<double> & xsol, int NDERV){
   return usol;
 }
 
+/********************************************************************/
+// save/read state
+
+void
+pdecol_solver::save_state(const std::string & fname){
+  int version = 1;
+  std::ofstream ff (fname,std::ofstream::binary);
+  ff.write((char *)&version, sizeof(version));
+  ff.write((char *)&verbose, sizeof(verbose));
+  ff.write((char *)&INDEX,   sizeof(INDEX));
+  ff.write((char *)&NINT,    sizeof(NINT));
+  ff.write((char *)&NPDE,    sizeof(NPDE));
+  ff.write((char *)&KORD,    sizeof(KORD));
+  ff.write((char *)&NCC,     sizeof(NCC));
+  ff.write((char *)&MF,      sizeof(MF));
+  ff.write((char *)&EPS,     sizeof(EPS));
+  ff.write((char *)&t,       sizeof(t));
+  ff.write((char *)&t0,      sizeof(t0));
+  ff.write((char *)&mindt,   sizeof(mindt));
+
+  int s;
+  s = XBKPT.size();
+  ff.write((char *)&s,   sizeof(s));
+  if (s>0) ff.write((char *)XBKPT.data(), s*sizeof(XBKPT[0]));
+
+  s = WORK.size();
+  ff.write((char *)&s,   sizeof(s));
+  if (s>0) ff.write((char *)WORK.data(), s*sizeof(WORK[0]));
+
+  s = IWORK.size();
+  ff.write((char *)&s,   sizeof(s));
+  if (s>0) ff.write((char *)IWORK.data(), s*sizeof(IWORK[0]));
+
+  // pdecol structures
+  ff.write((char *)&iounit_, sizeof(iounit_));
+  ff.write((char *)&istart_, sizeof(istart_));
+  ff.write((char *)&sizes_,  sizeof(sizes_));
+  ff.write((char *)&gear0_,  sizeof(gear0_));
+  ff.write((char *)&gear1_,  sizeof(gear1_));
+  ff.write((char *)&gear9_,  sizeof(gear9_));
+  ff.write((char *)&option_, sizeof(option_));
+
+}
+
+void
+pdecol_solver::load_state(const std::string & fname){
+  std::ifstream ff (fname,std::ifstream::binary);
+  int version;
+  ff.read((char *)&version, sizeof(version));
+
+  switch (version){
+    case 1:
+      ff.read((char *)&verbose, sizeof(verbose));
+      ff.read((char *)&INDEX,   sizeof(INDEX));
+      ff.read((char *)&NINT,    sizeof(NINT));
+      ff.read((char *)&NPDE,    sizeof(NPDE));
+      ff.read((char *)&KORD,    sizeof(KORD));
+      ff.read((char *)&NCC,     sizeof(NCC));
+      ff.read((char *)&MF,      sizeof(MF));
+      ff.read((char *)&EPS,     sizeof(EPS));
+      ff.read((char *)&t,       sizeof(t));
+      ff.read((char *)&t0,      sizeof(t0));
+      ff.read((char *)&mindt,   sizeof(mindt));
+
+      int s;
+      ff.read((char *)&s,   sizeof(s));
+      XBKPT.resize(s);
+      if (s>0) ff.read((char *)XBKPT.data(), s*sizeof(XBKPT[0]));
+
+      ff.read((char *)&s,   sizeof(s));
+      WORK.resize(s);
+      if (s>0) ff.read((char *)WORK.data(), s*sizeof(WORK[0]));
+
+      ff.read((char *)&s,   sizeof(s));
+      IWORK.resize(s);
+      if (s>0) ff.read((char *)IWORK.data(), s*sizeof(IWORK[0]));
+
+      // pdecol structures
+      ff.read((char *)&iounit_, sizeof(iounit_));
+      ff.read((char *)&istart_, sizeof(istart_));
+      ff.read((char *)&sizes_,  sizeof(sizes_));
+      ff.read((char *)&gear0_,  sizeof(gear0_));
+      ff.read((char *)&gear1_,  sizeof(gear1_));
+      ff.read((char *)&gear9_,  sizeof(gear9_));
+      ff.read((char *)&option_, sizeof(option_));
+
+      break;
+    default:
+      throw Err() << "unsupported state file version: " << version;
+  }
+}
 
 
 /********************************************************************/
