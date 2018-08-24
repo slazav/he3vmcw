@@ -1,4 +1,5 @@
 #include <fstream>
+#include <iostream>
 #include <vector>
 #include <cmath>
 #include <cstdlib>
@@ -49,6 +50,7 @@ pnm_writer_t::pnm_writer_t(
 void
 pnm_writer_t::write(const std::vector<double> & zsol,
                     const std::vector<double> & usol){
+
   if (!solver) return;
 
   int NPDE = solver->get_npde();

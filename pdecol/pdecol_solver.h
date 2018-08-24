@@ -95,13 +95,13 @@ class pdecol_solver {
 
 
   // get coordinate span
-  double get_xlen() const {return xmax-xmin;}
+  double get_xlen() const {return *XBKPT.rbegin()-*XBKPT.begin();}
 
   // get min coordinate
-  double get_xmin() const {return xmin;}
+  double get_xmin() const {return *XBKPT.begin();}
 
   // get min coordinate
-  double get_xmax() const {return xmax;}
+  double get_xmax() const {return *XBKPT.rbegin();}
 
   /************************************/
   // Error class for exceptions
@@ -119,15 +119,20 @@ class pdecol_solver {
   /************************************/
   private:
 
-  void check_error(const int index); // throw Err if index!=0;
+  void check_error(const int index) const; // throw Err if index!=0;
+  void print_index_info(const int index, const double t) const; // print call info
 
   int INDEX;  // type of call -- result
   double EPS; // Accuracy. Can be changed during calculations
+  int NINT;   // number of intervals -- for the first call
   int NPDE;   // number of equations
   int KORD;   // polynom.order (used in the first call and in values())
+  int NCC;    // number of cont.cond (recommended 2) -- for the first call
   int MF;     // The method flag. Can be changed during calculations
               // 11,12,21 or 22
-  double xmin, xmax; // min/max value of the coordinate
+
+  double t0, dt;  // initial time and min.time step -- for the first call
+  std::vector<double> XBKPT;
 
   std::vector<double> WORK;  // FLOATING POINT WORKING ARRAY FOR PDECOL.
   std::vector<int>   IWORK;  // INTEGER WORKING ARRAY FOR PDECOL.

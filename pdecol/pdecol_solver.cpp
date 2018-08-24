@@ -44,14 +44,13 @@ extern "C"{
 
 // Constructor. Do the first call of PCECOL
 pdecol_solver::pdecol_solver(
-  double t0, double dt, double EPS_, std::vector<double> & XBKPT,
-  int NPDE_, int KORD_, int NCC, int MF_, int verbose_
-): EPS(EPS_), NPDE(NPDE_), KORD(KORD_), MF(MF_), verbose(verbose_){
+  double t0_, double dt_, double EPS_, std::vector<double> & XBKPT_,
+  int NPDE_, int KORD_, int NCC_, int MF_, int verbose_
+): t0(t0_), dt(dt_), EPS(EPS_), XBKPT(XBKPT_), NPDE(NPDE_),
+   KORD(KORD_), NCC(NCC_), MF(MF_), verbose(verbose_){
 
   // number of intervals
-  int NINT = XBKPT.size()-1;
-  xmin = XBKPT[0];
-  xmax = XBKPT[NINT];
+  NINT = XBKPT.size()-1;
 
   // some tests
   if (NINT<1 ) throw Err() << "pdecol_solver: NINT should be >= 1";
@@ -84,63 +83,20 @@ pdecol_solver::pdecol_solver(
   // send messages to stderr by default
   iounit_.LOUT = 0;
 
-  // log parameters
-  if (verbose){
-    std::cerr << "PDECOL first-call parameters (index==1):\n";
-    std::cerr << "  t0:     " << t0 << " -- the inital value of T\n";
-    std::cerr << "  dt:     " << dt << " -- the initial step size in T\n";
-    std::cerr << "  xleft:  " << *(XBKPT.begin())  << " -- left X value\n";
-    std::cerr << "  xright: " << *(XBKPT.rbegin())  << " -- right X value\n";
-    std::cerr << "  eps:    " << EPS  << " -- the relative time error bound\n";
-    std::cerr << "  nint:   " << NINT << " -- the number of subintervals\n";
-    std::cerr << "  kord:   " << KORD << " -- the order of the piecewise polinomial space to be used\n";
-    std::cerr << "  ncc:    " << NCC  << " -- the number of continuity conditins\n";
-    std::cerr << "  npde:   " << NPDE << " -- the number of partial differential equations in the system\n";
-    std::cerr << "  mf:     " << MF   << " -- the method flag\n";
-    std::cerr << "  work size:  " << IWORK[0]  << " -- length of WORK array\n";
-    std::cerr << "  iwork size: " << IWORK[1]  << " -- length of IWORK array\n";
-  }
-
   INDEX=1;  // type of call (first call)
-  double t = t0;
-  pdecol_(&t0,&t,&dt,XBKPT.data(),
-    &EPS,&NINT,&KORD,&NCC,&NPDE,&MF,&INDEX,
-    WORK.data(), IWORK.data() );
-
 }
 
 // step
 int
 pdecol_solver::step(double t) {
 
-  struct timeval tt;
-  gettimeofday(&tt, NULL);
+  // Here INDEX should be 1, 0 or 4. For call types 2, 3
+  // additional methods should be done (?).
+  if (verbose) print_index_info(INDEX, t);
 
-  // Here INDEX should be always 0 or 4. For call type 3
-  // additional method should be done.
-  if (verbose){
-    if (INDEX==0){
-      std::cerr << tt.tv_sec << "." << std::setw(6) << std::setfill('0') << tt.tv_usec << ": ";
-      std::cerr << "PDECOL: INDEX: " << INDEX <<
-                   " TOUT:" << std::scientific << std::setprecision(4) << t  << " ";
-    }
-    else if (INDEX==3){
-      std::cerr << "PDECOL one-step call (index==3) parameters:\n";
-      std::cerr << "  dt:     " << t  << " -- the maximum step size allowed\n";
-    }
-    else if (INDEX==4){
-      std::cerr << "PDECOL call with EPS or MF reset (index==4) parameters:\n";
-      std::cerr << "  eps:    " << EPS  << " -- the relative time error bound\n";
-      std::cerr << "  mf:     " << MF   << " -- the method flag\n";
-    }
-    else throw Err() << "bad or unknown INDEX setting in pdecol_solver::step";
-  }
-
-  // run pdecol (EPS nd MF used only if INDEX==4)
-  double dummy = 0;
-  int   idummy = 0;
-  pdecol_(&dummy,&t,&dummy,&dummy,
-    &EPS,&idummy,&idummy,&idummy,&idummy,&MF,&INDEX,
+  // Run pdecol. Some parameters are used only in the first call INDEX=1.
+  pdecol_(&t0,&t,&dt,XBKPT.data(),
+    &EPS,&NINT,&KORD,&NCC,&NPDE,&MF,&INDEX,
     WORK.data(), IWORK.data() );
 
   // check INDEX after run (0 or error)
@@ -213,8 +169,9 @@ int
 pdecol_solver::get_nje() const { return gear0_.NJE;}
 
 
+/********************************************************************/
 void
-pdecol_solver::check_error(const int index) {
+pdecol_solver::check_error(const int index) const {
   switch (INDEX){
   case  0: break;
   case -1: throw Err() <<
@@ -252,5 +209,50 @@ pdecol_solver::check_error(const int index) {
   case -15: throw Err() << "PDECOL: ILLEGAL BREAKPOINTS - NOT STRICTLY INCREASING.";
   case -16: throw Err() << "PDECOL: INSUFFICIENT STORAGE FOR WORK OR IWORK.";
   default: throw Err() << "unknown error";
+  }
+}
+
+void
+pdecol_solver::print_index_info(const int index, const double t) const{
+  struct timeval tt;
+  gettimeofday(&tt, NULL);
+
+  switch (index){
+  case 0:
+  case 2:
+    std::cerr << tt.tv_sec << "." << std::setw(6) << std::setfill('0') << tt.tv_usec << ": ";
+    std::cerr << "PDECOL: INDEX: " << index <<
+                 " TOUT:" << std::scientific << std::setprecision(4) << t  << " ";
+    break;
+
+  case 1:
+    std::cerr << "PDECOL first-call parameters (index==1):\n";
+    std::cerr << "  t0:     " << t0 << " -- the inital value of T\n";
+    std::cerr << "  dt:     " << dt << " -- the initial step size in T\n";
+    std::cerr << "  xleft:  " << *(XBKPT.begin())  << " -- left X value\n";
+    std::cerr << "  xright: " << *(XBKPT.rbegin())  << " -- right X value\n";
+    std::cerr << "  eps:    " << EPS  << " -- the relative time error bound\n";
+    std::cerr << "  nint:   " << NINT << " -- the number of subintervals\n";
+    std::cerr << "  kord:   " << KORD << " -- the order of the piecewise polinomial space to be used\n";
+    std::cerr << "  ncc:    " << NCC  << " -- the number of continuity conditins\n";
+    std::cerr << "  npde:   " << NPDE << " -- the number of partial differential equations in the system\n";
+    std::cerr << "  mf:     " << MF   << " -- the method flag\n";
+    std::cerr << "  work size:  " << IWORK[0]  << " -- length of WORK array\n";
+    std::cerr << "  iwork size: " << IWORK[1]  << " -- length of IWORK array\n";
+    break;
+
+  case 3:
+    std::cerr << "PDECOL one-step call (index==3) parameters:\n";
+    std::cerr << "  dt:     " << t  << " -- the maximum step size allowed\n";
+    break;
+
+  case 4:
+    std::cerr << "PDECOL call with EPS or MF reset (index==4) parameters:\n";
+    std::cerr << "  eps:    " << EPS  << " -- the relative time error bound\n";
+    std::cerr << "  mf:     " << MF   << " -- the method flag\n";
+    break;
+
+  default:
+    throw Err() << "bad or unknown INDEX setting in pdecol_solver::step";
   }
 }
