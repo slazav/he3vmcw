@@ -95,13 +95,13 @@ class pdecol_solver {
 
 
   // get coordinate span
-  int get_xlen() const {return xmax-xmin;}
+  double get_xlen() const {return xmax-xmin;}
 
   // get min coordinate
-  int get_xmin() const {return xmin;}
+  double get_xmin() const {return xmin;}
 
   // get min coordinate
-  int get_xmax() const {return xmax;}
+  double get_xmax() const {return xmax;}
 
   /************************************/
   // Error class for exceptions
