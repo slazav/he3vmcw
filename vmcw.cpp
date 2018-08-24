@@ -76,11 +76,19 @@ double H0=0.0,  HT = 0.0,  HG = 0.1,  HQ = 0.0;
 //  HRQP - quadratic profile [1/cm^2].
 double HR0=1e-3, HRT=0.0, HRGP=0.0, HRQP=0.0;
 
+/*****************************/
+
 // Type of initial conditions: 0 - plain, 1 - n-soliton, 2 - theta-soliton.
 int icond_type = 0;
 
 // Type of boundary conditions: 1 - open cell, 2 - no spin currents.
 int bcond_type = 2;
+
+// Data for initail conditions (see icond_type=100)
+// Array with n*(npde+1) values. n is arbitrarary number,
+// values contain z coordinate and npde function components.
+// If n==1 then uniform boundary conditions are used;
+std::vector<double> init_data;
 
 /*****************************/
 // He3 properties
@@ -177,6 +185,10 @@ extern "C" {
     u[5] = 1.0; // nz
     u[6] = acos(-0.25); // theta
 
+    double w; // width
+    double p; // -1..1
+    int nn;
+
     switch (icond_type) {
 
     case 1: // n-soliton at z=0
@@ -214,8 +226,8 @@ extern "C" {
       break;
 
     case 12: // hpd 2pi-soliton (again, not really)
-      double w = 0.1; // width
-      double p = *x/w; // -1..1
+      w = 0.1; // width
+      p = *x/w; // -1..1
       if (p<-1.0) p=-1.0;
       if (p>+1.0) p=+1.0;
       u[6]=acos(-0.28);
@@ -225,6 +237,33 @@ extern "C" {
       u[3]=-sin(p*M_PI); // nx
       u[4]=-cos(p*M_PI); // ny
       u[5]= 0.0;         // nz
+      break;
+
+    case 100: // use init_data array
+      nn = init_data.size()/(npde+1);
+      if (nn<1) break;
+      if (nn==1 || *x<= init_data[0]*pars.CELL_LEN){
+        for (int iu = 0; iu < npde; iu++)
+            u[iu] = init_data[iu+1];
+        break;
+      }
+      if (*x>= init_data[(npts-1)*(npde+1)]*pars.CELL_LEN){
+        for (int iu = 0; iu < npde; iu++)
+          u[iu] = init_data[(npts-1)*(npde+1)+iu+1];
+        break;
+      }
+      for (int i=0; i<nn-1; i++){
+        double x1 = init_data[i*(npde+1)]*pars.CELL_LEN;
+        double x2 = init_data[(i+1)*(npde+1)]*pars.CELL_LEN;
+        if (x1 < *x && *x <= x2){
+          for (int iu = 0; iu < npde; iu++){
+            double u1 = init_data[i*(npde+1)+iu+1];
+            double u2 = init_data[(i+1)*(npde+1)+iu+1];
+            u[iu] = u1 + (u2-u1)*(*x-x1)/(x2-x1);
+          }
+          break;
+        }
+      }
       break;
 
     }
@@ -290,6 +329,7 @@ get_one_arg(const std::vector<std::string> & args){
 }
 
 /******************************************************************/
+// write profile and save init_data (separate?)
 void
 write_profile(pdecol_solver *solver, const std::string & fname) {
 
@@ -315,13 +355,52 @@ write_profile(pdecol_solver *solver, const std::string & fname) {
     ss << xsol[i];
     for (int d = 0; d<nder; d++){
       ss << "  ";
-      for (int n = 0; n<npde; n++){
+      for (int n = 0; n<npde; n++)
         ss << " " << solver->get_value(usol, npts, i, n, d);
-      }
     }
     ss << "\n";
   }
 }
+
+// save profile to init_data
+void
+init_data_save(pdecol_solver *solver) {
+
+  std::vector<double> xsol(npts);
+  set_mesh(&pars, xsol);
+  std::vector<double> usol = solver->values(xsol, nder);
+
+  init_data = std::vector<double>(xsol.size()*(npde+1));
+  //print values
+  for (int i=0; i< xsol.size(); i++){
+    init_data[i*(npde+1)] = xsol[i]/solver->get_xlen();
+    for (int n = 0; n<npde; n++)
+      init_data[i*(npde+1)+n+1] = solver->get_value(usol, npts, i, n, 0);
+  }
+}
+
+// introduce 2pi-soliton to the init_data
+void
+init_data_2pi_soliton(double w) {
+  int nn = init_data.size()/(npde+1);
+  for (int i=0; i<nn; i++){
+    double x = init_data[i*(npde+1)]*pars.CELL_LEN;
+    double p = x/w;
+    if (p<-1.0) p=-1.0;
+    if (p>+1.0) p=+1.0;
+    p+=1.0; // 0..2
+    double mx = init_data[i*(npde+1)+1 + 0];
+    double my = init_data[i*(npde+1)+1 + 1];
+    double nx = init_data[i*(npde+1)+1 + 3];
+    double ny = init_data[i*(npde+1)+1 + 4];
+    double ct = cos(p*M_PI), st=sin(p*M_PI);
+    init_data[i*(npde+1)+1 + 0] =  mx*ct + my*st; // Mx
+    init_data[i*(npde+1)+1 + 1] = -mx*st + my*ct; // Mx
+    init_data[i*(npde+1)+1 + 3] =  nx*ct + ny*st; // nx
+    init_data[i*(npde+1)+1 + 4] = -nx*st + ny*ct; // ny
+  }
+}
+
 
 /******************************************************************/
 
@@ -409,7 +488,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         pnm_writers.clear();
 
         // initialize new solver
-        tend=tcurr;
+        tend=tcurr=0;
         std::vector<double> xbrpt(npts);
         set_mesh(&pars, xbrpt);
         solver = new pdecol_solver(tcurr, mindt, acc, xbrpt, npde);
@@ -458,6 +537,23 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         }
         write_profile(solver, name);
         cnt_prof++;
+        continue;
+      }
+
+      // Save function profiles for ising as initial conditions
+      // Set icond_type to 100;
+      if (cmd == "init_data_save") {
+        check_nargs(narg, 0);
+        if (!solver) throw Err() << "solver is not running";
+        init_data_save(solver);
+        icond_type = 100;
+        continue;
+      }
+
+      // create a 2-pi soliton in the init_data
+      if (cmd == "init_data_2pi_soliton") {
+        double w = get_one_arg<double>(args);
+        init_data_2pi_soliton(w);
         continue;
       }
 
