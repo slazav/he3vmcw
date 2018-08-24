@@ -379,15 +379,22 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
 
       // write function profiles to a file
       if (cmd == "write_profile") {
-        check_nargs(narg, 0);
+        check_nargs(narg, 0,1);
         if (!solver) throw Err() << "solver is not running";
-        std::ostringstream ss;
-        ss << pref << ".prof" << cnt_prof << ".dat";
-        write_profile(solver, ss.str());
+
+        std::string name;
+        if (narg>0) {
+          name = args[0];
+        }
+        else{
+          std::ostringstream ss;
+          ss << pref << ".prof" << cnt_prof << ".dat";
+          name = ss.str();
+        }
+        write_profile(solver, name);
         cnt_prof++;
         continue;
       }
-
 
       // Do calculations for some time.
       if (cmd == "wait") {
