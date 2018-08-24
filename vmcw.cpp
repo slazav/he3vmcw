@@ -77,7 +77,7 @@ double H0=0.0,  HT = 0.0,  HG = 0.1,  HQ = 0.0;
 double HR0=1e-3, HRT=0.0, HRGP=0.0, HRQP=0.0;
 
 // Type of initial conditions: 0 - plain, 1 - n-soliton, 2 - theta-soliton.
-double icond_type = 0;
+int icond_type = 0;
 
 // Type of boundary conditions: 1 - open cell, 2 - no spin currents.
 int bcond_type = 2;
@@ -162,11 +162,76 @@ extern "C" {
     // type of boundary condition
     *IBN = bcond_type;
   }
+}
 
-  void set_init_pars_(int *IIN){
-    *IIN = icond_type;
+/******************************************************************/
+/// UINIT function called from pdecol
+extern "C" {
+  void uinit_(double *x, double u[], int *n){
+    // default
+    u[0] = 0.0; // Mx
+    u[1] = 0.0; // My
+    u[2] = 1.0; // Mz
+    u[3] = 0.0; // nx
+    u[4] = 0.0; // ny
+    u[5] = 1.0; // nz
+    u[6] = acos(-0.25); // theta
+
+    switch (icond_type) {
+
+    case 1: // n-soliton at z=0
+      if (*x<0.0)  u[5]=-1.0;
+      if (*x==0.0) u[4]=1.0, u[6]=0.0;
+      break;
+
+    case 2: // theta-soliton at z=0
+      if (*x<0.0)  u[6] = -acos(-0.25);
+      if (*x==0.0) u[6] = 0.0;
+      break;
+
+    case 3: // n-down
+      u[5]=-1.0;
+      break;
+
+    case 4: // t = -104
+      u[6] = -acos(-0.25);
+      break;
+
+    case 10: // hpd (not really)
+      u[6] = acos(-0.25);
+      u[0] = sin(u[6]); // Mx
+      u[2] = cos(u[6]); // Mz
+      u[4] = 1.0;         // Ny
+      u[5] = 0.0;         // Nz
+      break;
+
+    case 11: // inversed hpd
+      u[6]=acos(-0.25);
+      u[0] =-sin(u[6]); // Mx
+      u[2] = cos(u[6]); // Mz
+      u[4] =-1.0;         // Ny
+      u[5] = 0.0;         // Nz
+      break;
+
+    case 12: // hpd 2pi-soliton (again, not really)
+      double w = 0.1; // width
+      double p = *x/w; // -1..1
+      if (p<-1.0) p=-1.0;
+      if (p>+1.0) p=+1.0;
+      u[6]=acos(-0.28);
+      u[0]=-cos(p*M_PI) * sin(u[6]); // Mx
+      u[1]= sin(p*M_PI) * sin(u[6]); // Mx
+      u[2]= cos(u[6]);  // Mz
+      u[3]=-sin(p*M_PI); // nx
+      u[4]=-cos(p*M_PI); // ny
+      u[5]= 0.0;         // nz
+      break;
+
+    }
   }
 }
+
+/******************************************************************/
 
 #ifdef HE3LIB
 extern "C" {
