@@ -333,8 +333,7 @@ get_one_arg(const std::vector<std::string> & args){
 void
 write_profile(pdecol_solver *solver, const std::string & fname) {
 
-  std::vector<double> xsol(npts);
-  set_mesh(&pars, xsol);
+  std::vector<double> xsol = solver->get_xmesh();
   std::vector<double> usol = solver->values(xsol, nder);
 
   std::ofstream ss(fname);
@@ -365,10 +364,8 @@ write_profile(pdecol_solver *solver, const std::string & fname) {
 // save profile to init_data
 void
 init_data_save(pdecol_solver *solver) {
-
-  std::vector<double> xsol(npts);
-  set_mesh(&pars, xsol);
-  std::vector<double> usol = solver->values(xsol, nder);
+  std::vector<double> xsol = solver->get_xmesh();
+  std::vector<double> usol = solver->values(xsol, 0); // no derivatives!
 
   init_data = std::vector<double>(xsol.size()*(npde+1));
   //print values
@@ -379,7 +376,7 @@ init_data_save(pdecol_solver *solver) {
   }
 }
 
-// introduce 2pi-soliton to the init_data
+// create 2pi-soliton in the init_data
 void
 init_data_2pi_soliton(double w) {
   int nn = init_data.size()/(npde+1);
@@ -395,7 +392,7 @@ init_data_2pi_soliton(double w) {
     double ny = init_data[i*(npde+1)+1 + 4];
     double ct = cos(p*M_PI), st=sin(p*M_PI);
     init_data[i*(npde+1)+1 + 0] =  mx*ct + my*st; // Mx
-    init_data[i*(npde+1)+1 + 1] = -mx*st + my*ct; // Mx
+    init_data[i*(npde+1)+1 + 1] = -mx*st + my*ct; // My
     init_data[i*(npde+1)+1 + 3] =  nx*ct + ny*st; // nx
     init_data[i*(npde+1)+1 + 4] = -nx*st + ny*ct; // ny
   }
@@ -540,20 +537,14 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         continue;
       }
 
-      // Save function profiles for ising as initial conditions
-      // Set icond_type to 100;
-      if (cmd == "init_data_save") {
-        check_nargs(narg, 0);
+      // make 2-pi hpd soliton, restart solver
+      if (cmd == "make_2pi_soliton") {
         if (!solver) throw Err() << "solver is not running";
-        init_data_save(solver);
-        icond_type = 100;
-        continue;
-      }
-
-      // create a 2-pi soliton in the init_data
-      if (cmd == "init_data_2pi_soliton") {
         double w = get_one_arg<double>(args);
-        init_data_2pi_soliton(w);
+        init_data_save(solver); // save current profile to the init data
+        init_data_2pi_soliton(w); // create 2-pi solitom with half-width w
+        icond_type = 100;
+        solver->restart();
         continue;
       }
 
@@ -870,10 +861,11 @@ try{
       tcurr += tstep;
       solver->step(tcurr);
 
-      std::vector<double> xsol(npts);
-      set_mesh(&pars, xsol);
-
+      // No need to use original mesh.
+      // Maybe it would be better to use unifirm mesh here...
+      std::vector<double> xsol = solver->get_xmesh();
       std::vector<double> usol = solver->values(xsol, nder);
+
       // write results
       write_magn(out_m, xsol, usol);
       pnm_writers.write(xsol, usol);
