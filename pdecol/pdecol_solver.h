@@ -26,8 +26,8 @@ class pdecol_solver {
   /// Constructor. Allocate memory, initialize PDECOL
   /// arguments:
   ///   t0 -- Initial time.
-  ///   dt -- Min time step (recommended 1e-10).
-  ///   eps -- Accuracy. Can be changed during calculations (see ch_eps() below)
+  ///   mindt -- Min time step (recommended 1e-10).
+  ///   eps   -- Accuracy. Can be changed during calculations (see ch_eps() below)
   ///   XBKPT -- strictly increasing array of piecewise polynomial breakpoints
   ///   NPDE  -- number of differential equations
   ///   KORD  -- polynom.order (recommended 4)
@@ -36,13 +36,15 @@ class pdecol_solver {
   ///            Can be changed during calculations (see ch_mf() below)
   ///   verbose -- verbosity level
   pdecol_solver(
-    double t0, double dt, double eps, std::vector<double> & XBKPT,
+    double t0, double mindt, double eps, std::vector<double> & XBKPT,
     int NPDE, int KORD=4, int NCC=2, int MF=22, int verbose=1
   );
 
   /// Do calculation until time t.
   // TODO: some more exotic calculations can be done (INDEX=2,3)
   int step(double t);
+
+  void restart();
 
   /// Get function values
   /// Arguments:
@@ -103,6 +105,9 @@ class pdecol_solver {
   // get min coordinate
   double get_xmax() const {return *XBKPT.rbegin();}
 
+  // get array of breakpoints used in the first call
+  std::vector<double> & get_xmesh() {return XBKPT;}
+
   /************************************/
   // Error class for exceptions
   public:
@@ -120,7 +125,7 @@ class pdecol_solver {
   private:
 
   void check_error(const int index) const; // throw Err if index!=0;
-  void print_index_info(const int index, const double t) const; // print call info
+  void print_index_info(const int index) const; // print call info
 
   int INDEX;  // type of call -- result
   double EPS; // Accuracy. Can be changed during calculations
@@ -131,7 +136,8 @@ class pdecol_solver {
   int MF;     // The method flag. Can be changed during calculations
               // 11,12,21 or 22
 
-  double t0, dt;  // initial time and min.time step -- for the first call
+  double t; // current time
+  double t0, mindt;  // initial time and min.time step -- for the first call
   std::vector<double> XBKPT;
 
   std::vector<double> WORK;  // FLOATING POINT WORKING ARRAY FOR PDECOL.

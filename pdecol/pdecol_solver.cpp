@@ -44,9 +44,9 @@ extern "C"{
 
 // Constructor. Do the first call of PCECOL
 pdecol_solver::pdecol_solver(
-  double t0_, double dt_, double EPS_, std::vector<double> & XBKPT_,
+  double t0_, double mindt_, double EPS_, std::vector<double> & XBKPT_,
   int NPDE_, int KORD_, int NCC_, int MF_, int verbose_
-): t0(t0_), dt(dt_), EPS(EPS_), XBKPT(XBKPT_), NPDE(NPDE_),
+): t0(t0_), mindt(mindt_), EPS(EPS_), XBKPT(XBKPT_), NPDE(NPDE_),
    KORD(KORD_), NCC(NCC_), MF(MF_), verbose(verbose_){
 
   // number of intervals
@@ -79,22 +79,31 @@ pdecol_solver::pdecol_solver(
   IWORK[0] = IDIMWORK;
   IWORK[1] = IDIMIWORK;
 
-
   // send messages to stderr by default
   iounit_.LOUT = 0;
 
   INDEX=1;  // type of call (first call)
 }
 
+// restart running solver
+void
+pdecol_solver::restart() {
+  t0 = t;
+  IWORK[0] = WORK.size();
+  IWORK[1] = IWORK.size();
+  INDEX=1;
+}
+
 // step
 int
-pdecol_solver::step(double t) {
-
+pdecol_solver::step(double t_) {
+  t=t_;
   // Here INDEX should be 1, 0 or 4. For call types 2, 3
   // additional methods should be done (?).
-  if (verbose) print_index_info(INDEX, t);
+  if (verbose) print_index_info(INDEX);
 
   // Run pdecol. Some parameters are used only in the first call INDEX=1.
+  double dt = mindt; // don't want to change original value (for restarting)
   pdecol_(&t0,&t,&dt,XBKPT.data(),
     &EPS,&NINT,&KORD,&NCC,&NPDE,&MF,&INDEX,
     WORK.data(), IWORK.data() );
@@ -213,7 +222,7 @@ pdecol_solver::check_error(const int index) const {
 }
 
 void
-pdecol_solver::print_index_info(const int index, const double t) const{
+pdecol_solver::print_index_info(const int index) const{
   struct timeval tt;
   gettimeofday(&tt, NULL);
 
@@ -228,7 +237,7 @@ pdecol_solver::print_index_info(const int index, const double t) const{
   case 1:
     std::cerr << "PDECOL first-call parameters (index==1):\n";
     std::cerr << "  t0:     " << t0 << " -- the inital value of T\n";
-    std::cerr << "  dt:     " << dt << " -- the initial step size in T\n";
+    std::cerr << "  mindt:  " << mindt << " -- minimum time step\n";
     std::cerr << "  xleft:  " << *(XBKPT.begin())  << " -- left X value\n";
     std::cerr << "  xright: " << *(XBKPT.rbegin())  << " -- right X value\n";
     std::cerr << "  eps:    " << EPS  << " -- the relative time error bound\n";
