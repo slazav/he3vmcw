@@ -10,7 +10,7 @@ mindt 1e-20
 
 set_field_hz   40
 start                   # start the solver
-pnm_start hpd_quad2.pic.pnm
+pnm_start
 
 sweep_field_hz -150 50
 

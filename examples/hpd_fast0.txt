@@ -11,8 +11,7 @@ start                   # start the solver
 wait 500
 tstep 0.001
 
-pnm_start hpd_fast0.pic.pnm   # draw M and N vectors to this file
-#save_mesh mesh.dat      # save mesh to a file
+pnm_start
 
 sweep_field_hz -30 50  # sweep field, 1.5kHz/min
 

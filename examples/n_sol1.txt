@@ -17,8 +17,7 @@ npts 267
 mindt 1e-10
 
 start                    # start the solver
-pnm_start n_sol1.pic.pnm # draw M and N vectors to this file
-#save_mesh mesh.dat      # save mesh to a file
+pnm_start
 
 sweep_field_hz -30 100  # sweep field, 1.5kHz/min
 

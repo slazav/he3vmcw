@@ -12,8 +12,7 @@ start                   # start the solver
 wait 500
 tstep 0.001
 
-pnm_start hpd_gq.pic.pnm
-#save_mesh mesh.dat     # save mesh to a file
+pnm_start
 
 sweep_field_hz -30 25  # sweep field, 1.5kHz/min
 

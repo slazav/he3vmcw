@@ -12,12 +12,12 @@ set_field_quad  0
 set_rf_field 0
 
 start
-pnm_start pulse_grad.pic.pnm
+pnm_start
 wait 5
-pnm_hline pulse_grad.pic.pnm
+pnm_hline
 set_rf_field 5e-3
 wait 20
-pnm_hline pulse_grad.pic.pnm
+pnm_hline
 set_rf_field 0
 wait 50
 

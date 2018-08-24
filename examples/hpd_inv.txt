@@ -17,5 +17,5 @@ set_rf_prof     0 2
 
 set_field_hz   -30
 start                   # start the solver
-pnm_start hpd_inv.pic.pnm   # draw M and N vectors to this file
+pnm_start
 wait 99

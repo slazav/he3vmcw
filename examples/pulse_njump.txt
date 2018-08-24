@@ -11,12 +11,12 @@ set_field_quad  0
 set_rf_field 0
 
 start
-pnm_start pulse_njump.pic.pnm
+pnm_start
 wait 50
-pnm_hline pulse_njump.pic.pnm
+pnm_hline
 set_rf_field 3e-3
 wait 50
-pnm_hline pulse_njump.pic.pnm
+pnm_hline
 set_rf_field 0
 wait 1000
 
