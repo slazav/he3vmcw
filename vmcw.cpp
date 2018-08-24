@@ -430,34 +430,38 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
 
       // Initialize a pnm_writer. Solver should be startded.
       if (cmd == "pnm_start") {
-        check_nargs(narg, 1);
+        check_nargs(narg, 0,1);
+        std::string name = narg>0 ? args[0]: pref + ".pic.pnm";
         if (!solver)
           throw Err() << "can't start pnm_writer if solver is not running";
-        if (!pnm_writers.add(args[0], solver))
+        if (!pnm_writers.add(name, solver))
           throw Err() << "can't open create pnm_writer";
         continue;
       }
 
       // pnm_legend: start draw a legend
       if (cmd == "pnm_legend") {
-        check_nargs(narg, 1);
-        if (!pnm_writers.legend(args[0], 50, 100))
+        check_nargs(narg, 0,1);
+        std::string name = narg>0 ? args[0]: pref + ".pic.pnm";
+        if (!pnm_writers.legend(name, 50, 100))
           throw Err() << "no such writer";
         continue;
       }
 
       // pnm_hline: draw a horizontal line
       if (cmd == "pnm_hline") {
-        check_nargs(narg, 1);
-        if (!pnm_writers.hline(args[0]))
+        check_nargs(narg, 0,1);
+        std::string name = narg>0 ? args[0]: pref + ".pic.pnm";
+        if (!pnm_writers.hline(name))
           throw Err() << "no such writer";
         continue;
       }
 
       // stop a pnm_writer
       if (cmd == "pnm_stop") {
-        check_nargs(narg, 1);
-        if (!pnm_writers.del(args[0]))
+        check_nargs(narg, 0,1);
+        std::string name = narg>0 ? args[0]: pref + ".pic.pnm";
+        if (!pnm_writers.del(name))
           throw Err() << "no such writer";
         continue;
       }
