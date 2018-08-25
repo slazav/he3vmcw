@@ -287,7 +287,151 @@ void set_he3tp(double ttc, double p){
 }
 #endif
 
+
 /******************************************************************/
+// Writing data
+
+// write profile
+void
+write_profile(pdecol_solver *solver, const std::string & fname) {
+
+  std::vector<double> xsol = solver->get_xmesh();
+  std::vector<double> usol = solver->values(xsol, nder);
+
+  std::ofstream ss(fname);
+  // print legend: # coord  U(0) U(1) ... U(0)' U(1)' ...
+  ss << "# coord.     ";
+  for (int d = 0; d<nder; d++){
+    ss << "  ";
+    for (int n = 0; n<npde; n++){
+      ss << "U(" << n << ")";
+      for (int i=0; i<d; i++) ss << "'";
+      ss << "      ";
+    }
+  }
+  ss << "\n" << std::scientific << std::setprecision(6);
+
+  //print values
+  for (int i=0; i< xsol.size(); i++){
+    ss << xsol[i];
+    for (int d = 0; d<nder; d++){
+      ss << "  ";
+      for (int n = 0; n<npde; n++)
+        ss << " " << solver->get_value(usol, npts, i, n, d);
+    }
+    ss << "\n";
+  }
+}
+
+// write integral magnetization
+void
+write_magn(std::ostream & s,
+           const std::vector<double> zsol,
+           const std::vector<double> usol){
+
+  double smx=0, smy=0, smz=0, sz = 0;
+  for (int i=0; i<zsol.size()-1; i++){
+    double mx1 = usol[i*npde+0];
+    double my1 = usol[i*npde+1];
+    double mz1 = usol[i*npde+2];
+
+    double mx2 = usol[(i+1)*npde+0];
+    double my2 = usol[(i+1)*npde+1];
+    double mz2 = usol[(i+1)*npde+2];
+    double dz = zsol[i+1]-zsol[i];
+    smx += dz*(mx1+mx2)/2;
+    smy += dz*(my1+my2)/2;
+    smz += dz*(mz1+mz2)/2;
+    sz += dz;
+  }
+  smx/=sz;
+  smy/=sz;
+  smz/=sz;
+
+  s << std::scientific << std::setprecision(6)
+    << tcurr << "  " << H0 + tcurr*HT << "  "
+    << smx << " " << smy << " " << smz << "\n";
+}
+
+void
+write_pars(std::ostream & s){
+  s << " T=" << tcurr*1000 << " ms, "
+    << "H0=" << H0+HT*tcurr << " G, "
+    << "HR=" << 1e3*(HR0+HRT*tcurr) << " mOe, "
+    << "LF=" << 1e-3*(LF0+LFT*tcurr) << " kHz, "
+    << "CP=" <<  (CP0+CPT*tcurr) << " cm/s, "
+    << "DF=" << (DF0+DFT*tcurr) << " cm^2/s, "
+    << "TF=" << 1e6*(TF0+TFT*tcurr) << " mks, "
+    << "T1=" <<  (T10+T1T*tcurr) << " cm/s, "
+    << "\n";
+}
+
+/******************************************************************/
+// Some init_data-related functions.
+// TODO: use it for uniform and simple-soliton initial conditions
+
+// save current profile to init_data
+void
+init_data_save(pdecol_solver *solver) {
+  std::vector<double> xsol = solver->get_xmesh();
+  std::vector<double> usol = solver->values(xsol, 0); // no derivatives!
+
+  init_data = std::vector<double>(xsol.size()*(npde+1));
+  //print values
+  for (int i=0; i< xsol.size(); i++){
+    init_data[i*(npde+1)] = xsol[i]/solver->get_xlen();
+    for (int n = 0; n<npde; n++)
+      init_data[i*(npde+1)+n+1] = solver->get_value(usol, npts, i, n, 0);
+  }
+}
+
+// create 2pi-soliton in the init_data
+void
+init_data_2pi_soliton(double w) {
+  int nn = init_data.size()/(npde+1);
+  for (int i=0; i<nn; i++){
+    double x = init_data[i*(npde+1)]*pars.CELL_LEN;
+    double p = x/w;
+    if (p<-1.0) p=-1.0;
+    if (p>+1.0) p=+1.0;
+    p+=1.0; // 0..2
+    double mx = init_data[i*(npde+1)+1 + 0];
+    double my = init_data[i*(npde+1)+1 + 1];
+    double nx = init_data[i*(npde+1)+1 + 3];
+    double ny = init_data[i*(npde+1)+1 + 4];
+    double ct = cos(p*M_PI), st=sin(p*M_PI);
+    init_data[i*(npde+1)+1 + 0] =  mx*ct + my*st; // Mx
+    init_data[i*(npde+1)+1 + 1] = -mx*st + my*ct; // My
+    init_data[i*(npde+1)+1 + 3] =  nx*ct + ny*st; // nx
+    init_data[i*(npde+1)+1 + 4] = -nx*st + ny*ct; // ny
+  }
+}
+
+// create pi-soliton in the init_data
+void
+init_data_pi_soliton(double w) {
+  int nn = init_data.size()/(npde+1);
+  for (int i=0; i<nn; i++){
+    double x = init_data[i*(npde+1)]*pars.CELL_LEN;
+    double p = x/w;
+    if (p<-0.5) p=-0.5;
+    if (p>+0.5) p=+0.5;
+    p+=0.5; // 0..1
+    double mx = init_data[i*(npde+1)+1 + 0];
+    double my = init_data[i*(npde+1)+1 + 1];
+    double nx = init_data[i*(npde+1)+1 + 3];
+    double ny = init_data[i*(npde+1)+1 + 4];
+    double ct = cos(p*M_PI), st=sin(p*M_PI);
+    init_data[i*(npde+1)+1 + 0] =  mx*ct + my*st; // Mx
+    init_data[i*(npde+1)+1 + 1] = -mx*st + my*ct; // My
+    init_data[i*(npde+1)+1 + 3] =  nx*ct + ny*st; // nx
+    init_data[i*(npde+1)+1 + 4] = -nx*st + ny*ct; // ny
+  }
+}
+
+
+/******************************************************************/
+// Halpers for command parsing
 
 // Error class for exceptions
 class Err {
@@ -328,79 +472,6 @@ get_one_arg(const std::vector<std::string> & args){
   return get_arg<T>(args[0]);
 }
 
-/******************************************************************/
-// write profile and save init_data (separate?)
-void
-write_profile(pdecol_solver *solver, const std::string & fname) {
-
-  std::vector<double> xsol = solver->get_xmesh();
-  std::vector<double> usol = solver->values(xsol, nder);
-
-  std::ofstream ss(fname);
-  // print legend: # coord  U(0) U(1) ... U(0)' U(1)' ...
-  ss << "# coord.     ";
-  for (int d = 0; d<nder; d++){
-    ss << "  ";
-    for (int n = 0; n<npde; n++){
-      ss << "U(" << n << ")";
-      for (int i=0; i<d; i++) ss << "'";
-      ss << "      ";
-    }
-  }
-  ss << "\n" << std::scientific << std::setprecision(6);
-
-  //print values
-  for (int i=0; i< xsol.size(); i++){
-    ss << xsol[i];
-    for (int d = 0; d<nder; d++){
-      ss << "  ";
-      for (int n = 0; n<npde; n++)
-        ss << " " << solver->get_value(usol, npts, i, n, d);
-    }
-    ss << "\n";
-  }
-}
-
-// save profile to init_data
-void
-init_data_save(pdecol_solver *solver) {
-  std::vector<double> xsol = solver->get_xmesh();
-  std::vector<double> usol = solver->values(xsol, 0); // no derivatives!
-
-  init_data = std::vector<double>(xsol.size()*(npde+1));
-  //print values
-  for (int i=0; i< xsol.size(); i++){
-    init_data[i*(npde+1)] = xsol[i]/solver->get_xlen();
-    for (int n = 0; n<npde; n++)
-      init_data[i*(npde+1)+n+1] = solver->get_value(usol, npts, i, n, 0);
-  }
-}
-
-// create 2pi-soliton in the init_data
-void
-init_data_2pi_soliton(double w) {
-  int nn = init_data.size()/(npde+1);
-  for (int i=0; i<nn; i++){
-    double x = init_data[i*(npde+1)]*pars.CELL_LEN;
-    double p = x/w;
-    if (p<-1.0) p=-1.0;
-    if (p>+1.0) p=+1.0;
-    p+=1.0; // 0..2
-    double mx = init_data[i*(npde+1)+1 + 0];
-    double my = init_data[i*(npde+1)+1 + 1];
-    double nx = init_data[i*(npde+1)+1 + 3];
-    double ny = init_data[i*(npde+1)+1 + 4];
-    double ct = cos(p*M_PI), st=sin(p*M_PI);
-    init_data[i*(npde+1)+1 + 0] =  mx*ct + my*st; // Mx
-    init_data[i*(npde+1)+1 + 1] = -mx*st + my*ct; // My
-    init_data[i*(npde+1)+1 + 3] =  nx*ct + ny*st; // nx
-    init_data[i*(npde+1)+1 + 4] = -nx*st + ny*ct; // ny
-  }
-}
-
-
-/******************************************************************/
-
 // Process SWEEP command.
 // Modify P0, PT, change global variable tend.
 template <typename T>
@@ -418,6 +489,7 @@ cmd_sweep(const std::vector<std::string> & args, T *P0, T *PT, T factor=1){
 }
 
 
+/******************************************************************/
 /// Read one or more commends from a stream.
 /// Return 1 if file is finished, 0 if more calculations are needed.
 int
@@ -563,6 +635,17 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         double w = get_one_arg<double>(args);
         init_data_save(solver); // save current profile to the init data
         init_data_2pi_soliton(w); // create 2-pi solitom with half-width w
+        icond_type = 100;
+        solver->restart();
+        continue;
+      }
+
+      // make pi hpd soliton, restart solver
+      if (cmd == "make_pi_soliton") {
+        if (!solver) throw Err() << "solver is not running";
+        double w = get_one_arg<double>(args);
+        init_data_save(solver); // save current profile to the init data
+        init_data_pi_soliton(w); // create 2-pi solitom with half-width w
         icond_type = 100;
         solver->restart();
         continue;
@@ -787,50 +870,6 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
   }
   return 0;
 }
-/********************************************************************/
-
-// write integral magnetization
-void
-write_magn(std::ostream & s,
-           const std::vector<double> zsol,
-           const std::vector<double> usol){
-
-  double smx=0, smy=0, smz=0, sz = 0;
-  for (int i=0; i<zsol.size()-1; i++){
-    double mx1 = usol[i*npde+0];
-    double my1 = usol[i*npde+1];
-    double mz1 = usol[i*npde+2];
-
-    double mx2 = usol[(i+1)*npde+0];
-    double my2 = usol[(i+1)*npde+1];
-    double mz2 = usol[(i+1)*npde+2];
-    double dz = zsol[i+1]-zsol[i];
-    smx += dz*(mx1+mx2)/2;
-    smy += dz*(my1+my2)/2;
-    smz += dz*(mz1+mz2)/2;
-    sz += dz;
-  }
-  smx/=sz;
-  smy/=sz;
-  smz/=sz;
-
-  s << std::scientific << std::setprecision(6)
-    << tcurr << "  " << H0 + tcurr*HT << "  "
-    << smx << " " << smy << " " << smz << "\n";
-}
-
-void
-write_pars(std::ostream & s){
-  s << " T=" << tcurr*1000 << " ms, "
-    << "H0=" << H0+HT*tcurr << " G, "
-    << "HR=" << 1e3*(HR0+HRT*tcurr) << " mOe, "
-    << "LF=" << 1e-3*(LF0+LFT*tcurr) << " kHz, "
-    << "CP=" <<  (CP0+CPT*tcurr) << " cm/s, "
-    << "DF=" << (DF0+DFT*tcurr) << " cm^2/s, "
-    << "TF=" << 1e6*(TF0+TFT*tcurr) << " mks, "
-    << "T1=" <<  (T10+T1T*tcurr) << " cm/s, "
-    << "\n";
-}
 
 
 
@@ -875,7 +914,6 @@ try{
     // If we reach final time, read new cmd.
     // If it returns 1, finish the program
     if (tcurr >= tend && read_cmd(in_c, out_l)) break;
-
     // do the next step
     if (solver) {
       tcurr += tstep;
