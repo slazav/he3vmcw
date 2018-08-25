@@ -678,6 +678,14 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         init_data_uniform(ny*sin(th),0,cos(th), 0,ny,0);
       }
 
+      if (cmd == "set_icond_hpd2") {
+        check_nargs(narg, 0);
+        double th = M_PI+1.298;
+        double mx=0.923,  my=-0.305, mz=-sqrt(1-mx*mx-my*my);
+        double nx=-0.482, ny=-0.859, nz=-sqrt(1-nx*nx-ny*ny);
+        init_data_uniform(mx,my,mz,nx,ny,nz,th);
+      }
+
       // set i.c witn a simple n-soliton <width>
       // width >0 does not work yet
       if (cmd == "set_icond_nsol") {
