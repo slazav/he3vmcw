@@ -8,7 +8,7 @@ set_field_hz   30
 
 tstep 0.005
 start                   # start the solver
-wait 500
+wait 0.5
 tstep 0.001
 
 pnm_start

@@ -18,4 +18,4 @@ set_rf_prof     0 2
 set_field_hz   -30
 start                   # start the solver
 pnm_start
-wait 99
+wait 0.099

@@ -655,7 +655,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       if (cmd == "wait") {
         double dt = get_one_arg<double>(args);
         if (!solver) throw Err() << "solver is not running";
-        tend = tcurr + dt*1e-3;
+        tend = tcurr + dt;
         continue;
       }
 

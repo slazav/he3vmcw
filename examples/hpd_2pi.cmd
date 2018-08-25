@@ -17,4 +17,4 @@ set_field_grad 15.7e-3  # field gradient, 15.7 G/cm/A
 set_field_hz   -25
 start                   # start the solver
 pnm_start hpd_2pi.pnm   # draw M and N vectors to this file
-wait 40
+wait 0.04

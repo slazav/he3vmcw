@@ -14,15 +14,15 @@ set_rf_field 0
 
 start
 pnm_start
-wait 5
+wait 5e-3
 pnm_hline
 set_rf_field 1.8e-2
-wait 20
+wait 0.02
 pnm_hline
 set_rf_field 0
 
 write_profile
-wait 2
+wait 2e-3
 write_profile
-wait 30
+wait 0.03
 write_profile

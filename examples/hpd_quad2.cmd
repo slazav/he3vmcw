@@ -16,5 +16,5 @@ sweep_field_hz -150 50
 
 set_rf_field   0    # RF-field
 tstep 5e-4
-wait 200
+wait 0.2
 

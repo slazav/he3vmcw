@@ -30,4 +30,4 @@ write_profile
 acc2 20
 set_rf_field   0    # RF-field
 tstep 5e-4
-wait 125
+wait 0.125

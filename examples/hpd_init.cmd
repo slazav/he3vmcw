@@ -20,6 +20,6 @@ set_rf_prof     0 2
 set_field_hz   -25
 start                   # start the solver
 pnm_start   # draw M and N vectors to this file
-wait 20
+wait 0.02
 acc2 10
-wait 500
+wait 0.5

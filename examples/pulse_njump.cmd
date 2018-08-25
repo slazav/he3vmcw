@@ -12,11 +12,10 @@ set_rf_field 0
 
 start
 pnm_start
-wait 50
+wait 0.05
 pnm_hline
 set_rf_field 3e-3
-wait 50
+wait 0.05
 pnm_hline
 set_rf_field 0
-wait 1000
-
+wait 1

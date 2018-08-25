@@ -13,12 +13,12 @@ set_rf_field 0
 
 start
 pnm_start
-wait 5
+wait 5e-3
 pnm_hline
 set_rf_field 5e-3
-wait 20
+wait 20e-3
 pnm_hline
 set_rf_field 0
-wait 50
+wait 50e-3
 
 write_profile

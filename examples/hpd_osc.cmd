@@ -23,8 +23,8 @@ pnm_hline
 write_profile
 sweep_field_cm 0.2 0.1
 
-wait 10
+wait 0.01
 tstep 4e-4
 step_field_cm 0.05
-wait 300
+wait 0.3
 

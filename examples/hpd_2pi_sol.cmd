@@ -32,6 +32,6 @@ write_profile
 make_2pi_soliton 0.04
 
 tstep 1e-5
-wait 5
+wait 5e-3
 
 write_profile
