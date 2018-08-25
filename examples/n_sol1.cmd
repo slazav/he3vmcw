@@ -1,5 +1,5 @@
 acc2 9
-icond_type 1
+set_icond_nsol 0
 mindt 1e-10
 tstep 0.001
 

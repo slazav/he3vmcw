@@ -78,16 +78,14 @@ double HR0=1e-3, HRT=0.0, HRGP=0.0, HRQP=0.0;
 
 /*****************************/
 
-// Type of initial conditions: 0 - plain, 1 - n-soliton, 2 - theta-soliton.
-int icond_type = 0;
-
 // Type of boundary conditions: 1 - open cell, 2 - no spin currents.
 int bcond_type = 2;
 
-// Data for initail conditions (see icond_type=100)
+// Data for initial conditions.
 // Array with n*(npde+1) values. n is arbitrarary number,
 // values contain z coordinate and npde function components.
-// If n==1 then uniform boundary conditions are used;
+// If n==1 then uniform i.c. with values from init_data are used;
+// If n==0 then default uniform i.c. (nz=1, mz=1, theta=acos(-1/4)) are used.
 std::vector<double> init_data;
 
 /*****************************/
@@ -189,83 +187,29 @@ extern "C" {
     double p; // -1..1
     int nn;
 
-    switch (icond_type) {
-
-    case 1: // n-soliton at z=0
-      if (*x<0.0)  u[5]=-1.0;
-      if (*x==0.0) u[4]=1.0, u[6]=0.0;
-      break;
-
-    case 2: // theta-soliton at z=0
-      if (*x<0.0)  u[6] = -acos(-0.25);
-      if (*x==0.0) u[6] = 0.0;
-      break;
-
-    case 3: // n-down
-      u[5]=-1.0;
-      break;
-
-    case 4: // t = -104
-      u[6] = -acos(-0.25);
-      break;
-
-    case 10: // hpd (not really)
-      u[6] = acos(-0.25);
-      u[0] = sin(u[6]); // Mx
-      u[2] = cos(u[6]); // Mz
-      u[4] = 1.0;         // Ny
-      u[5] = 0.0;         // Nz
-      break;
-
-    case 11: // inversed hpd
-      u[6]=acos(-0.25);
-      u[0] =-sin(u[6]); // Mx
-      u[2] = cos(u[6]); // Mz
-      u[4] =-1.0;         // Ny
-      u[5] = 0.0;         // Nz
-      break;
-
-    case 12: // hpd 2pi-soliton (again, not really)
-      w = 0.1; // width
-      p = *x/w; // -1..1
-      if (p<-1.0) p=-1.0;
-      if (p>+1.0) p=+1.0;
-      u[6]=acos(-0.28);
-      u[0]=-cos(p*M_PI) * sin(u[6]); // Mx
-      u[1]= sin(p*M_PI) * sin(u[6]); // Mx
-      u[2]= cos(u[6]);  // Mz
-      u[3]=-sin(p*M_PI); // nx
-      u[4]=-cos(p*M_PI); // ny
-      u[5]= 0.0;         // nz
-      break;
-
-    case 100: // use init_data array
-      nn = init_data.size()/(npde+1);
-      if (nn<1) break;
-      if (nn==1 || *x<= init_data[0]*pars.CELL_LEN){
-        for (int iu = 0; iu < npde; iu++)
-            u[iu] = init_data[iu+1];
-        break;
-      }
-      if (*x>= init_data[(npts-1)*(npde+1)]*pars.CELL_LEN){
-        for (int iu = 0; iu < npde; iu++)
-          u[iu] = init_data[(npts-1)*(npde+1)+iu+1];
-        break;
-      }
-      for (int i=0; i<nn-1; i++){
-        double x1 = init_data[i*(npde+1)]*pars.CELL_LEN;
-        double x2 = init_data[(i+1)*(npde+1)]*pars.CELL_LEN;
-        if (x1 < *x && *x <= x2){
-          for (int iu = 0; iu < npde; iu++){
-            double u1 = init_data[i*(npde+1)+iu+1];
-            double u2 = init_data[(i+1)*(npde+1)+iu+1];
-            u[iu] = u1 + (u2-u1)*(*x-x1)/(x2-x1);
-          }
-          break;
+    nn = init_data.size()/(npde+1);
+    if (nn<1) return;
+    if (nn==1 || *x<= init_data[0]*pars.CELL_LEN){
+      for (int iu = 0; iu < npde; iu++)
+          u[iu] = init_data[iu+1];
+      return;
+    }
+    if (*x>= init_data[(nn-1)*(npde+1)]*pars.CELL_LEN){
+      for (int iu = 0; iu < npde; iu++)
+        u[iu] = init_data[(nn-1)*(npde+1)+iu+1];
+      return;
+    }
+    for (int i=0; i<nn-1; i++){
+      double x1 = init_data[i*(npde+1)]*pars.CELL_LEN;
+      double x2 = init_data[(i+1)*(npde+1)]*pars.CELL_LEN;
+      if (x1 < *x && *x <= x2){
+        for (int iu = 0; iu < npde; iu++){
+          double u1 = init_data[i*(npde+1)+iu+1];
+          double u2 = init_data[(i+1)*(npde+1)+iu+1];
+          u[iu] = u1 + (u2-u1)*(*x-x1)/(x2-x1);
         }
+        return;
       }
-      break;
-
     }
   }
 }
@@ -370,6 +314,53 @@ write_pars(std::ostream & s){
 // Some init_data-related functions.
 // TODO: use it for uniform and simple-soliton initial conditions
 
+// make uniform initial conditions in init_data
+void
+init_data_uniform(const double mx, const double my, const double mz,
+                  const double nx, const double ny, const double nz,
+                  const double th = acos(-0.25)) {
+  init_data.resize(8);
+  init_data[0]=0;
+  init_data[1]=mx;
+  init_data[2]=my;
+  init_data[3]=mz;
+  init_data[4]=nx;
+  init_data[5]=ny;
+  init_data[6]=nz;
+  init_data[7]=th;
+}
+
+// make initial conditions with a simple soliton in init_data
+// if width is negative, swap left and right
+// width >0 does not work yet (vectors do not rotate!)
+void
+init_data_soliton(double w, // soliton width
+                  double mx1, double mx2, // mx on the left and write side
+                  double my1, double my2, // my on the left and write side
+                  double mz1, double mz2, // mz on the left and write side
+                  double nx1, double nx2, // nx on the left and write side
+                  double ny1, double ny2, // ny on the left and write side
+                  double nz1, double nz2, // nz on the left and write side
+                  double th1, double th2  // th on the left and write side
+                 ) {
+  if (w<0){
+    w=-w;
+    std::swap(mx1,mx2); std::swap(my1,my2);  std::swap(mz1,mz2); 
+    std::swap(nx1,nx2); std::swap(ny1,ny2);  std::swap(nz1,nz2); 
+    std::swap(th1,th2);
+  }
+  init_data.resize(16);
+  init_data[0]=-w/2; init_data[ 8]=+w/2;
+  init_data[1]=mx1;   init_data[ 9]=mx2;
+  init_data[2]=my1;   init_data[10]=my2;
+  init_data[3]=mz1;   init_data[11]=mz2;
+  init_data[4]=nx1;   init_data[12]=nx2;
+  init_data[5]=ny1;   init_data[13]=ny2;
+  init_data[6]=nz1;   init_data[14]=nz2;
+  init_data[7]=th1;   init_data[15]=th2;
+}
+
+
 // save current profile to init_data
 void
 init_data_save(pdecol_solver *solver) {
@@ -385,7 +376,7 @@ init_data_save(pdecol_solver *solver) {
   }
 }
 
-// create 2pi-soliton in the init_data
+// create 2pi-soliton in the init_data (on top of existing data)
 void
 init_data_2pi_soliton(double w) {
   int nn = init_data.size()/(npde+1);
@@ -407,7 +398,7 @@ init_data_2pi_soliton(double w) {
   }
 }
 
-// create pi-soliton in the init_data
+// create pi-soliton in the init_data (on top of existing data)
 void
 init_data_pi_soliton(double w) {
   int nn = init_data.size()/(npde+1);
@@ -426,6 +417,25 @@ init_data_pi_soliton(double w) {
     init_data[i*(npde+1)+1 + 1] = -mx*st + my*ct; // My
     init_data[i*(npde+1)+1 + 3] =  nx*ct + ny*st; // nx
     init_data[i*(npde+1)+1 + 4] = -nx*st + ny*ct; // ny
+  }
+}
+
+// create NPD-soliton in the init_data (on top of existing data)
+void
+init_data_npd_soliton(double w) {
+  int nn = init_data.size()/(npde+1);
+  for (int i=0; i<nn; i++){
+    double x = init_data[i*(npde+1)]*pars.CELL_LEN;
+    double p = x/w;
+    if (p>-1 && p<1){
+      init_data[i*(npde+1)+1 + 0] = 0; // Mx
+      init_data[i*(npde+1)+1 + 1] = 0; // My
+      init_data[i*(npde+1)+1 + 2] = 1; // Mz
+      init_data[i*(npde+1)+1 + 3] = 0; // nx
+      init_data[i*(npde+1)+1 + 4] = 0; // ny
+      init_data[i*(npde+1)+1 + 5] = 1; // nz
+      init_data[i*(npde+1)+1 + 6] = acos(-0.25); // th
+    }
   }
 }
 
@@ -610,47 +620,6 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         continue;
       }
 
-      // write function profiles to a file
-      if (cmd == "write_profile") {
-        check_nargs(narg, 0,1);
-        if (!solver) throw Err() << "solver is not running";
-
-        std::string name;
-        if (narg>0) {
-          name = args[0];
-        }
-        else{
-          std::ostringstream ss;
-          ss << pref << ".prof" << cnt_prof << ".dat";
-          name = ss.str();
-        }
-        write_profile(solver, name);
-        cnt_prof++;
-        continue;
-      }
-
-      // make 2-pi hpd soliton, restart solver
-      if (cmd == "make_2pi_soliton") {
-        if (!solver) throw Err() << "solver is not running";
-        double w = get_one_arg<double>(args);
-        init_data_save(solver); // save current profile to the init data
-        init_data_2pi_soliton(w); // create 2-pi solitom with half-width w
-        icond_type = 100;
-        solver->restart();
-        continue;
-      }
-
-      // make pi hpd soliton, restart solver
-      if (cmd == "make_pi_soliton") {
-        if (!solver) throw Err() << "solver is not running";
-        double w = get_one_arg<double>(args);
-        init_data_save(solver); // save current profile to the init data
-        init_data_pi_soliton(w); // create 2-pi solitom with half-width w
-        icond_type = 100;
-        solver->restart();
-        continue;
-      }
-
       // Do calculations for some time.
       if (cmd == "wait") {
         double dt = get_one_arg<double>(args);
@@ -686,6 +655,99 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
 
       // Change time step. Can be changed during calculation.
       if (cmd == "tstep") { tstep = get_one_arg<double>(args); continue; }
+
+      /*******************************************************/
+      // boubdary and initial conditions
+
+      if (cmd == "bcond_type"){ bcond_type = get_one_arg<int>(args); continue;}
+
+      // set uniform i.c. with nz=-1 or nz=+1 (default)
+      if (cmd == "set_icond_uniform") {
+        check_nargs(narg, 0, 1);
+        int nz = narg>0 ? get_arg<int>(args[0]) : 1;
+        nz = nz>=0? 1:-1;
+        init_data_uniform(0,0,1, 0,0,nz);
+      }
+
+      // set uniform "hpd" i.c. with ny=-1 or ny=+1 (default)
+      if (cmd == "set_icond_hpd") {
+        check_nargs(narg, 0, 1);
+        int ny = narg>0 ? get_arg<int>(args[0]) : 1;
+        ny = ny>=0? 1:-1;
+        double th = acos(-0.25);
+        init_data_uniform(ny*sin(th),0,cos(th), 0,ny,0);
+      }
+
+      // set i.c witn a simple n-soliton <width>
+      // width >0 does not work yet
+      if (cmd == "set_icond_nsol") {
+        double w = get_one_arg<double>(args);
+        double th = acos(-0.25);
+        init_data_soliton(w, 0,0, 0,0, 1,1,
+                             0,0, 0,0, -1,1, th, th);
+      }
+
+      // set i.c witn a simple t-soliton <width>
+      if (cmd == "set_icond_tsol") {
+        double w = get_one_arg<double>(args);
+        double th = acos(-0.25);
+        init_data_soliton(w, 0,0, 0,0, 1,1,
+                             0,0, 0,0, 1,1, -th, th);
+      }
+
+
+      // make 2-pi hpd soliton, restart solver
+      if (cmd == "make_2pi_soliton") {
+        if (!solver) throw Err() << "solver is not running";
+        double w = get_one_arg<double>(args);
+        init_data_save(solver); // save current profile to the init data
+        init_data_2pi_soliton(w); // create 2-pi soliton with half-width w
+        solver->restart();
+        continue;
+      }
+
+      // make pi hpd soliton, restart solver
+      if (cmd == "make_pi_soliton") {
+        if (!solver) throw Err() << "solver is not running";
+        double w = get_one_arg<double>(args);
+        init_data_save(solver); // save current profile to the init data
+        init_data_pi_soliton(w); // create pi soliton with half-width w
+        solver->restart();
+        continue;
+      }
+
+      // make npd soliton, restart solver
+      if (cmd == "make_npd_soliton") {
+        if (!solver) throw Err() << "solver is not running";
+        double w = get_one_arg<double>(args);
+        init_data_save(solver); // save current profile to the init data
+        init_data_npd_soliton(w); // create npd soliton with half-width w
+        solver->restart();
+        continue;
+      }
+
+
+      /*******************************************************/
+      // write profile
+
+      // write function profiles to a file
+      if (cmd == "write_profile") {
+        check_nargs(narg, 0,1);
+        if (!solver) throw Err() << "solver is not running";
+
+        std::string name;
+        if (narg>0) {
+          name = args[0];
+        }
+        else{
+          std::ostringstream ss;
+          ss << pref << ".prof" << cnt_prof << ".dat";
+          name = ss.str();
+        }
+        write_profile(solver, name);
+        cnt_prof++;
+        continue;
+      }
 
       /*******************************************************/
       // pnm writer
@@ -837,8 +899,6 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       /*******************************************************/
 
       // commands
-      if (cmd == "bcond_type"){ bcond_type = get_one_arg<int>(args); continue;}
-      if (cmd == "icond_type"){ icond_type = get_one_arg<int>(args); continue;}
 
       if (cmd == "CELL_LEN")  { pars.CELL_LEN  = get_one_arg<double>(args); continue;}
       if (cmd == "XMESH_K")   { pars.XMESH_K   = get_one_arg<double>(args); continue;}

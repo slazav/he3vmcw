@@ -1,5 +1,5 @@
 acc2 10
-icond_type 11
+set_icond_hpd -1
 npts 512
 tstep 1e-4
 

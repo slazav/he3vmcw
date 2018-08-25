@@ -1,5 +1,6 @@
 acc2 8
-icond_type 2
+set_icond_tsol 0.001
+
 mindt 1e-10
 tstep 0.001
 

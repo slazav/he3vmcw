@@ -1,7 +1,7 @@
 # start form HPD initial conditions
 
 acc2 8
-icond_type 10
+set_icond_hpd
 npts 512
 tstep 0.01
 
