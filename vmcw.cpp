@@ -242,7 +242,7 @@ write_profile(pdecol_solver *solver, const std::string & fname) {
   std::vector<double> xsol = solver->get_xmesh();
   std::vector<double> usol = solver->values(xsol, nder);
 
-  std::ofstream ss(fname);
+  std::ofstream ss(fname.c_str());
   // print legend: # coord  U(0) U(1) ... U(0)' U(1)' ...
   ss << "# coord.     ";
   for (int d = 0; d<nder; d++){
@@ -967,9 +967,9 @@ try{
   set_def_pars(&pars);
 
 
-  std::ofstream out_m(pref + ".magn.dat"); // log total magnetization
+  std::ofstream out_m((pref + ".magn.dat").c_str()); // log total magnetization
   out_m << "# Integral magnetization log: T, LP, Mx, Mx, Mz\n";
-  std::ofstream out_l(pref + ".run.log"); // log commands
+  std::ofstream out_l((pref + ".run.log").c_str()); // log commands
   out_l << "# Commands and main parameters\n";
 
   write_pars(out_l);

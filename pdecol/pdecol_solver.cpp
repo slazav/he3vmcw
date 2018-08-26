@@ -168,7 +168,7 @@ pdecol_solver::values(std::vector<double> & xsol, int NDERV){
 void
 pdecol_solver::save_state(const std::string & fname){
   int version = 1;
-  std::ofstream ff (fname,std::ofstream::binary);
+  std::ofstream ff (fname.c_str(),std::ofstream::binary);
   ff.write((char *)&version, sizeof(version));
   ff.write((char *)&verbose, sizeof(verbose));
   ff.write((char *)&INDEX,   sizeof(INDEX));
@@ -208,7 +208,7 @@ pdecol_solver::save_state(const std::string & fname){
 
 void
 pdecol_solver::load_state(const std::string & fname){
-  std::ifstream ff (fname,std::ifstream::binary);
+  std::ifstream ff (fname.c_str(),std::ifstream::binary);
   int version;
   ff.read((char *)&version, sizeof(version));
 
