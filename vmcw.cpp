@@ -734,6 +734,21 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         continue;
       }
 
+      // swap n and/or ny
+      if (cmd == "hpd_swap") {
+        if (!solver) throw Err() << "solver is not running";
+        init_data_save(solver); // save current profile to the init data
+
+        int nn = init_data.size()/(npde+1);
+        for (int i=0; i<nn; i++){
+          // swappint of M is not accurate
+//          init_data[i*(npde+1)+1 + 1] *= -1; // My
+          init_data[i*(npde+1)+1 + 4] *= -1; // Ny
+          init_data[i*(npde+1)+1 + 6] *= -1; // th
+       }
+        solver->restart();
+        continue;
+      }
 
       /*******************************************************/
       // write profile
