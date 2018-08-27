@@ -64,7 +64,7 @@ void
 save_mesh(struct pars_t *p,
           const std::vector<double> &x,
           const std::string & fname){
-  std::ofstream ff(fname);
+  std::ofstream ff(fname.c_str());
   ff << "# N X AER AER'\n"
      << std::scientific << std::setprecision(6);
   for (int i=0; i<x.size(); i++){

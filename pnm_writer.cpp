@@ -60,7 +60,7 @@ pnm_writer_t::write(const std::vector<double> & zsol,
   std::ios_base::openmode flags =
      (H==0)? std::fstream::out | std::fstream::trunc :
              std::fstream::out | std::fstream::in | std::fstream::ate;
-  ss.open (fname, flags);
+  ss.open (fname.c_str(), flags);
 
   int NPTS = zsol.size();
   int NDER = usol.size()/NPTS/NPDE;
