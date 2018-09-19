@@ -117,7 +117,7 @@ int cnt_mesh=0, cnt_prof=0;
 
 /*****************************/
 
-struct pars_t pars; // parameter structure
+struct pars_t pars; // parameter structure TODO: move everything here
 
 /* PDECOL solver pointer */
 pdecol_solver *solver = NULL;
@@ -311,8 +311,19 @@ write_pars(std::ostream & s){
 }
 
 /******************************************************************/
+// Error class for exceptions
+class Err {
+  std::ostringstream s;
+  public:
+    Err(){}
+    Err(const Err & o) { s << o.s.str(); }
+    template <typename T>
+    Err & operator<<(const T & o){ s << o; return *this; }
+    std::string str()  const { return s.str(); }
+};
+
+/******************************************************************/
 // Some init_data-related functions.
-// TODO: use it for uniform and simple-soliton initial conditions
 
 // make uniform initial conditions in init_data
 void
@@ -358,6 +369,57 @@ init_data_soliton(double w, // soliton width
   init_data[5]=ny1;   init_data[13]=ny2;
   init_data[6]=nz1;   init_data[14]=nz2;
   init_data[7]=th1;   init_data[15]=th2;
+}
+
+// set HPD initial condition (RF-field, freq shift, Leggett-Takagi relaxation is used).
+// sn=+1/-1 and st=+1/-1 are ny and theta size.
+void
+init_data_hpd(int sn=1, int st=1){
+
+  double Wr, Wz, W0, WB, Cpar, dCpar, Diff, Tf, T1;
+
+  sn = (sn>0)? +1:-1;
+  st = (st>0)? +1:-1;
+
+  // create mesh (same as in solver, but it is not important)
+  std::vector<double> x(npts);
+  set_mesh(&pars, x);
+  init_data.resize(npts*8);
+  for (int i=0; i<x.size(); i++){
+    // get local parameters
+    set_bulk_pars_(&tcurr, &(x[i]), &Wr, &Wz, &W0,&WB, &Cpar, &dCpar, &Diff, &Tf, &T1);
+
+    double h = Wr/W0;
+    double d = -(Wz-W0)/W0;
+    double b = (WB/W0)*(WB/W0);
+    double wt = Tf * W0;
+    if (d<0) throw Err() << "init_data_hpd: d<0";
+
+    double th = (st>0? 1:-1) * acos(-0.25 - 15.0/16 * d/b - sn*h/sqrt(15.0));
+
+    double nx = -st*sqrt(15.0)/4.0 * d*d/h/b/wt;
+    double nz = -st*sqrt(15.0/16.0) * d/b/wt;
+    double ny = (sn>0? 1:-1) * sqrt(1-nx*nx-nz*nz);
+
+    double wz = cos(th);
+    double wx = ny*sin(th);
+    double wy = b/h*nz*nz*wt;
+
+    init_data[8*i+0] = x[i];
+    init_data[8*i+1] = wx + h;
+    init_data[8*i+2] = wy;
+    init_data[8*i+3] = wz - d;
+    init_data[8*i+4] = nx;
+    init_data[8*i+5] = ny;
+    init_data[8*i+6] = nz;
+    init_data[8*i+7] = th;
+//std::cout <<  x[i]
+//  << "  " << wx + h << " " << wy << " " << wz - d
+//  << "  " << nx << " " << ny << " " << nz  << " "  << th
+//  << "   " << d << " " << h << " " <<  b << " " << wt << "\n";
+
+
+  }
 }
 
 
@@ -443,16 +505,6 @@ init_data_npd_soliton(double w) {
 /******************************************************************/
 // Halpers for command parsing
 
-// Error class for exceptions
-class Err {
-  std::ostringstream s;
-  public:
-    Err(){}
-    Err(const Err & o) { s << o.s.str(); }
-    template <typename T>
-    Err & operator<<(const T & o){ s << o; return *this; }
-    std::string str()  const { return s.str(); }
-};
 
 // check number of arguments for a command, throw Err if it is wrong
 void
@@ -667,6 +719,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         int nz = narg>0 ? get_arg<int>(args[0]) : 1;
         nz = nz>=0? 1:-1;
         init_data_uniform(0,0,1, 0,0,nz);
+        continue;
       }
 
       // set uniform "hpd" i.c. with ny=-1 or ny=+1 (default)
@@ -674,8 +727,10 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         check_nargs(narg, 0, 1);
         int ny = narg>0 ? get_arg<int>(args[0]) : 1;
         ny = ny>=0? 1:-1;
-        double th = acos(-0.25);
-        init_data_uniform(ny*sin(th),0,cos(th), 0,ny,0);
+//        double th = acos(-0.25);
+//        init_data_uniform(ny*sin(th),0,cos(th), 0,ny,0);
+        init_data_hpd(ny);
+        continue;
       }
 
       if (cmd == "set_icond_hpd2") {
@@ -684,6 +739,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         double mx=0.923,  my=-0.305, mz=-sqrt(1-mx*mx-my*my);
         double nx=-0.482, ny=-0.859, nz=-sqrt(1-nx*nx-ny*ny);
         init_data_uniform(mx,my,mz,nx,ny,nz,th);
+        continue;
       }
 
       // set i.c witn a simple n-soliton <width>
@@ -693,6 +749,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         double th = acos(-0.25);
         init_data_soliton(w, 0,0, 0,0, 1,1,
                              0,0, 0,0, -1,1, th, th);
+        continue;
       }
 
       // set i.c witn a simple t-soliton <width>
@@ -701,6 +758,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         double th = acos(-0.25);
         init_data_soliton(w, 0,0, 0,0, 1,1,
                              0,0, 0,0, 1,1, -th, th);
+        continue;
       }
 
 
