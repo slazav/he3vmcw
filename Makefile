@@ -31,24 +31,18 @@ endif
 
 all: $(TARGETS)
 clean:
-	rm -f $(TARGETS) *.o pdecol/*.o vmcw_pars.h vmcw_pars.cpp
-
-# To share main parameter structure beteen C++ and Fortran
-# we create a .fh file from .h
-vmcw_pars.h vmcw_pars.cpp: vmcw_pars.pl
-	./$<
+	rm -f $(TARGETS) *.o pdecol/*.o
 
 # Fortran objects
 FOBJ=pdecol/$(SOLVER).o vmcw_func.o
 
 # C++ object files
-COBJ=vmcw.o pdecol/pdecol_solver.o vmcw_pars.o vmcw_mesh.o pnm_writer.o
+COBJ=vmcw.o pdecol/pdecol_solver.o pnm_writer.o
 pdecol/pdecol_solver.o: pdecol/pdecol_solver.h
-vmcw_mesh.o: vmcw_mesh.h
 
 $(COBJ): %.o: %.cpp
 $(FOBJ): %.o: %.f
-vmcw.o: pdecol/pdecol_solver.h vmcw_pars.h pnm_writer.h vmcw_mesh.h
+vmcw.o: pdecol/pdecol_solver.h pnm_writer.h
 
 
 vmcw: $(FOBJ) $(COBJ)

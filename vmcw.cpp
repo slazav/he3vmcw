@@ -8,8 +8,6 @@
 #include <cstdlib>
 #include <cstring>
 #include "pdecol/pdecol_solver.h"
-#include "vmcw_pars.h"
-#include "vmcw_mesh.h"
 #include "pnm_writer.h"
 
 // I use many global variables here. Maybe it would be better
@@ -106,18 +104,43 @@ double LF0=1e5, LFT=0.0;
 // Spin diffusion, initial value [cm^2/s] and sweep rate [(cm^2/s)/s]
 double DF0=0.1, DFT=0.0;
 
+// cell length, cm
+double cell_len = 0.4;
+
+// Parameters for non-uniform ("aerogel") layout.
+// - not tested for a long time
+// - dDiff/dx is not taken into account
+// - he3 parameters in aerogel are differs from bulk
+//   dy some fixed factors (see set_bulk_pars_ function below)
+
+// Aerogel length (in cell length units).
+double aer_len = 0.0;
+
+// Aerogel center (in cell length units).
+double aer_cnt = 0.0;
+
+// Aerogel transition width (in cell length units).
+double aer_trw = 6e-3;
+
+// non-uniform mesh step: cell_len/(NPTS-1) / (1+xmesh_k*aer_step(x)')
+// 0 means that mesh is uniform
+// 1 means that mesh is twice mere dense if aerogel step derivatve is 1
+double xmesh_k = 0.2;
+
+// non-uniform mesh accuracy
+double xmesh_acc = 1e-10;
+
+
 /*****************************/
 // files
 
 // prefix for data files, command file name without extension
 std::string pref;
 
-// mesh, prof file counters
+// mesh, prof file counters (for default save_mesh/write_profile filenames)
 int cnt_mesh=0, cnt_prof=0;
 
 /*****************************/
-
-struct pars_t pars; // parameter structure TODO: move everything here
 
 /* PDECOL solver pointer */
 pdecol_solver *solver = NULL;
@@ -126,8 +149,71 @@ pdecol_solver *solver = NULL;
 pnm_writers_t pnm_writers;
 
 /******************************************************************/
+// Aerogel profile.
+// Returns 1 in the central
+// part of the cell with fermi steps to 0 on edges.
+//   x is coordinate
+//   d is derivative (0 or 1)
+// Use parameters:
+//   cell_len - cell length, cm
+//   aer_len  -- aerogel length / cell length (use <=0 for no aerogel)
+//   aer_cnt  -- center of aerogel area / cell length
+//   aer_trw  -- transition width / cell length
+double
+aer_step(double x, int d){
+
+  if (aer_len <= 0.0) return 0.0;
+
+  double xx = x/cell_len - aer_cnt;
+  double a = (fabs(xx) - aer_len/2.0)/aer_trw;
+  double dadx = (xx>0? 1:-1)/aer_trw/cell_len;
+
+  if(a < 82.0){
+    if (d==0) return 1.0/(1.0+exp(a));
+    else      return dadx * exp(a)/(1.0+exp(a))/(1.0+exp(a));
+  }
+  return 0.0;
+}
+
+// Set the mesh
+void
+set_mesh(std::vector<double> & x){
+  if (x.size() < 2) return;
+
+  // start with homogenious mesh with dx intervals
+  int N = x.size();
+  double dx = cell_len/(N-1);
+  x[0] = -cell_len/2.0;
+//std::cerr << ">>> " << x[0] << "\n";
+  for (int k=0; k<100; k++){
+    for (int i=0; i<N-1; i++){
+      x[i+1] = x[i] + dx/(1.0+xmesh_k*fabs(aer_step(x[i],1)));
+    }
+    // scale the whole mesh to fit cell_len
+    double d = cell_len - (x[N-1]-x[0]);
+    dx+=d/(N+1);
+    if (fabs(d)<xmesh_acc) break;
+  }
+}
+
+// Save the mesh to file
+void
+save_mesh(const std::vector<double> &x,
+          const std::string & fname){
+  std::ofstream ff(fname.c_str());
+  ff << "# N X AER AER'\n"
+     << std::scientific << std::setprecision(6);
+  for (int i=0; i<x.size(); i++){
+    double xx = x[i];
+    double a0 = aer_step(xx,0);
+    double a1 = aer_step(xx,1);
+    ff << i << " " << xx << " " << a0 << " " << a1 << "\n";
+  }
+}
+
+/******************************************************************/
 // Set parameters for Leggett equations using main parameter structure.
-// This function is called from F and BNDRY
+// This functions are called from F and BNDRY
 extern "C" {
   void set_bulk_pars_(double *t, double *x,
                  double *Wr, double *Wz, double *W0,
@@ -145,11 +231,11 @@ extern "C" {
     *T1   = T10 + T1T*(*t);
 
     // spatial modulation
-    if (pars.AER){
-      *Cpar *= 1.0 - 0.5*aer_step(&pars, *x,0);
-      *dCpar =(*Cpar) * 0.5*aer_step(&pars, *x,1);
-      *Diff *= 1.0 - 0.835 * aer_step(&pars, *x,0);
-      *Tf   *= 1.0 - 0.5 * aer_step(&pars, *x,0);
+    if (aer_len>0.0){
+      *Cpar *= 1.0 - 0.5*aer_step(*x,0);
+      *dCpar =(*Cpar) * 0.5*aer_step(*x,1);
+      *Diff *= 1.0 - 0.835 * aer_step(*x,0);
+      *Tf   *= 1.0 - 0.5 * aer_step(*x,0);
     }
   }
 
@@ -161,9 +247,9 @@ extern "C" {
     *Diff = DF0 + DFT*(*t);
 
     // spatial modulation
-    if (pars.AER){
-      *Cpar *= 1.0 - 0.5*aer_step(&pars, *x,0);
-      *Diff *= 1.0 - 0.835 * aer_step(&pars, *x,0);
+    if (aer_len>0.0){
+      *Cpar *= 1.0 - 0.5*aer_step(*x,0);
+      *Diff *= 1.0 - 0.835 * aer_step(*x,0);
     }
     // type of boundary condition
     *IBN = bcond_type;
@@ -189,19 +275,19 @@ extern "C" {
 
     nn = init_data.size()/(npde+1);
     if (nn<1) return;
-    if (nn==1 || *x<= init_data[0]*pars.CELL_LEN){
+    if (nn==1 || *x<= init_data[0]*cell_len){
       for (int iu = 0; iu < npde; iu++)
           u[iu] = init_data[iu+1];
       return;
     }
-    if (*x>= init_data[(nn-1)*(npde+1)]*pars.CELL_LEN){
+    if (*x>= init_data[(nn-1)*(npde+1)]*cell_len){
       for (int iu = 0; iu < npde; iu++)
         u[iu] = init_data[(nn-1)*(npde+1)+iu+1];
       return;
     }
     for (int i=0; i<nn-1; i++){
-      double x1 = init_data[i*(npde+1)]*pars.CELL_LEN;
-      double x2 = init_data[(i+1)*(npde+1)]*pars.CELL_LEN;
+      double x1 = init_data[i*(npde+1)]*cell_len;
+      double x2 = init_data[(i+1)*(npde+1)]*cell_len;
       if (x1 < *x && *x <= x2){
         for (int iu = 0; iu < npde; iu++){
           double u1 = init_data[i*(npde+1)+iu+1];
@@ -383,7 +469,7 @@ init_data_hpd(int sn=1, int st=1){
 
   // create mesh (same as in solver, but it is not important)
   std::vector<double> x(npts);
-  set_mesh(&pars, x);
+  set_mesh(x);
   init_data.resize(npts*8);
   for (int i=0; i<x.size(); i++){
     // get local parameters
@@ -443,7 +529,7 @@ void
 init_data_2pi_soliton(double w) {
   int nn = init_data.size()/(npde+1);
   for (int i=0; i<nn; i++){
-    double x = init_data[i*(npde+1)]*pars.CELL_LEN;
+    double x = init_data[i*(npde+1)]*cell_len;
     double p = x/w;
     if (p<-1.0) p=-1.0;
     if (p>+1.0) p=+1.0;
@@ -465,7 +551,7 @@ void
 init_data_pi_soliton(double w) {
   int nn = init_data.size()/(npde+1);
   for (int i=0; i<nn; i++){
-    double x = init_data[i*(npde+1)]*pars.CELL_LEN;
+    double x = init_data[i*(npde+1)]*cell_len;
     double p = x/w;
     if (p<-0.5) p=-0.5;
     if (p>+0.5) p=+0.5;
@@ -487,7 +573,7 @@ void
 init_data_npd_soliton(double w) {
   int nn = init_data.size()/(npde+1);
   for (int i=0; i<nn; i++){
-    double x = init_data[i*(npde+1)]*pars.CELL_LEN;
+    double x = init_data[i*(npde+1)]*cell_len;
     double p = x/w;
     if (p>-1 && p<1){
       init_data[i*(npde+1)+1 + 0] = 0; // Mx
@@ -621,14 +707,14 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         // initialize new solver
         tend=tcurr=0;
         std::vector<double> xbrpt(npts);
-        set_mesh(&pars, xbrpt);
+        set_mesh(xbrpt);
         solver = new pdecol_solver(tcurr, mindt, acc, xbrpt, npde);
         if (!solver) throw Err() << "can't create solver";
 
         // save the mesh
         std::ostringstream ss;
         ss << pref << ".mesh" << cnt_mesh << ".dat";
-        save_mesh(&pars, xbrpt, ss.str());
+        save_mesh(xbrpt, ss.str());
         cnt_mesh++;
         continue;
       }
@@ -981,14 +1067,12 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
 
       // commands
 
-      if (cmd == "CELL_LEN")  { pars.CELL_LEN  = get_one_arg<double>(args); continue;}
-      if (cmd == "XMESH_K")   { pars.XMESH_K   = get_one_arg<double>(args); continue;}
-      if (cmd == "XMESH_ACC") { pars.XMESH_ACC = get_one_arg<double>(args); continue;}
+      if (cmd == "CELL_LEN")  { cell_len = get_one_arg<double>(args); continue;}
+      if (cmd == "XMESH_K")   { xmesh_k  = get_one_arg<double>(args); continue;}
 
-      if (cmd == "AER")       { pars.AER     = get_one_arg<int>(args); continue;}
-      if (cmd == "AER_LEN")   { pars.AER_LEN = get_one_arg<double>(args); continue;}
-      if (cmd == "AER_CNT")   { pars.AER_CNT = get_one_arg<double>(args); continue;}
-      if (cmd == "AER_TRW")   { pars.AER_TRW = get_one_arg<double>(args); continue;}
+      if (cmd == "AER_LEN")   { aer_len = get_one_arg<double>(args); continue;}
+      if (cmd == "AER_CNT")   { aer_cnt = get_one_arg<double>(args); continue;}
+      if (cmd == "AER_TRW")   { aer_trw = get_one_arg<double>(args); continue;}
 
       /*******************************************************/
 
@@ -1035,9 +1119,6 @@ try{
   // find prefix (command file name without extension)
   const char * pos = rindex(argv[1], '.');
   pref = pos ? std::string(argv[1], pos-argv[1]) : argv[1];
-
-  // set default parameters
-  set_def_pars(&pars);
 
 
   std::ofstream out_m((pref + ".magn.dat").c_str()); // log total magnetization
