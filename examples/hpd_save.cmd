@@ -13,6 +13,6 @@ start
 pnm_start
 
 sweep_field_cm 0.20 0.1   # sweep field
-wait 200
+wait 0.2
 save_state hpd_save.state
 
