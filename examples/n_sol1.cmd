@@ -4,7 +4,6 @@ mindt 1e-10
 tstep 0.001
 
 cell_len 0.9
-f0 1124000
 
 
 set_rf_field   1.05e-3     # RF-field

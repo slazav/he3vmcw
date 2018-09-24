@@ -4,7 +4,6 @@ npts 512
 tstep 1e-5
 
 cell_len 0.9
-f0 1123000
 
 
 set_tf 1.6e-6

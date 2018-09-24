@@ -4,7 +4,6 @@ npts 512
 tstep 2e-3
 
 cell_len 0.9
-f0 1123000
 
 set_ttc_press 0.93 24.8
 

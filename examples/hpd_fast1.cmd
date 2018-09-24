@@ -1,6 +1,5 @@
 npts 400
 cell_len 0.9
-f0 1124000
 
 set_rf_field   0.78e-3     # RF-field
 set_field_grad 15.7e-3  # field gradient, 15.7 G/cm/A
