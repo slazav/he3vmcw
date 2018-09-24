@@ -4,7 +4,7 @@ set_icond_tsol 0.001
 mindt 1e-10
 tstep 0.001
 
-CELL_LEN 0.9
+cell_len 0.9
 f0 1124000
 
 

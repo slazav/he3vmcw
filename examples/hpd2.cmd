@@ -3,7 +3,7 @@ set_icond_hpd2
 npts 512
 tstep 1e-5
 
-CELL_LEN 0.9
+cell_len 0.9
 f0 1123000
 
 

@@ -777,8 +777,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       // Change accuracy (power of two). If solver is not running,
       // the value will be used after start.
       if (cmd == "acc2") {
-        double v = get_one_arg<double>(args);
-        acc=pow(2, -v);
+        acc=pow(2, -get_one_arg<double>(args));
         if (solver) solver->ch_eps(acc);
         continue;
       }
@@ -793,6 +792,15 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
 
       // Change time step. Can be changed during calculation.
       if (cmd == "tstep") { tstep = get_one_arg<double>(args); continue; }
+
+      // Change cell length. It can be changes at any time,
+      // but real change happenes when the solver is (re)started.
+      if (cmd == "cell_len")  { cell_len = get_one_arg<double>(args); continue;}
+
+      if (cmd == "mesh_k")   { xmesh_k  = get_one_arg<double>(args); continue;}
+      if (cmd == "aer_len")   { aer_len = get_one_arg<double>(args); continue;}
+      if (cmd == "aer_cnt")   { aer_cnt = get_one_arg<double>(args); continue;}
+      if (cmd == "aer_trw")   { aer_trw = get_one_arg<double>(args); continue;}
 
       /*******************************************************/
       // boubdary and initial conditions
@@ -1015,7 +1023,13 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
                                       "field gradient is zero";
         cmd_sweep(args, &H0, &HT, -HG); continue; }
 
-      /*******************************************************/
+      // Set/step/sweep RF field [G].
+      if (cmd == "set_rf_field") {
+        HR0 = get_one_arg<double>(args); continue; }
+      if (cmd == "step_rf_field") {
+        HR0 += get_one_arg<double>(args); continue; }
+      if (cmd == "sweep_rf_field") {
+        cmd_sweep(args, &HR0, &HRT); continue; }
 
       // RF-field profile, gradient term [1/cm], quadratic term [1/cm^2].
       if (cmd == "set_rf_prof") {
@@ -1025,13 +1039,9 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         continue;
       }
 
-      // Set/step/sweep RF field [G].
-      if (cmd == "set_rf_field") {
-        HR0 = get_one_arg<double>(args); continue; }
-      if (cmd == "step_rf_field") {
-        HR0 += get_one_arg<double>(args); continue; }
-      if (cmd == "sweep_rf_field") {
-        cmd_sweep(args, &HR0, &HRT); continue; }
+
+      /*******************************************************/
+
 
       // Set/sweep relaxation time t_1 [s]
       if (cmd == "set_t1") {
@@ -1065,16 +1075,6 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
 
       /*******************************************************/
 
-      // commands
-
-      if (cmd == "CELL_LEN")  { cell_len = get_one_arg<double>(args); continue;}
-      if (cmd == "XMESH_K")   { xmesh_k  = get_one_arg<double>(args); continue;}
-
-      if (cmd == "AER_LEN")   { aer_len = get_one_arg<double>(args); continue;}
-      if (cmd == "AER_CNT")   { aer_cnt = get_one_arg<double>(args); continue;}
-      if (cmd == "AER_TRW")   { aer_trw = get_one_arg<double>(args); continue;}
-
-      /*******************************************************/
 
 #ifdef HE3LIB
       if (cmd == "set_ttc_press") {
