@@ -762,7 +762,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         check_nargs(narg, 0);
         if (!solver) throw Err() << "solver is not running";
         solver->reset_time();
-        tcurr = 0;
+        tcurr = tend = 0;
         continue;
       }
 
