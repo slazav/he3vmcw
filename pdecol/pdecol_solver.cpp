@@ -47,6 +47,32 @@ extern "C"{
   extern struct {
     int NINT,KORD,NCC,NPDE,NCPTS,NEQN,IQUAD;
   } sizes_;
+
+  // internal data (originally use SAVE statements)
+  extern struct {
+    int ILEFT, MFLAG;
+  } values_save_;
+
+  extern struct {
+    int ILEFT;
+  } colpnt_save_;
+
+  extern struct {
+    double DELTAM, DELTAP;
+    int J;
+  } bsplvn_save_;
+
+  extern struct {
+    int ILO;
+  } interv_save_;
+
+  extern struct { // stifib function - core integrator
+     double BND,CON,CRATE,D,D1,E,EDN,ENQ1,ENQ2,ENQ3,EPSOLD;
+     double EUP,FN,HOLD,OLDL0,PR1,PR2,PR3,R1,RC,RH,RMAX,TOLD;
+     int    I,IDOUB,IER,IREDO,IRET,IWEVAL,J,J1,J2,L,LMAX,M,MEO,METH;
+     int    MFOLD,MIO,MITER,NEWQ,NOLD,NQ,NSTEPJ;
+  } stifib_save_;
+
 }
 
 /********************************************************************/
@@ -170,47 +196,54 @@ pdecol_solver::values(std::vector<double> & xsol, int NDERV){
 
 void
 pdecol_solver::save_state(const std::string & fname){
-  int version = 1;
+#define WRITE_DATA(S) ff.write((char *)&S, sizeof(S));
+  int version = 2;
   std::ofstream ff (fname.c_str(),std::ofstream::binary);
-  ff.write((char *)&version, sizeof(version));
-  ff.write((char *)&verbose, sizeof(verbose));
-  ff.write((char *)&INDEX,   sizeof(INDEX));
-  ff.write((char *)&NINT,    sizeof(NINT));
-  ff.write((char *)&NPDE,    sizeof(NPDE));
-  ff.write((char *)&KORD,    sizeof(KORD));
-  ff.write((char *)&NCC,     sizeof(NCC));
-  ff.write((char *)&MF,      sizeof(MF));
-  ff.write((char *)&EPS,     sizeof(EPS));
-  ff.write((char *)&t,       sizeof(t));
-  ff.write((char *)&t0,      sizeof(t0));
-  ff.write((char *)&mindt,   sizeof(mindt));
+  WRITE_DATA(version);
+  WRITE_DATA(verbose);
+  WRITE_DATA(INDEX);
+  WRITE_DATA(NINT);
+  WRITE_DATA(NPDE);
+  WRITE_DATA(KORD);
+  WRITE_DATA(NCC);
+  WRITE_DATA(MF);
+  WRITE_DATA(EPS);
+  WRITE_DATA(t);
+  WRITE_DATA(t0);
+  WRITE_DATA(mindt);
 
   int s;
   s = XBKPT.size();
-  ff.write((char *)&s,   sizeof(s));
+  WRITE_DATA(s);
   if (s>0) ff.write((char *)XBKPT.data(), s*sizeof(XBKPT[0]));
 
   s = WORK.size();
-  ff.write((char *)&s,   sizeof(s));
+  WRITE_DATA(s);
   if (s>0) ff.write((char *)WORK.data(), s*sizeof(WORK[0]));
 
   s = IWORK.size();
-  ff.write((char *)&s,   sizeof(s));
+  WRITE_DATA(s);
   if (s>0) ff.write((char *)IWORK.data(), s*sizeof(IWORK[0]));
 
   // pdecol structures
-  ff.write((char *)&iounit_, sizeof(iounit_));
-  ff.write((char *)&istart_, sizeof(istart_));
-  ff.write((char *)&sizes_,  sizeof(sizes_));
-  ff.write((char *)&gear0_,  sizeof(gear0_));
-  ff.write((char *)&gear1_,  sizeof(gear1_));
-  ff.write((char *)&gear9_,  sizeof(gear9_));
-  ff.write((char *)&option_, sizeof(option_));
-
+  WRITE_DATA(iounit_);
+  WRITE_DATA(istart_);
+  WRITE_DATA(sizes_);
+  WRITE_DATA(gear0_);
+  WRITE_DATA(gear1_);
+  WRITE_DATA(gear9_);
+  WRITE_DATA(option_);
+  // only in version 2
+  WRITE_DATA(values_save_);
+  WRITE_DATA(colpnt_save_);
+  WRITE_DATA(bsplvn_save_);
+  WRITE_DATA(interv_save_);
+  WRITE_DATA(stifib_save_);
 }
 
 void
 pdecol_solver::load_state(const std::string & fname){
+#define READ_DATA(S) ff.read((char *)&S, sizeof(S));
   std::ifstream ff (fname.c_str(),std::ifstream::binary);
   if (ff.fail()) throw Err() << "can't read file: " << fname;
   int version;
@@ -218,40 +251,47 @@ pdecol_solver::load_state(const std::string & fname){
 
   switch (version){
     case 1:
-      ff.read((char *)&verbose, sizeof(verbose));
-      ff.read((char *)&INDEX,   sizeof(INDEX));
-      ff.read((char *)&NINT,    sizeof(NINT));
-      ff.read((char *)&NPDE,    sizeof(NPDE));
-      ff.read((char *)&KORD,    sizeof(KORD));
-      ff.read((char *)&NCC,     sizeof(NCC));
-      ff.read((char *)&MF,      sizeof(MF));
-      ff.read((char *)&EPS,     sizeof(EPS));
-      ff.read((char *)&t,       sizeof(t));
-      ff.read((char *)&t0,      sizeof(t0));
-      ff.read((char *)&mindt,   sizeof(mindt));
+    case 2:
+      READ_DATA(verbose);
+      READ_DATA(INDEX);
+      READ_DATA(NINT);
+      READ_DATA(NPDE);
+      READ_DATA(KORD);
+      READ_DATA(NCC);
+      READ_DATA(MF);
+      READ_DATA(EPS);
+      READ_DATA(t);
+      READ_DATA(t0);
+      READ_DATA(mindt);
 
       int s;
-      ff.read((char *)&s,   sizeof(s));
+      READ_DATA(s);
       XBKPT.resize(s);
       if (s>0) ff.read((char *)XBKPT.data(), s*sizeof(XBKPT[0]));
 
-      ff.read((char *)&s,   sizeof(s));
+      READ_DATA(s);
       WORK.resize(s);
       if (s>0) ff.read((char *)WORK.data(), s*sizeof(WORK[0]));
 
-      ff.read((char *)&s,   sizeof(s));
+      READ_DATA(s);
       IWORK.resize(s);
       if (s>0) ff.read((char *)IWORK.data(), s*sizeof(IWORK[0]));
 
       // pdecol structures
-      ff.read((char *)&iounit_, sizeof(iounit_));
-      ff.read((char *)&istart_, sizeof(istart_));
-      ff.read((char *)&sizes_,  sizeof(sizes_));
-      ff.read((char *)&gear0_,  sizeof(gear0_));
-      ff.read((char *)&gear1_,  sizeof(gear1_));
-      ff.read((char *)&gear9_,  sizeof(gear9_));
-      ff.read((char *)&option_, sizeof(option_));
-
+      READ_DATA(iounit_);
+      READ_DATA(istart_);
+      READ_DATA(sizes_);
+      READ_DATA(gear0_);
+      READ_DATA(gear1_);
+      READ_DATA(gear9_);
+      READ_DATA(option_);
+      if (version==1) break;
+      // only in version 2
+      READ_DATA(values_save_);
+      READ_DATA(colpnt_save_);
+      READ_DATA(bsplvn_save_);
+      READ_DATA(interv_save_);
+      READ_DATA(stifib_save_);
       break;
     default:
       throw Err() << "unsupported state file version: " << version;
