@@ -82,7 +82,11 @@ make pi hpd soliton, restart solver.
 * `make_npd_soliton` -- Update initial condition from current function values,
  make npd soliton, restart solver
 
-* `hpd_swap`
+* `hpd_deform <type>` -- Update initial condition from current function values,
+make some modification, and restart the solver. Types:
+  * 0 - no modifications (same as reset_time command);
+  * 1 - invert theta angle
+
 
 #### Data output:
 

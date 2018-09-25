@@ -897,16 +897,53 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       }
 
       // swap n and/or ny
-      if (cmd == "hpd_swap") {
+      if (cmd == "hpd_deform") {
         if (!solver) throw Err() << "solver is not running";
+        int type = get_one_arg<int>(args);
         init_data_save(solver); // save current profile to the init data
 
         int nn = init_data.size()/(npde+1);
         for (int i=0; i<nn; i++){
-          // swappint of M is not accurate
-//          init_data[i*(npde+1)+1 + 1] *= -1; // My
-          init_data[i*(npde+1)+1 + 4] *= -1; // Ny
-          init_data[i*(npde+1)+1 + 6] *= -1; // th
+          double  x = init_data[i*(npde+1) + 0];
+          double mx = init_data[i*(npde+1) + 1];
+          double my = init_data[i*(npde+1) + 2];
+          double mz = init_data[i*(npde+1) + 3];
+          double nx = init_data[i*(npde+1) + 4];
+          double ny = init_data[i*(npde+1) + 5];
+          double nz = init_data[i*(npde+1) + 6];
+          double th = init_data[i*(npde+1) + 7];
+
+          double mm = sqrt(mx*mx + my*my + mz*mz);
+          double am = atan2(my,mx);
+          double bm = acos(mz/mm);
+          double nn = sqrt(nx*nx + ny*ny + nz*nz);
+          double an = atan2(ny,nx);
+          double bn = acos(nz/nn);
+
+          switch (type) {
+            case 0: break;  // trivial
+            case 1: th=-th; break;  // invert theta
+            case 2: an+=M_PI; am+=M_PI; break;  // trivial
+            case 3: an += 2*M_PI*(x+0.5);
+                    am += 2*M_PI*(x+0.5); break;  // invert theta
+          }
+
+          nx = nn*sin(bn)*cos(an);
+          ny = nn*sin(bn)*sin(an);
+          nz = nn*cos(bn);
+
+          mx = mm*sin(bm)*cos(am);
+          my = mm*sin(bm)*sin(am);
+          mz = mm*cos(bm);
+
+          init_data[i*(npde+1) + 0] =  x;
+          init_data[i*(npde+1) + 1] = mx;
+          init_data[i*(npde+1) + 2] = my;
+          init_data[i*(npde+1) + 3] = mz;
+          init_data[i*(npde+1) + 4] = nx;
+          init_data[i*(npde+1) + 5] = ny;
+          init_data[i*(npde+1) + 6] = nz;
+          init_data[i*(npde+1) + 7] = th;
        }
         solver->restart();
         tcurr = 0;
