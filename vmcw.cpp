@@ -896,7 +896,9 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       // swap n and/or ny
       if (cmd == "hpd_deform") {
         if (!solver) throw Err() << "solver is not running";
-        int type = get_one_arg<int>(args);
+        check_nargs(narg, 1, 2);
+        int type = get_arg<int>(args[0]);
+        double w = (narg<2)? 0.1 : get_arg<double>(args[1]);
         init_data_save(solver); // save current profile to the init data
 
         int nn = init_data.size()/(npde+1);
@@ -917,12 +919,26 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
           double an = atan2(ny,nx);
           double bn = acos(nz/nn);
 
+          int n;
+          double w;
           switch (type) {
-            case 0: break;  // trivial
+            // trivial
+            case 0: break;
+
             case 1: th=-th; break;  // invert theta
+
+            // rotate by PI
             case 2: an+=M_PI; am+=M_PI; break;  // trivial
-            case 3: an += 2*M_PI*(x+0.5);
-                    am += 2*M_PI*(x+0.5); break;  // invert theta
+
+            // constant rotation (number of periods - parameter n)
+            case 3: n = (narg<2)? 1 : get_arg<int>(args[1]);
+                    an -= 2*n*M_PI*(x+0.5);
+                    am -= 2*n*M_PI*(x+0.5); break;  // invert theta
+
+            // 2pi soliton with width w (orientation depends on w sign)
+            case 4: w = (narg<2)? 0.1 : get_arg<double>(args[1]);
+                    an += 4*atan(exp(x/w));
+                    am += 4*atan(exp(x/w)); break;  // invert theta
           }
 
           nx = nn*sin(bn)*cos(an);
