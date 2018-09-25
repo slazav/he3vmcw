@@ -30,14 +30,9 @@ solver.
 
 * `wait <time, s>` -- Do calculations for some time period.
 
-* `reset_time` -- Update initial condition from current function values
-and restart the solver with setting time to 0. This command is useful
+* `reset_time` -- Reset time to 0. This command is useful
 when the time is much larger then time step and the calculation fails
-with `T + DT = T` error. Note that this type of resetting the solver is a
-bit harder then saving/loading its state, it can produce some
-perturbations on functions. This command changes default initial
-conditions, if you want to start the solver again you may want to change
-it.
+with `T + DT = T` error.
 
 * `acc <value>` -- Change solver accuracy. If solver is not running,
 the value will be used after it starts.
@@ -66,12 +61,16 @@ calculation, not tested for a long time. For normal calculations
 
 * `bcond_type <value>` -- set boundary condition type (not tested)
 
-* `set_icond_uniform [<nz value>]` -- set uniform i.c. with nz=-1 or nz=+1 (default)
+Following commands change default boundary condition without restarting the solver.
 
+* `set_icond_uniform [<nz value>]` -- set uniform i.c. with nz=-1 or nz=+1 (default)
 * `set_icond_hpd` -- set HPD i.c. with ny=-1 or ny=+1 (default).
 * `set_icond_hpd2`
 * `set_icond_nsol <width>` -- set i.c witn a simple n-soliton. Width >0 does not work yet
 * `set_icond_tsol <width>` -- set i.c witn a simple t-soliton
+
+Following commands update initial condition from current function values,
+modify it somehow and restart the solver.
 
 * `make_2pi_soliton` -- Update initial condition from current function values,
 make 2-pi hpd soliton, and restart the solver.
@@ -84,7 +83,7 @@ make pi hpd soliton, restart solver.
 
 * `hpd_deform <type>` -- Update initial condition from current function values,
 make some modification, and restart the solver. Types:
-  * 0 - no modifications (same as reset_time command);
+  * 0 - no modifications;
   * 1 - invert theta angle
 
 

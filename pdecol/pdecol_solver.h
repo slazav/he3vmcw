@@ -46,6 +46,8 @@ class pdecol_solver {
 
   void restart();
 
+  void reset_time();
+
   /// Get function values
   /// Arguments:
   ///   xsol  -- Cordinate values.
