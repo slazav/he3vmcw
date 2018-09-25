@@ -13,7 +13,7 @@ for some default output files.
 #### Solver:
 
 * `start` -- (Re)start the solver. Coordinate mesh is saved into
-  <prefix>.mesh file (4 columns: point number, coordinate value, "aerogel
+  `<prefix>.mesh` file (4 columns: point number, coordinate value, "aerogel
   density", "aerogel density" derivative).
 
 * `stop` -- Stop the solver.
@@ -25,8 +25,7 @@ state is saved, not experimental conditions (magnetic fields, 3He
 parameters, etc.). If solver is not running, then do nothing and print
 a warning message.
 
-* `load_state <file>` -- Load the solver state from a file and (re)start the
-solver.
+* `load_state <file>` -- Load the solver state from a file.
 
 * `wait <time, s>` -- Do calculations for some time period.
 
@@ -35,16 +34,18 @@ when the time is much larger then time step and the calculation fails
 with `T + DT = T` error.
 
 * `acc <value>` -- Change solver accuracy. If solver is not running,
-the value will be used after it starts.
+the value will be used after it starts. Accuracy can be changed for
+the running solver.
 
 * `acc2 <value>` -- Same, but use log2 value (10 for accuracy 2^(-10)).
 
-* `mindt <value>` -- Change min. time step (recommended 1e-10). It
-can be changes at any time, but real change happenes when the new
-solver is started.
+* `mindt <value>` -- Change min. time step. It can be changes at any
+time, but real change happenes when the new solver is started.
 
 * `npts <number>` -- Change number of points. It can be changed at any time,
-but real change happenes when the new solver is started.
+but real change happenes when the new solver is started. TODO: I'm not
+sure that changing npts while solver is running will not break something
+(writing a profile e.g.)
 
 * `tstep <value>` -- Set time step. Can be changed during calculation.
 
@@ -61,10 +62,11 @@ calculation, not tested for a long time. For normal calculations
 
 * `bcond_type <value>` -- set boundary condition type (not tested)
 
-Following commands change default boundary condition without restarting the solver.
+Following commands change default boundary condition and have an effect
+only when the solver is starded next time.
 
-* `set_icond_uniform [<nz value>]` -- set uniform i.c. with nz=-1 or nz=+1 (default)
-* `set_icond_hpd` -- set HPD i.c. with ny=-1 or ny=+1 (default).
+* `set_icond_uniform [<nz value>=1]` -- set uniform i.c. with nz=-1 or nz=+1.
+* `set_icond_hpd [<ny value>=1]` -- set HPD i.c. with ny=-1 or ny=+1.
 * `set_icond_hpd2`
 * `set_icond_nsol <width>` -- set i.c witn a simple n-soliton. Width >0 does not work yet
 * `set_icond_tsol <width>` -- set i.c witn a simple t-soliton
