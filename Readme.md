@@ -56,7 +56,7 @@ calculation, not tested for a long time. For normal calculations
 #### Data output:
 
 * `write_profile [<file>]` -- Write function profiles to the file.
-8 columns: coordinate, nx,ny,nz, mx,my,mz,theta. Default filename is
+8 columns: coordinate, mx,my,mz, nx,ny,nz, theta. Default filename is
 `<prefix>.prof<n>.dat`. If solver is not running then only prints a warning.
 
 * `pnm_start [<file>]` -- Start writing a pnm-file with vectors n and M

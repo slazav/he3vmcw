@@ -29,7 +29,7 @@ extern "C"{
     int MAXDER; // set to 5 by default
   } option_;
 
-  // other bloks are used only to save/restore state
+  // other blocks are used only to save/restore state
   extern struct {
     double T,DTC,DTMN,DTMX,EPSC,UROUND;
     int N,MFC,KFLAG,JSTART;
