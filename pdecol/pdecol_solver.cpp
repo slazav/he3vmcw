@@ -212,6 +212,7 @@ pdecol_solver::save_state(const std::string & fname){
 void
 pdecol_solver::load_state(const std::string & fname){
   std::ifstream ff (fname.c_str(),std::ifstream::binary);
+  if (ff.fail()) throw Err() << "can't read file: " << fname;
   int version;
   ff.read((char *)&version, sizeof(version));
 
