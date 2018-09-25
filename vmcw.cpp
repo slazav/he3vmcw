@@ -669,9 +669,6 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       line = line.substr(0, c);
     }
 
-    // logging to out_c
-    out_c << "Command: " << line << "\n";
-
     // split the line into command and arguments
     std::istringstream in(line);
     std::string cmd;
@@ -687,10 +684,13 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
     }
     int narg = args.size();
 
+    // logging to out_c
+    out_c << "Command: " << line << "\n";
+    std::cerr << line << "\n";
+
     // Commands can throw Err exceptions. In this case error message
     // from the exception should be printed and next command started.
     try {
-
 
       /*******************************************************/
       // solver
@@ -1134,7 +1134,8 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       throw Err() << "skipping unknown command.\n";
     }
     catch (Err e){
-      std::cerr << line << ": " << e.str() << "\n";
+      std::cerr << "Error in command file, line "
+                << line << ": " << e.str() << "\n";
     }
   }
   return 0;
