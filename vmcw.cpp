@@ -758,11 +758,19 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         continue;
       }
 
+      if (cmd == "reset_time") {
+        check_nargs(narg, 0);
+        if (!solver) throw Err() << "solver is not running";
+        init_data_save(solver); // save current profile to the init data
+        solver->restart();
+        tcurr = 0;
+        continue;
+      }
+
       // Do calculations for some time.
       if (cmd == "wait") {
-        double dt = get_one_arg<double>(args);
         if (!solver) throw Err() << "solver is not running";
-        tend = tcurr + dt;
+        tend = tcurr + get_one_arg<double>(args);
         continue;
       }
 
@@ -863,6 +871,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         init_data_save(solver); // save current profile to the init data
         init_data_2pi_soliton(w); // create 2-pi soliton with half-width w
         solver->restart();
+        tcurr = 0;
         continue;
       }
 
@@ -883,6 +892,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         init_data_save(solver); // save current profile to the init data
         init_data_npd_soliton(w); // create npd soliton with half-width w
         solver->restart();
+        tcurr = 0;
         continue;
       }
 
@@ -899,6 +909,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
           init_data[i*(npde+1)+1 + 6] *= -1; // th
        }
         solver->restart();
+        tcurr = 0;
         continue;
       }
 

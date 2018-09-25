@@ -108,7 +108,7 @@ pdecol_solver::pdecol_solver(
 // restart running solver
 void
 pdecol_solver::restart() {
-  t0 = t;
+  t0 = t = 0;
   IWORK[0] = WORK.size();
   IWORK[1] = IWORK.size();
   INDEX=1;

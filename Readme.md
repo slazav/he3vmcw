@@ -30,6 +30,15 @@ solver.
 
 * `wait <time, s>` -- Do calculations for some time period.
 
+* `reset_time` -- Update initial condition from current function values
+and restart the solver with setting time to 0. This command is useful
+when the time is much larger then time step and the calculation fails
+with `T + DT = T` error. Note that this type of resetting the solver is a
+bit harder then saving/loading its state, it can produce some
+perturbations on functions. This command changes default initial
+conditions, if you want to start the solver again you may want to change
+it.
+
 * `acc <value>` -- Change solver accuracy. If solver is not running,
 the value will be used after it starts.
 
@@ -52,6 +61,28 @@ the solver is running.
 change while the solver is running. Used in non-uniform "aerogel"
 calculation, not tested for a long time. For normal calculations
 `aer_len` should be less or equal then zero.
+
+#### Initial and boundary conditions:
+
+* `bcond_type <value>` -- set boundary condition type (not tested)
+
+* `set_icond_uniform [<nz value>]` -- set uniform i.c. with nz=-1 or nz=+1 (default)
+
+* `set_icond_hpd` -- set HPD i.c. with ny=-1 or ny=+1 (default).
+* `set_icond_hpd2`
+* `set_icond_nsol <width>` -- set i.c witn a simple n-soliton. Width >0 does not work yet
+* `set_icond_tsol <width>` -- set i.c witn a simple t-soliton
+
+* `make_2pi_soliton` -- Update initial condition from current function values,
+make 2-pi hpd soliton, and restart the solver.
+
+* `make_pi_soliton` -- Update initial condition from current function values,
+make pi hpd soliton, restart solver.
+
+* `make_npd_soliton` -- Update initial condition from current function values,
+ make npd soliton, restart solver
+
+* `hpd_swap`
 
 #### Data output:
 
@@ -129,15 +160,3 @@ term is zero do nothing and print a warning message.
 * `set_ttc_press <T/Tc> <pressure, bar>` -- Set He3 parameters for a
 given temperature and pressure. Program should be built with `he3lib` support.
 
-#### Initial and boundary conditions:
-
-* `bcond_type <value>`
-* `set_icond_uniform [<nz value>]` -- set uniform i.c. with nz=-1 or nz=+1 (default)
-* `set_icond_hpd` -- set HPD i.c. with ny=-1 or ny=+1 (default).
-* `set_icond_hpd2`
-* `set_icond_nsol <width>` -- set i.c witn a simple n-soliton. Width >0 does not work yet
-* `set_icond_tsol <width>` -- set i.c witn a simple t-soliton
-* `make_2pi_soliton` -- make 2-pi hpd soliton, restart solver
-* `make_pi_soliton` -- make pi hpd soliton, restart solver
-* `make_npd_soliton` -- make npd soliton, restart solver
-* `hpd_swap`
