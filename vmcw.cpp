@@ -325,6 +325,7 @@ void set_he3tp(double ttc, double p){
 void
 write_profile(pdecol_solver *solver, const std::string & fname) {
 
+  // use solver->get_xmesh() as an x-grid, but it is not needed
   std::vector<double> xsol = solver->get_xmesh();
   std::vector<double> usol = solver->values(xsol, nder);
 
@@ -347,7 +348,7 @@ write_profile(pdecol_solver *solver, const std::string & fname) {
     for (int d = 0; d<nder; d++){
       ss << "  ";
       for (int n = 0; n<npde; n++)
-        ss << " " << solver->get_value(usol, npts, i, n, d);
+        ss << " " << solver->get_value(usol, xsol.size(), i, n, d);
     }
     ss << "\n";
   }
@@ -503,8 +504,6 @@ init_data_hpd(int sn=1, int st=1){
 //  << "  " << wx + h << " " << wy << " " << wz - d
 //  << "  " << nx << " " << ny << " " << nz  << " "  << th
 //  << "   " << d << " " << h << " " <<  b << " " << wt << "\n";
-
-
   }
 }
 
@@ -520,7 +519,7 @@ init_data_save(pdecol_solver *solver) {
   for (int i=0; i< xsol.size(); i++){
     init_data[i*(npde+1)] = xsol[i]/solver->get_xlen();
     for (int n = 0; n<npde; n++)
-      init_data[i*(npde+1)+n+1] = solver->get_value(usol, npts, i, n, 0);
+      init_data[i*(npde+1)+n+1] = solver->get_value(usol, xsol.size(), i, n, 0);
   }
 }
 
@@ -636,7 +635,6 @@ cmd_sweep(const std::vector<std::string> & args, T *P0, T *PT, T factor=1){
   tend  = tcurr + steps*tstep;
 }
 
-
 /******************************************************************/
 /// Read one or more commends from a stream.
 /// Return 1 if file is finished, 0 if more calculations are needed.
@@ -750,6 +748,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       if (cmd == "load_state") {
         check_nargs(narg, 1);
         if (!solver){
+          // create some solver (parameters are not important)
           std::vector<double> xbrpt(npts,0.0);
           solver = new pdecol_solver(tcurr, mindt, acc, xbrpt, npde);
         }

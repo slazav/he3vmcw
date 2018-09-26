@@ -43,9 +43,8 @@ the running solver.
 time, but real change happenes when the new solver is started.
 
 * `npts <number>` -- Change number of points. It can be changed at any time,
-but real change happenes when the new solver is started. TODO: I'm not
-sure that changing npts while solver is running will not break something
-(writing a profile e.g.)
+but real change happenes when the new solver is started. It is also used in
+set_icond_hpd command.
 
 * `tstep <value>` -- Set time step. Can be changed during calculation.
 
