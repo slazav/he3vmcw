@@ -928,17 +928,22 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
             case 1: th=-th; break;  // invert theta
 
             // rotate by PI
-            case 2: an+=M_PI; am+=M_PI; break;  // trivial
+            case 2: an+=M_PI; am+=M_PI; break;
 
             // constant rotation (number of periods - parameter n)
             case 3: n = (narg<2)? 1 : get_arg<int>(args[1]);
                     an -= 2*n*M_PI*(x+0.5);
-                    am -= 2*n*M_PI*(x+0.5); break;  // invert theta
+                    am -= 2*n*M_PI*(x+0.5); break;
 
             // 2pi soliton with width w (orientation depends on w sign)
             case 4: w = (narg<2)? 0.1 : get_arg<double>(args[1]);
                     an += 4*atan(exp(x/w));
-                    am += 4*atan(exp(x/w)); break;  // invert theta
+                    am += 4*atan(exp(x/w)); break;
+
+            // 2pi theta soliton
+            case 5: w = (narg<2)? 0.01 : get_arg<double>(args[1]);
+                    th+=4*atan(exp(x/w));; break;
+
           }
 
           nx = nn*sin(bn)*cos(an);
