@@ -76,8 +76,10 @@ double HR0=1e-3, HRT=0.0, HRGP=0.0, HRQP=0.0;
 
 /*****************************/
 
-// Type of boundary conditions: 1 - open cell, 2 - no spin currents.
-int bcond_type = 2;
+// Type of boundary conditions on the left (x<0) and right (x>0) sides.
+// 1 - open cell, 2 - no spin currents, 3 - constant functions (NPD wall).
+int bcond_type_l = 2;
+int bcond_type_r = 2;
 
 // Data for initial conditions.
 // Array with n*(npde+1) values. n is arbitrarary number,
@@ -252,7 +254,7 @@ extern "C" {
       *Diff *= 1.0 - 0.835 * aer_step(*x,0);
     }
     // type of boundary condition
-    *IBN = bcond_type;
+    *IBN = (*x<0)? bcond_type_l:bcond_type_r;
   }
 }
 
@@ -811,7 +813,12 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       /*******************************************************/
       // boubdary and initial conditions
 
-      if (cmd == "bcond_type"){ bcond_type = get_one_arg<int>(args); continue;}
+      if (cmd == "bcond_type"){
+        bcond_type_l = bcond_type_r = get_one_arg<int>(args); continue;}
+      if (cmd == "bcond_type_l"){
+        bcond_type_l = get_one_arg<int>(args); continue;}
+      if (cmd == "bcond_type_r"){
+        bcond_type_r = get_one_arg<int>(args); continue;}
 
       // set uniform i.c. with nz=-1 or nz=+1 (default)
       if (cmd == "set_icond_uniform") {
@@ -942,6 +949,10 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
             // 2pi theta soliton
             case 5: w = (narg<2)? 0.01 : get_arg<double>(args[1]);
                     th+=4*atan(exp(x/w));; break;
+
+            //
+            case 6: if (x*cell_len < 0) break;
+                th = -th; an = -an; bn = M_PI - bn; break;
 
           }
 

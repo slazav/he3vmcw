@@ -59,7 +59,12 @@ calculation, not tested for a long time. For normal calculations
 
 #### Initial and boundary conditions:
 
-* `bcond_type <value>` -- set boundary condition type (not tested)
+* `bcond_type_l <value>`, `bcond_type_r <value>`, `bcond_type <value>` --
+  set boundary condition type on left/right/both sides.
+  BC types:
+  * default - open BC
+  * 2 - closed cell, no spin flow through walls
+  * 3 - NPD wall, constant functions on the boundary
 
 Following commands change default boundary condition and have an effect
 only when the solver is starded next time.

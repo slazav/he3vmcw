@@ -131,6 +131,14 @@ C-- BNDRY ------ BOUNDARY CONDITIONS -- B(U,UX)=Z(T) ------------
           enddo
         enddo
 
+!       NPD wall, all functions are constant
+        if (IBN.EQ.3) THEN
+          do J=1,NPDE
+            DBDU(J,J)=1.0D0
+          enddo
+          return
+        endif
+
 !       Closed cell: no spin flow through walls
 !       Jiz - Diff Mi' = 0
         if(IBN.EQ.2)THEN       ! CLOSED CELL
@@ -205,6 +213,7 @@ C          DBDU(7,6)=UX(6)         !!
 C          DBDUX(7,4)=UNx         !!
 C          DBDUX(7,5)=UNy         !!
 C          DBDUX(7,6)=UNz         !!
+          return
         endif
         return
       end
