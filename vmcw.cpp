@@ -10,145 +10,146 @@
 #include "pdecol/pdecol_solver.h"
 #include "pnm_writer.h"
 
-// I use many global variables here. Maybe it would be better
-// to pack everything inside a class
-
-/*****************************/
-// Solver parameters.
-
 /* Number of equations. Can not be changed. */
 const int npde = 7;
 
 /* How many derivatives to calculate. Can not be changed. */
 const int nder = 3;
 
-/* Number of points. It can be changed at any time, but real change
-happenes when the solver is (re)started. In the code it can be used only
-to initialize the solver. In other places solver->get_npts() should be
-used (it corresponds to the actual number of points in the running solver). */
-int npts=257;
 
-/* Solver accuracy. Can be changed during calculation. There is in idea that
-if it is a power of 2 solver runs faster */
-double acc = pow(2,-20);
+// A global variable with the program parameters.
 
-/* Min time step (recommended 1e-10). It can be changes at any time,
-but real change happenes when the solver is (re)started. */
-double mindt = 1e-10;
+struct pars_t {
 
-/* Current time [s]. Changes only before doing solver->step(). */
-double tcurr = 0;
+  /* Number of points. It can be changed at any time, but real change
+  happenes when the solver is (re)started. In the code it can be used only
+  to initialize the solver. In other places solver->get_npts() should be
+  used (it corresponds to the actual number of points in the running solver). */
+  int npts=257;
 
-/* Time step [s]. Can be changed during calculation. */
-double tstep = 5e-3;
+  /* Solver accuracy. Can be changed during calculation. There is in idea that
+  if it is a power of 2 solver runs faster */
+  double acc = pow(2,-20);
 
-/* End of current sweep/wait command [s]. Calculation is done until this time
-without reading new commands. Should be equal to "time" in the begining. */
-double tend = tcurr;
+  /* Min time step (recommended 1e-10). It can be changes at any time,
+  but real change happenes when the solver is (re)started. */
+  double mindt = 1e-10;
 
-/*****************************/
-// NMR frequency, magnetic fields.
+  /* Current time [s]. Changes only before doing solver->step(). */
+  double tcurr = 0;
 
-/* Gyromagnetic ratio. */
-const double gyro = 20378.0;
+  /* Time step [s]. Can be changed during calculation. */
+  double tstep = 5e-3;
 
-/* NMR frequency [Hz]. The calculation is done at fixed frequency. Magnetic
-fiels should be changed to observe the resonance. Default value 1MHz
-corresponds to default magnetic field. */
-double f0 = 1e6;
+  /* End of current sweep/wait command [s]. Calculation is done until this time
+  without reading new commands. Should be equal to "time" in the begining. */
+  double tend = tcurr;
 
-// Magnetic field.
-// Total field is: H = 2pi*f0/gyro + H0 + HT*t + HG*x + HQ*x^2. */
-//  H0 - uniform field measured from 2pi*f0/gyro [G],
-//  HT - sweep rate, dH/dt [G/s],
-//  HG - gradient, dH/dz [G/cm],
-//  HQ - quadratic term, d^2H/dz^2 [G/cm^2].
-double H0=0.0,  HT = 0.0,  HG = 0.1,  HQ = 0.0;
+  /*****************************/
+  // NMR frequency, magnetic fields.
 
-// Radio-frequncy field.
-// Total field is: HR = (HR0 + HRT*t) * (1 + x/xRG + (x/xRQ)^2).
-// Gradient and quadratic terms change proportianally with the field.
-//  HR0 - Initial value [G],
-//  HRT - sweep rate, dHr/dt [G/s],
-//  HRGP - gradient profile [1/cm],
-//  HRQP - quadratic profile [1/cm^2].
-double HR0=1e-3, HRT=0.0, HRGP=0.0, HRQP=0.0;
+  /* Gyromagnetic ratio. */
+  const double gyro = 20378.0;
 
-/*****************************/
+  /* NMR frequency [Hz]. The calculation is done at fixed frequency. Magnetic
+  fiels should be changed to observe the resonance. Default value 1MHz
+  corresponds to default magnetic field. */
+  double f0 = 1e6;
 
-// Type of boundary conditions on the left (x<0) and right (x>0) sides.
-// 1 - open cell, 2 - no spin currents, 3 - constant functions (NPD wall).
-int bcond_type_l = 2;
-int bcond_type_r = 2;
+  // Magnetic field.
+  // Total field is: H = 2pi*f0/gyro + H0 + HT*t + HG*x + HQ*x^2. */
+  //  H0 - uniform field measured from 2pi*f0/gyro [G],
+  //  HT - sweep rate, dH/dt [G/s],
+  //  HG - gradient, dH/dz [G/cm],
+  //  HQ - quadratic term, d^2H/dz^2 [G/cm^2].
+  double H0=0.0,  HT = 0.0,  HG = 0.1,  HQ = 0.0;
 
-// Data for initial conditions.
-// Array with n*(npde+1) values. n is arbitrarary number,
-// values contain z coordinate and npde function components.
-// If n==1 then uniform i.c. with values from init_data are used;
-// If n==0 then default uniform i.c. (nz=1, mz=1, theta=acos(-1/4)) are used.
-std::vector<double> init_data;
+  // Radio-frequncy field.
+  // Total field is: HR = (HR0 + HRT*t) * (1 + x/xRG + (x/xRQ)^2).
+  // Gradient and quadratic terms change proportianally with the field.
+  //  HR0 - Initial value [G],
+  //  HRT - sweep rate, dHr/dt [G/s],
+  //  HRGP - gradient profile [1/cm],
+  //  HRQP - quadratic profile [1/cm^2].
+  double HR0=1e-3, HRT=0.0, HRGP=0.0, HRQP=0.0;
 
-/*****************************/
-// He3 properties
+  /*****************************/
 
-// t1 relaxation time, initial value [s] and sweep rate [s/s]
-double T10=1.0, T1T=0.0;
+  // Type of boundary conditions on the left (x<0) and right (x>0) sides.
+  // 1 - open cell, 2 - no spin currents, 3 - constant functions (NPD wall).
+  int bctype_l = 2;
+  int bctype_r = 2;
 
-// Leggett-Takagi relaxation time tau_f, initial value [s] and sweep rate [s/s]
-double TF0=1e-5, TFT=0.0;
+  // Data for initial conditions.
+  // Array with n*(npde+1) values. n is arbitrarary number,
+  // values contain z coordinate and npde function components.
+  // If n==1 then uniform i.c. with values from init_data are used;
+  // If n==0 then default uniform i.c. (nz=1, mz=1, theta=acos(-1/4)) are used.
+  std::vector<double> init_data;
 
-// Spin-wave velocity, c_par, initial value [cm/s] and sweep rate [(cm/s)/s]
-double CP0=500.0, CPT=0.0;
+  /*****************************/
+  // He3 properties
 
-// Leggett frequency Omega_B, initial value [Hz] and sweep rate [Hz/s]
-double LF0=1e5, LFT=0.0;
+  // t1 relaxation time, initial value [s] and sweep rate [s/s]
+  double T10=1.0, T1T=0.0;
 
-// Spin diffusion, initial value [cm^2/s] and sweep rate [(cm^2/s)/s]
-double DF0=0.1, DFT=0.0;
+  // Leggett-Takagi relaxation time tau_f, initial value [s] and sweep rate [s/s]
+  double TF0=1e-5, TFT=0.0;
 
-// cell length, cm
-double cell_len = 0.4;
+  // Spin-wave velocity, c_par, initial value [cm/s] and sweep rate [(cm/s)/s]
+  double CP0=500.0, CPT=0.0;
 
-// Parameters for non-uniform ("aerogel") layout.
-// - not tested for a long time
-// - dDiff/dx is not taken into account
-// - he3 parameters in aerogel are differs from bulk
-//   dy some fixed factors (see set_bulk_pars_ function below)
+  // Leggett frequency Omega_B, initial value [Hz] and sweep rate [Hz/s]
+  double LF0=1e5, LFT=0.0;
 
-// Aerogel length (in cell length units).
-double aer_len = 0.0;
+  // Spin diffusion, initial value [cm^2/s] and sweep rate [(cm^2/s)/s]
+  double DF0=0.1, DFT=0.0;
 
-// Aerogel center (in cell length units).
-double aer_cnt = 0.0;
+  // cell length, cm
+  double cell_len = 0.4;
 
-// Aerogel transition width (in cell length units).
-double aer_trw = 6e-3;
+  // Parameters for non-uniform ("aerogel") layout.
+  // - not tested for a long time
+  // - dDiff/dx is not taken into account
+  // - he3 parameters in aerogel are differs from bulk
+  //   dy some fixed factors (see set_bulk_pars_ function below)
 
-// non-uniform mesh step: cell_len/(NPTS-1) / (1+xmesh_k*aer_step(x)')
-// 0 means that mesh is uniform
-// 1 means that mesh is twice mere dense if aerogel step derivatve is 1
-double xmesh_k = 0.2;
+  // Aerogel length (in cell length units).
+  double aer_len = 0.0;
 
-// non-uniform mesh accuracy
-double xmesh_acc = 1e-10;
+  // Aerogel center (in cell length units).
+  double aer_cnt = 0.0;
 
+  // Aerogel transition width (in cell length units).
+  double aer_trw = 6e-3;
 
-/*****************************/
-// files
+  // non-uniform mesh step: cell_len/(NPTS-1) / (1+xmesh_k*aer_step(x)')
+  // 0 means that mesh is uniform
+  // 1 means that mesh is twice mere dense if aerogel step derivatve is 1
+  double xmesh_k = 0.2;
 
-// prefix for data files, command file name without extension
-std::string pref;
+  // non-uniform mesh accuracy
+  double xmesh_acc = 1e-10;
 
-// mesh, prof file counters (for default save_mesh/write_profile filenames)
-int cnt_mesh=0, cnt_prof=0;
+  /*****************************/
+  // files
 
-/*****************************/
+  // prefix for data files, command file name without extension
+  std::string pref;
 
-/* PDECOL solver pointer */
-pdecol_solver *solver = NULL;
+  // mesh, prof file counters (for default save_mesh/write_profile filenames)
+  int cnt_mesh=0, cnt_prof=0;
 
-/* Container for PNM writers. Key is the file name. */
-pnm_writers_t pnm_writers;
+  /*****************************/
+
+  /* PDECOL solver pointer */
+  pdecol_solver *solver = NULL;
+
+  /* Container for PNM writers. Key is the file name. */
+  pnm_writers_t pnm_writers;
+
+} pp;
+
 
 /******************************************************************/
 // Aerogel profile.
@@ -164,11 +165,11 @@ pnm_writers_t pnm_writers;
 double
 aer_step(double x, int d){
 
-  if (aer_len <= 0.0) return 0.0;
+  if (pp.aer_len <= 0.0) return 0.0;
 
-  double xx = x/cell_len - aer_cnt;
-  double a = (fabs(xx) - aer_len/2.0)/aer_trw;
-  double dadx = (xx>0? 1:-1)/aer_trw/cell_len;
+  double xx = x/pp.cell_len - pp.aer_cnt;
+  double a = (fabs(xx) - pp.aer_len/2.0)/pp.aer_trw;
+  double dadx = (xx>0? 1:-1)/pp.aer_trw/pp.cell_len;
 
   if(a < 82.0){
     if (d==0) return 1.0/(1.0+exp(a));
@@ -184,17 +185,17 @@ set_mesh(std::vector<double> & x){
 
   // start with homogenious mesh with dx intervals
   int N = x.size();
-  double dx = cell_len/(N-1);
-  x[0] = -cell_len/2.0;
+  double dx = pp.cell_len/(N-1);
+  x[0] = -pp.cell_len/2.0;
 //std::cerr << ">>> " << x[0] << "\n";
   for (int k=0; k<100; k++){
     for (int i=0; i<N-1; i++){
-      x[i+1] = x[i] + dx/(1.0+xmesh_k*fabs(aer_step(x[i],1)));
+      x[i+1] = x[i] + dx/(1.0+pp.xmesh_k*fabs(aer_step(x[i],1)));
     }
     // scale the whole mesh to fit cell_len
-    double d = cell_len - (x[N-1]-x[0]);
+    double d = pp.cell_len - (x[N-1]-x[0]);
     dx+=d/(N+1);
-    if (fabs(d)<xmesh_acc) break;
+    if (fabs(d)<pp.xmesh_acc) break;
   }
 }
 
@@ -222,18 +223,18 @@ extern "C" {
                  double *WB, double *Cpar, double *dCpar,
                  double *Diff, double *Tf, double *T1){
 
-    *W0 = 2*M_PI*f0;
-    *Wz = *W0 + gyro*(H0 + HG*(*x) + HQ*(*x)*(*x) + HT*(*t));
-    *Wr = gyro*(HR0 + HRT*(*t)) * (1.0 + (*x)*HRGP + (*x)*(*x)*HRQP);
+    *W0 = 2*M_PI*pp.f0;
+    *Wz = *W0 + pp.gyro*(pp.H0 + pp.HG*(*x) + pp.HQ*(*x)*(*x) + pp.HT*(*t));
+    *Wr = pp.gyro*(pp.HR0 + pp.HRT*(*t)) * (1.0 + (*x)*pp.HRGP + (*x)*(*x)*pp.HRQP);
 
-    *WB = ( LF0 + LFT*(*t))*2*M_PI;
-    *Cpar = CP0 + CPT*(*t); *dCpar = 0;
-    *Diff = DF0 + DFT*(*t);
-    *Tf   = TF0 + TFT*(*t);
-    *T1   = T10 + T1T*(*t);
+    *WB = ( pp.LF0 + pp.LFT*(*t))*2*M_PI;
+    *Cpar = pp.CP0 + pp.CPT*(*t); *dCpar = 0;
+    *Diff = pp.DF0 + pp.DFT*(*t);
+    *Tf   = pp.TF0 + pp.TFT*(*t);
+    *T1   = pp.T10 + pp.T1T*(*t);
 
     // spatial modulation
-    if (aer_len>0.0){
+    if (pp.aer_len>0.0){
       *Cpar *= 1.0 - 0.5*aer_step(*x,0);
       *dCpar =(*Cpar) * 0.5*aer_step(*x,1);
       *Diff *= 1.0 - 0.835 * aer_step(*x,0);
@@ -244,17 +245,17 @@ extern "C" {
   void set_bndry_pars_(double *t, double *x, double *W0,
                  double *Cpar, double *Diff, int *IBN){
 
-    *W0 = 2*M_PI*f0;
-    *Cpar = CP0 + CPT*(*t);
-    *Diff = DF0 + DFT*(*t);
+    *W0 = 2*M_PI*pp.f0;
+    *Cpar = pp.CP0 + pp.CPT*(*t);
+    *Diff = pp.DF0 + pp.DFT*(*t);
 
     // spatial modulation
-    if (aer_len>0.0){
+    if (pp.aer_len>0.0){
       *Cpar *= 1.0 - 0.5*aer_step(*x,0);
       *Diff *= 1.0 - 0.835 * aer_step(*x,0);
     }
     // type of boundary condition
-    *IBN = (*x<0)? bcond_type_l:bcond_type_r;
+    *IBN = (*x<0)? pp.bctype_l:pp.bctype_r;
   }
 }
 
@@ -275,25 +276,25 @@ extern "C" {
     double p; // -1..1
     int nn;
 
-    nn = init_data.size()/(npde+1);
+    nn = pp.init_data.size()/(npde+1);
     if (nn<1) return;
-    if (nn==1 || *x<= init_data[0]*cell_len){
+    if (nn==1 || *x<= pp.init_data[0]*pp.cell_len){
       for (int iu = 0; iu < npde; iu++)
-          u[iu] = init_data[iu+1];
+          u[iu] = pp.init_data[iu+1];
       return;
     }
-    if (*x>= init_data[(nn-1)*(npde+1)]*cell_len){
+    if (*x>= pp.init_data[(nn-1)*(npde+1)]*pp.cell_len){
       for (int iu = 0; iu < npde; iu++)
-        u[iu] = init_data[(nn-1)*(npde+1)+iu+1];
+        u[iu] = pp.init_data[(nn-1)*(npde+1)+iu+1];
       return;
     }
     for (int i=0; i<nn-1; i++){
-      double x1 = init_data[i*(npde+1)]*cell_len;
-      double x2 = init_data[(i+1)*(npde+1)]*cell_len;
+      double x1 = pp.init_data[i*(npde+1)]*pp.cell_len;
+      double x2 = pp.init_data[(i+1)*(npde+1)]*pp.cell_len;
       if (x1 < *x && *x <= x2){
         for (int iu = 0; iu < npde; iu++){
-          double u1 = init_data[i*(npde+1)+iu+1];
-          double u2 = init_data[(i+1)*(npde+1)+iu+1];
+          double u1 = pp.init_data[i*(npde+1)+iu+1];
+          double u2 = pp.init_data[(i+1)*(npde+1)+iu+1];
           u[iu] = u1 + (u2-u1)*(*x-x1)/(x2-x1);
         }
         return;
@@ -311,11 +312,11 @@ extern "C" {
 // set parameters using temperature, pressure and he3lib
 void set_he3tp(double ttc, double p){
   double nu_b = he3_nu_b_(&ttc,&p);
-  CP0 = he3_cpar_(&ttc,&p) - CPT*tcurr;
-  LF0 = nu_b  - LFT*tcurr;
-  DF0 = he3_diff_perp_zz_(&ttc,&p,&f0) - DFT*tcurr;
+  pp.CP0 = he3_cpar_(&ttc,&p) - pp.CPT*pp.tcurr;
+  pp.LF0 = nu_b  - pp.LFT*pp.tcurr;
+  pp.DF0 = he3_diff_perp_zz_(&ttc,&p,&pp.f0) - pp.DFT*pp.tcurr;
   double tr  = 1.2e-7/sqrt(1.0-ttc);
-  TF0   = 1.0/ (4.0*M_PI*M_PI * nu_b*nu_b * tr) - TFT*tcurr;
+  pp.TF0   = 1.0/ (4.0*M_PI*M_PI * nu_b*nu_b * tr) - pp.TFT*pp.tcurr;
 }
 #endif
 
@@ -328,8 +329,8 @@ void
 write_profile(pdecol_solver *solver, const std::string & fname) {
 
   // use solver->get_xmesh() as an x-grid, but it is not needed
-  std::vector<double> xsol = solver->get_xmesh();
-  std::vector<double> usol = solver->values(xsol, nder);
+  std::vector<double> xsol = pp.solver->get_xmesh();
+  std::vector<double> usol = pp.solver->values(xsol, nder);
 
   std::ofstream ss(fname.c_str());
   // print legend: # coord  U(0) U(1) ... U(0)' U(1)' ...
@@ -350,7 +351,7 @@ write_profile(pdecol_solver *solver, const std::string & fname) {
     for (int d = 0; d<nder; d++){
       ss << "  ";
       for (int n = 0; n<npde; n++)
-        ss << " " << solver->get_value(usol, xsol.size(), i, n, d);
+        ss << " " << pp.solver->get_value(usol, xsol.size(), i, n, d);
     }
     ss << "\n";
   }
@@ -382,20 +383,20 @@ write_magn(std::ostream & s,
   smz/=sz;
 
   s << std::scientific << std::setprecision(6)
-    << tcurr << "  " << H0 + tcurr*HT << "  "
+    << pp.tcurr << "  " << pp.H0 + pp.tcurr*pp.HT << "  "
     << smx << " " << smy << " " << smz << "\n";
 }
 
 void
 write_pars(std::ostream & s){
-  s << " T=" << tcurr*1000 << " ms, "
-    << "H0=" << H0+HT*tcurr << " G, "
-    << "HR=" << 1e3*(HR0+HRT*tcurr) << " mOe, "
-    << "LF=" << 1e-3*(LF0+LFT*tcurr) << " kHz, "
-    << "CP=" <<  (CP0+CPT*tcurr) << " cm/s, "
-    << "DF=" << (DF0+DFT*tcurr) << " cm^2/s, "
-    << "TF=" << 1e6*(TF0+TFT*tcurr) << " mks, "
-    << "T1=" <<  (T10+T1T*tcurr) << " cm/s, "
+  s << " T=" << pp.tcurr*1000 << " ms, "
+    << "H0=" << pp.H0+pp.HT*pp.tcurr << " G, "
+    << "HR=" << 1e3*(pp.HR0+pp.HRT*pp.tcurr) << " mOe, "
+    << "LF=" << 1e-3*(pp.LF0+pp.LFT*pp.tcurr) << " kHz, "
+    << "CP=" <<  (pp.CP0+pp.CPT*pp.tcurr) << " cm/s, "
+    << "DF=" << (pp.DF0+pp.DFT*pp.tcurr) << " cm^2/s, "
+    << "TF=" << 1e6*(pp.TF0+pp.TFT*pp.tcurr) << " mks, "
+    << "T1=" <<  (pp.T10+pp.T1T*pp.tcurr) << " cm/s, "
     << "\n";
 }
 
@@ -419,15 +420,15 @@ void
 init_data_uniform(const double mx, const double my, const double mz,
                   const double nx, const double ny, const double nz,
                   const double th = acos(-0.25)) {
-  init_data.resize(8);
-  init_data[0]=0;
-  init_data[1]=mx;
-  init_data[2]=my;
-  init_data[3]=mz;
-  init_data[4]=nx;
-  init_data[5]=ny;
-  init_data[6]=nz;
-  init_data[7]=th;
+  pp.init_data.resize(8);
+  pp.init_data[0]=0;
+  pp.init_data[1]=mx;
+  pp.init_data[2]=my;
+  pp.init_data[3]=mz;
+  pp.init_data[4]=nx;
+  pp.init_data[5]=ny;
+  pp.init_data[6]=nz;
+  pp.init_data[7]=th;
 }
 
 // make initial conditions with a simple soliton in init_data
@@ -449,15 +450,15 @@ init_data_soliton(double w, // soliton width
     std::swap(nx1,nx2); std::swap(ny1,ny2);  std::swap(nz1,nz2); 
     std::swap(th1,th2);
   }
-  init_data.resize(16);
-  init_data[0]=-w/2; init_data[ 8]=+w/2;
-  init_data[1]=mx1;   init_data[ 9]=mx2;
-  init_data[2]=my1;   init_data[10]=my2;
-  init_data[3]=mz1;   init_data[11]=mz2;
-  init_data[4]=nx1;   init_data[12]=nx2;
-  init_data[5]=ny1;   init_data[13]=ny2;
-  init_data[6]=nz1;   init_data[14]=nz2;
-  init_data[7]=th1;   init_data[15]=th2;
+  pp.init_data.resize(16);
+  pp.init_data[0]=-w/2; pp.init_data[ 8]=+w/2;
+  pp.init_data[1]=mx1;   pp.init_data[ 9]=mx2;
+  pp.init_data[2]=my1;   pp.init_data[10]=my2;
+  pp.init_data[3]=mz1;   pp.init_data[11]=mz2;
+  pp.init_data[4]=nx1;   pp.init_data[12]=nx2;
+  pp.init_data[5]=ny1;   pp.init_data[13]=ny2;
+  pp.init_data[6]=nz1;   pp.init_data[14]=nz2;
+  pp.init_data[7]=th1;   pp.init_data[15]=th2;
 }
 
 // set HPD initial condition (RF-field, freq shift, Leggett-Takagi relaxation is used).
@@ -471,12 +472,12 @@ init_data_hpd(int sn=1, int st=1){
   st = (st>0)? +1:-1;
 
   // create mesh (same as in solver, but it is not important)
-  std::vector<double> x(npts);
+  std::vector<double> x(pp.npts);
   set_mesh(x);
-  init_data.resize(npts*8);
+  pp.init_data.resize(pp.npts*8);
   for (int i=0; i<x.size(); i++){
     // get local parameters
-    set_bulk_pars_(&tcurr, &(x[i]), &Wr, &Wz, &W0,&WB, &Cpar, &dCpar, &Diff, &Tf, &T1);
+    set_bulk_pars_(&pp.tcurr, &(x[i]), &Wr, &Wz, &W0,&WB, &Cpar, &dCpar, &Diff, &Tf, &T1);
 
     double h = Wr/W0;
     double d = -(Wz-W0)/W0;
@@ -494,14 +495,14 @@ init_data_hpd(int sn=1, int st=1){
     double wx = ny*sin(th);
     double wy = b/h*nz*nz*wt;
 
-    init_data[8*i+0] = x[i];
-    init_data[8*i+1] = wx + h;
-    init_data[8*i+2] = wy;
-    init_data[8*i+3] = wz - d;
-    init_data[8*i+4] = nx;
-    init_data[8*i+5] = ny;
-    init_data[8*i+6] = nz;
-    init_data[8*i+7] = th;
+    pp.init_data[8*i+0] = x[i];
+    pp.init_data[8*i+1] = wx + h;
+    pp.init_data[8*i+2] = wy;
+    pp.init_data[8*i+3] = wz - d;
+    pp.init_data[8*i+4] = nx;
+    pp.init_data[8*i+5] = ny;
+    pp.init_data[8*i+6] = nz;
+    pp.init_data[8*i+7] = th;
 //std::cout <<  x[i]
 //  << "  " << wx + h << " " << wy << " " << wz - d
 //  << "  " << nx << " " << ny << " " << nz  << " "  << th
@@ -516,74 +517,74 @@ init_data_save(pdecol_solver *solver) {
   std::vector<double> xsol = solver->get_xmesh();
   std::vector<double> usol = solver->values(xsol, 0); // no derivatives!
 
-  init_data = std::vector<double>(xsol.size()*(npde+1));
+  pp.init_data = std::vector<double>(xsol.size()*(npde+1));
   //print values
   for (int i=0; i< xsol.size(); i++){
-    init_data[i*(npde+1)] = xsol[i]/solver->get_xlen();
+    pp.init_data[i*(npde+1)] = xsol[i]/solver->get_xlen();
     for (int n = 0; n<npde; n++)
-      init_data[i*(npde+1)+n+1] = solver->get_value(usol, xsol.size(), i, n, 0);
+      pp.init_data[i*(npde+1)+n+1] = solver->get_value(usol, xsol.size(), i, n, 0);
   }
 }
 
 // create 2pi-soliton in the init_data (on top of existing data)
 void
 init_data_2pi_soliton(double w) {
-  int nn = init_data.size()/(npde+1);
+  int nn = pp.init_data.size()/(npde+1);
   for (int i=0; i<nn; i++){
-    double x = init_data[i*(npde+1)]*cell_len;
+    double x = pp.init_data[i*(npde+1)]*pp.cell_len;
     double p = x/w;
     if (p<-1.0) p=-1.0;
     if (p>+1.0) p=+1.0;
     p+=1.0; // 0..2
-    double mx = init_data[i*(npde+1)+1 + 0];
-    double my = init_data[i*(npde+1)+1 + 1];
-    double nx = init_data[i*(npde+1)+1 + 3];
-    double ny = init_data[i*(npde+1)+1 + 4];
+    double mx = pp.init_data[i*(npde+1)+1 + 0];
+    double my = pp.init_data[i*(npde+1)+1 + 1];
+    double nx = pp.init_data[i*(npde+1)+1 + 3];
+    double ny = pp.init_data[i*(npde+1)+1 + 4];
     double ct = cos(p*M_PI), st=sin(p*M_PI);
-    init_data[i*(npde+1)+1 + 0] =  mx*ct + my*st; // Mx
-    init_data[i*(npde+1)+1 + 1] = -mx*st + my*ct; // My
-    init_data[i*(npde+1)+1 + 3] =  nx*ct + ny*st; // nx
-    init_data[i*(npde+1)+1 + 4] = -nx*st + ny*ct; // ny
+    pp.init_data[i*(npde+1)+1 + 0] =  mx*ct + my*st; // Mx
+    pp.init_data[i*(npde+1)+1 + 1] = -mx*st + my*ct; // My
+    pp.init_data[i*(npde+1)+1 + 3] =  nx*ct + ny*st; // nx
+    pp.init_data[i*(npde+1)+1 + 4] = -nx*st + ny*ct; // ny
   }
 }
 
 // create pi-soliton in the init_data (on top of existing data)
 void
 init_data_pi_soliton(double w) {
-  int nn = init_data.size()/(npde+1);
+  int nn = pp.init_data.size()/(npde+1);
   for (int i=0; i<nn; i++){
-    double x = init_data[i*(npde+1)]*cell_len;
+    double x = pp.init_data[i*(npde+1)]*pp.cell_len;
     double p = x/w;
     if (p<-0.5) p=-0.5;
     if (p>+0.5) p=+0.5;
     p+=0.5; // 0..1
-    double mx = init_data[i*(npde+1)+1 + 0];
-    double my = init_data[i*(npde+1)+1 + 1];
-    double nx = init_data[i*(npde+1)+1 + 3];
-    double ny = init_data[i*(npde+1)+1 + 4];
+    double mx = pp.init_data[i*(npde+1)+1 + 0];
+    double my = pp.init_data[i*(npde+1)+1 + 1];
+    double nx = pp.init_data[i*(npde+1)+1 + 3];
+    double ny = pp.init_data[i*(npde+1)+1 + 4];
     double ct = cos(p*M_PI), st=sin(p*M_PI);
-    init_data[i*(npde+1)+1 + 0] =  mx*ct + my*st; // Mx
-    init_data[i*(npde+1)+1 + 1] = -mx*st + my*ct; // My
-    init_data[i*(npde+1)+1 + 3] =  nx*ct + ny*st; // nx
-    init_data[i*(npde+1)+1 + 4] = -nx*st + ny*ct; // ny
+    pp.init_data[i*(npde+1)+1 + 0] =  mx*ct + my*st; // Mx
+    pp.init_data[i*(npde+1)+1 + 1] = -mx*st + my*ct; // My
+    pp.init_data[i*(npde+1)+1 + 3] =  nx*ct + ny*st; // nx
+    pp.init_data[i*(npde+1)+1 + 4] = -nx*st + ny*ct; // ny
   }
 }
 
 // create NPD-soliton in the init_data (on top of existing data)
 void
 init_data_npd_soliton(double w) {
-  int nn = init_data.size()/(npde+1);
+  int nn = pp.init_data.size()/(npde+1);
   for (int i=0; i<nn; i++){
-    double x = init_data[i*(npde+1)]*cell_len;
+    double x = pp.init_data[i*(npde+1)]*pp.cell_len;
     double p = x/w;
     if (p>-1 && p<1){
-      init_data[i*(npde+1)+1 + 0] = 0; // Mx
-      init_data[i*(npde+1)+1 + 1] = 0; // My
-      init_data[i*(npde+1)+1 + 2] = 1; // Mz
-      init_data[i*(npde+1)+1 + 3] = 0; // nx
-      init_data[i*(npde+1)+1 + 4] = 0; // ny
-      init_data[i*(npde+1)+1 + 5] = 1; // nz
-      init_data[i*(npde+1)+1 + 6] = acos(-0.25); // th
+      pp.init_data[i*(npde+1)+1 + 0] = 0; // Mx
+      pp.init_data[i*(npde+1)+1 + 1] = 0; // My
+      pp.init_data[i*(npde+1)+1 + 2] = 1; // Mz
+      pp.init_data[i*(npde+1)+1 + 3] = 0; // nx
+      pp.init_data[i*(npde+1)+1 + 4] = 0; // ny
+      pp.init_data[i*(npde+1)+1 + 5] = 1; // nz
+      pp.init_data[i*(npde+1)+1 + 6] = acos(-0.25); // th
     }
   }
 }
@@ -630,11 +631,11 @@ cmd_sweep(const std::vector<std::string> & args, T *P0, T *PT, T factor=1){
   double VD = get_arg<double>(args[0]); // destination
   double R = get_arg<double>(args[1]);  // rate
   double VO = *P0/factor;                // old value
-  int steps = abs(rint((VD-VO)/R/tstep));
+  int steps = abs(rint((VD-VO)/R/pp.tstep));
   if (steps==0) throw Err() << "zero steps for sweep";
-  *PT = (VD-VO)/(steps*tstep) * factor;
-  *P0 -= tcurr*(*PT);
-  tend  = tcurr + steps*tstep;
+  *PT = (VD-VO)/(steps*pp.tstep) * factor;
+  *P0 -= pp.tcurr*(*PT);
+  pp.tend  = pp.tcurr + steps*pp.tstep;
 }
 
 /******************************************************************/
@@ -643,19 +644,19 @@ cmd_sweep(const std::vector<std::string> & args, T *P0, T *PT, T factor=1){
 int
 read_cmd(std::istream &in_c, std::ostream & out_c){
   // reset sweeps
-  H0  = H0  + tcurr*HT;  HT=0.0;
-  HR0 = HR0 + tcurr*HRT; HRT=0.0;
-  TF0 = TF0 + tcurr*TFT; TFT=0.0;
-  T10 = T10 + tcurr*T1T; T1T=0.0;
-  LF0 = LF0 + tcurr*LFT; LFT=0.0;
-  CP0 = CP0 + tcurr*CPT; CPT=0.0;
-  DF0 = DF0 + tcurr*DFT; DFT=0.0;
+  pp.H0  = pp.H0  + pp.tcurr*pp.HT;  pp.HT=0.0;
+  pp.HR0 = pp.HR0 + pp.tcurr*pp.HRT; pp.HRT=0.0;
+  pp.TF0 = pp.TF0 + pp.tcurr*pp.TFT; pp.TFT=0.0;
+  pp.T10 = pp.T10 + pp.tcurr*pp.T1T; pp.T1T=0.0;
+  pp.LF0 = pp.LF0 + pp.tcurr*pp.LFT; pp.LFT=0.0;
+  pp.CP0 = pp.CP0 + pp.tcurr*pp.CPT; pp.CPT=0.0;
+  pp.DF0 = pp.DF0 + pp.tcurr*pp.DFT; pp.DFT=0.0;
 
   // Read input string line by line
   // Stop reading is some command increase tend, then
   // calculation is needed.
   std::string line;
-  while (tend <= tcurr){
+  while (pp.tend <= pp.tcurr){
 
     // return 1 at the end of command file
     if (!getline(in_c, line)){
@@ -700,125 +701,125 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         check_nargs(narg, 0);
 
         // stop solver if it already exists
-        if (solver) delete solver;
+        if (pp.solver) delete pp.solver;
         // destroy all writers
-        pnm_writers.clear();
+        pp.pnm_writers.clear();
 
         // initialize new solver
-        tend=tcurr=0;
-        std::vector<double> xbrpt(npts);
+        pp.tend=pp.tcurr=0;
+        std::vector<double> xbrpt(pp.npts);
         set_mesh(xbrpt);
-        solver = new pdecol_solver(tcurr, mindt, acc, xbrpt, npde);
-        if (!solver) throw Err() << "can't create solver";
+        pp.solver = new pdecol_solver(pp.tcurr, pp.mindt, pp.acc, xbrpt, npde);
+        if (!pp.solver) throw Err() << "can't create solver";
 
         // save the mesh
         std::ostringstream ss;
-        ss << pref << ".mesh" << cnt_mesh << ".dat";
+        ss << pp.pref << ".mesh" << pp.cnt_mesh << ".dat";
         save_mesh(xbrpt, ss.str());
-        cnt_mesh++;
+        pp.cnt_mesh++;
         continue;
       }
 
       // stop the solver
       if (cmd == "stop") {
         check_nargs(narg, 0);
-        if (!solver) throw Err() << "solver is not running";
-        else delete solver;
-        pnm_writers.clear();
-        solver=NULL;
+        if (!pp.solver) throw Err() << "solver is not running";
+        else delete pp.solver;
+        pp.pnm_writers.clear();
+        pp.solver=NULL;
         continue;
       }
 
       // exit the program
       if (cmd == "exit") {
         check_nargs(narg, 0);
-        if (solver) delete solver;
-        pnm_writers.clear();
-        solver=NULL;
+        if (pp.solver) delete pp.solver;
+        pp.pnm_writers.clear();
+        pp.solver=NULL;
         return 1;
       }
 
       // save state to a file
       if (cmd == "save_state") {
         check_nargs(narg, 1);
-        if (!solver) throw Err() << "solver is not running";
-        solver->save_state(args[0]);
+        if (!pp.solver) throw Err() << "solver is not running";
+        pp.solver->save_state(args[0]);
         continue;
       }
 
       // read state from a file
       if (cmd == "load_state") {
         check_nargs(narg, 1);
-        if (!solver){
+        if (!pp.solver){
           // create some solver (parameters are not important)
-          std::vector<double> xbrpt(npts,0.0);
-          solver = new pdecol_solver(tcurr, mindt, acc, xbrpt, npde);
+          std::vector<double> xbrpt(pp.npts,0.0);
+          pp.solver = new pdecol_solver(pp.tcurr, pp.mindt, pp.acc, xbrpt, npde);
         }
-        solver->load_state(args[0]);
-        tcurr = tend = solver->get_t();
+        pp.solver->load_state(args[0]);
+        pp.tcurr = pp.tend = pp.solver->get_t();
         continue;
       }
 
       if (cmd == "reset_time") {
         check_nargs(narg, 0);
-        if (!solver) throw Err() << "solver is not running";
-        solver->reset_time();
-        tcurr = tend = 0;
+        if (!pp.solver) throw Err() << "solver is not running";
+        pp.solver->reset_time();
+        pp.tcurr = pp.tend = 0;
         continue;
       }
 
       // Do calculations for some time.
       if (cmd == "wait") {
-        if (!solver) throw Err() << "solver is not running";
-        tend = tcurr + get_one_arg<double>(args);
+        if (!pp.solver) throw Err() << "solver is not running";
+        pp.tend = pp.tcurr + get_one_arg<double>(args);
         continue;
       }
 
       // Change solver accuracy. If solver is not running,
       // the value will be used after start.
       if (cmd == "acc") {
-        acc = get_one_arg<double>(args);
-        if (solver) solver->ch_eps(acc);
+        pp.acc = get_one_arg<double>(args);
+        if (pp.solver) pp.solver->ch_eps(pp.acc);
         continue;
       }
 
       // Change accuracy (power of two). If solver is not running,
       // the value will be used after start.
       if (cmd == "acc2") {
-        acc=pow(2, -get_one_arg<double>(args));
-        if (solver) solver->ch_eps(acc);
+        pp.acc=pow(2, -get_one_arg<double>(args));
+        if (pp.solver) pp.solver->ch_eps(pp.acc);
         continue;
       }
 
       // Change min. time step (recommended 1e-10). It can be changes at any time,
       // but real change happenes when the solver is (re)started.
-      if (cmd == "mindt") { mindt = get_one_arg<double>(args); continue; }
+      if (cmd == "mindt") { pp.mindt = get_one_arg<double>(args); continue; }
 
       // Change number of points. It can be changed at any time,
       // but real change happenes when the solver is (re)started.
-      if (cmd == "npts") { npts = get_one_arg<int>(args); continue; }
+      if (cmd == "npts") { pp.npts = get_one_arg<int>(args); continue; }
 
       // Change time step. Can be changed during calculation.
-      if (cmd == "tstep") { tstep = get_one_arg<double>(args); continue; }
+      if (cmd == "tstep") { pp.tstep = get_one_arg<double>(args); continue; }
 
       // Change cell length. It can be changes at any time,
       // but real change happenes when the solver is (re)started.
-      if (cmd == "cell_len")  { cell_len = get_one_arg<double>(args); continue;}
+      if (cmd == "cell_len")  { pp.cell_len = get_one_arg<double>(args); continue;}
 
-      if (cmd == "mesh_k")   { xmesh_k  = get_one_arg<double>(args); continue;}
-      if (cmd == "aer_len")   { aer_len = get_one_arg<double>(args); continue;}
-      if (cmd == "aer_cnt")   { aer_cnt = get_one_arg<double>(args); continue;}
-      if (cmd == "aer_trw")   { aer_trw = get_one_arg<double>(args); continue;}
+      if (cmd == "mesh_k")    { pp.xmesh_k  = get_one_arg<double>(args); continue;}
+      if (cmd == "aer_len")   { pp.aer_len = get_one_arg<double>(args); continue;}
+      if (cmd == "aer_cnt")   { pp.aer_cnt = get_one_arg<double>(args); continue;}
+      if (cmd == "aer_trw")   { pp.aer_trw = get_one_arg<double>(args); continue;}
 
       /*******************************************************/
       // boubdary and initial conditions
 
       if (cmd == "bcond_type"){
-        bcond_type_l = bcond_type_r = get_one_arg<int>(args); continue;}
+        pp.bctype_l = pp.bctype_r = get_one_arg<int>(args); continue;}
       if (cmd == "bcond_type_l"){
-        bcond_type_l = get_one_arg<int>(args); continue;}
+        pp.bctype_l = get_one_arg<int>(args); continue;}
       if (cmd == "bcond_type_r"){
-        bcond_type_r = get_one_arg<int>(args); continue;}
+        pp.bctype_r = get_one_arg<int>(args); continue;}
 
       // set uniform i.c. with nz=-1 or nz=+1 (default)
       if (cmd == "set_icond_uniform") {
@@ -871,52 +872,52 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
 
       // make 2-pi hpd soliton, restart solver
       if (cmd == "make_2pi_soliton") {
-        if (!solver) throw Err() << "solver is not running";
+        if (!pp.solver) throw Err() << "solver is not running";
         double w = get_one_arg<double>(args);
-        init_data_save(solver); // save current profile to the init data
+        init_data_save(pp.solver); // save current profile to the init data
         init_data_2pi_soliton(w); // create 2-pi soliton with half-width w
-        solver->restart();
+        pp.solver->restart();
         continue;
       }
 
       // make pi hpd soliton, restart solver
       if (cmd == "make_pi_soliton") {
-        if (!solver) throw Err() << "solver is not running";
+        if (!pp.solver) throw Err() << "solver is not running";
         double w = get_one_arg<double>(args);
-        init_data_save(solver); // save current profile to the init data
+        init_data_save(pp.solver); // save current profile to the init data
         init_data_pi_soliton(w); // create pi soliton with half-width w
-        solver->restart();
+        pp.solver->restart();
         continue;
       }
 
       // make npd soliton, restart solver
       if (cmd == "make_npd_soliton") {
-        if (!solver) throw Err() << "solver is not running";
+        if (!pp.solver) throw Err() << "solver is not running";
         double w = get_one_arg<double>(args);
-        init_data_save(solver); // save current profile to the init data
+        init_data_save(pp.solver); // save current profile to the init data
         init_data_npd_soliton(w); // create npd soliton with half-width w
-        solver->restart();
+        pp.solver->restart();
         continue;
       }
 
       // swap n and/or ny
       if (cmd == "hpd_deform") {
-        if (!solver) throw Err() << "solver is not running";
+        if (!pp.solver) throw Err() << "solver is not running";
         check_nargs(narg, 1, 2);
         int type = get_arg<int>(args[0]);
         double w = (narg<2)? 0.1 : get_arg<double>(args[1]);
-        init_data_save(solver); // save current profile to the init data
+        init_data_save(pp.solver); // save current profile to the init data
 
-        int nn = init_data.size()/(npde+1);
+        int nn = pp.init_data.size()/(npde+1);
         for (int i=0; i<nn; i++){
-          double  x = init_data[i*(npde+1) + 0];
-          double mx = init_data[i*(npde+1) + 1];
-          double my = init_data[i*(npde+1) + 2];
-          double mz = init_data[i*(npde+1) + 3];
-          double nx = init_data[i*(npde+1) + 4];
-          double ny = init_data[i*(npde+1) + 5];
-          double nz = init_data[i*(npde+1) + 6];
-          double th = init_data[i*(npde+1) + 7];
+          double  x = pp.init_data[i*(npde+1) + 0];
+          double mx = pp.init_data[i*(npde+1) + 1];
+          double my = pp.init_data[i*(npde+1) + 2];
+          double mz = pp.init_data[i*(npde+1) + 3];
+          double nx = pp.init_data[i*(npde+1) + 4];
+          double ny = pp.init_data[i*(npde+1) + 5];
+          double nz = pp.init_data[i*(npde+1) + 6];
+          double th = pp.init_data[i*(npde+1) + 7];
 
           double mm = sqrt(mx*mx + my*my + mz*mz);
           double am = atan2(my,mx);
@@ -951,7 +952,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
                     th+=4*atan(exp(x/w));; break;
 
             //
-            case 6: if (x*cell_len < 0) break;
+            case 6: if (x*pp.cell_len < 0) break;
                 th = -th; an = -an; bn = M_PI - bn; break;
 
           }
@@ -964,16 +965,16 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
           my = mm*sin(bm)*sin(am);
           mz = mm*cos(bm);
 
-          init_data[i*(npde+1) + 0] =  x;
-          init_data[i*(npde+1) + 1] = mx;
-          init_data[i*(npde+1) + 2] = my;
-          init_data[i*(npde+1) + 3] = mz;
-          init_data[i*(npde+1) + 4] = nx;
-          init_data[i*(npde+1) + 5] = ny;
-          init_data[i*(npde+1) + 6] = nz;
-          init_data[i*(npde+1) + 7] = th;
+          pp.init_data[i*(npde+1) + 0] =  x;
+          pp.init_data[i*(npde+1) + 1] = mx;
+          pp.init_data[i*(npde+1) + 2] = my;
+          pp.init_data[i*(npde+1) + 3] = mz;
+          pp.init_data[i*(npde+1) + 4] = nx;
+          pp.init_data[i*(npde+1) + 5] = ny;
+          pp.init_data[i*(npde+1) + 6] = nz;
+          pp.init_data[i*(npde+1) + 7] = th;
        }
-        solver->restart();
+        pp.solver->restart();
         continue;
       }
 
@@ -983,7 +984,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       // write function profiles to a file
       if (cmd == "write_profile") {
         check_nargs(narg, 0,1);
-        if (!solver) throw Err() << "solver is not running";
+        if (!pp.solver) throw Err() << "solver is not running";
 
         std::string name;
         if (narg>0) {
@@ -991,11 +992,11 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         }
         else{
           std::ostringstream ss;
-          ss << pref << ".prof" << cnt_prof << ".dat";
+          ss << pp.pref << ".prof" << pp.cnt_prof << ".dat";
           name = ss.str();
         }
-        write_profile(solver, name);
-        cnt_prof++;
+        write_profile(pp.solver, name);
+        pp.cnt_prof++;
         continue;
       }
 
@@ -1005,10 +1006,10 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       // Initialize a pnm_writer. Solver should be startded.
       if (cmd == "pnm_start") {
         check_nargs(narg, 0,1);
-        std::string name = narg>0 ? args[0]: pref + ".pic.pnm";
-        if (!solver)
+        std::string name = narg>0 ? args[0]: pp.pref + ".pic.pnm";
+        if (!pp.solver)
           throw Err() << "can't start pnm_writer if solver is not running";
-        if (!pnm_writers.add(name, solver))
+        if (!pp.pnm_writers.add(name, pp.solver))
           throw Err() << "can't open create pnm_writer";
         continue;
       }
@@ -1016,8 +1017,8 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       // pnm_legend: start draw a legend
       if (cmd == "pnm_legend") {
         check_nargs(narg, 0,1);
-        std::string name = narg>0 ? args[0]: pref + ".pic.pnm";
-        if (!pnm_writers.legend(name, 50, 100))
+        std::string name = narg>0 ? args[0]: pp.pref + ".pic.pnm";
+        if (!pp.pnm_writers.legend(name, 50, 100))
           throw Err() << "no such writer";
         continue;
       }
@@ -1025,8 +1026,8 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       // pnm_hline: draw a horizontal line
       if (cmd == "pnm_hline") {
         check_nargs(narg, 0,1);
-        std::string name = narg>0 ? args[0]: pref + ".pic.pnm";
-        if (!pnm_writers.hline(name))
+        std::string name = narg>0 ? args[0]: pp.pref + ".pic.pnm";
+        if (!pp.pnm_writers.hline(name))
           throw Err() << "no such writer";
         continue;
       }
@@ -1034,8 +1035,8 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       // stop a pnm_writer
       if (cmd == "pnm_stop") {
         check_nargs(narg, 0,1);
-        std::string name = narg>0 ? args[0]: pref + ".pic.pnm";
-        if (!pnm_writers.del(name))
+        std::string name = narg>0 ? args[0]: pp.pref + ".pic.pnm";
+        if (!pp.pnm_writers.del(name))
           throw Err() << "no such writer";
         continue;
       }
@@ -1044,73 +1045,73 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       /*******************************************************/
       // set NMR frequency
       if (cmd == "set_freq") {
-        f0 = get_one_arg<double>(args); continue; }
+        pp.f0 = get_one_arg<double>(args); continue; }
 
       // Set uniform field [G, from larmor].
       if (cmd == "set_field") {
-        H0 = get_one_arg<double>(args); continue; }
+        pp.H0 = get_one_arg<double>(args); continue; }
 
       // Uniform field step [G].
       if (cmd == "step_field") {
-        H0 += get_one_arg<double>(args); continue; }
+        pp.H0 += get_one_arg<double>(args); continue; }
 
       // Set field gradient [G/cm].
       if (cmd == "set_field_grad") {
-        HG = get_one_arg<double>(args); continue; }
+        pp.HG = get_one_arg<double>(args); continue; }
 
       // Set field quadratic term [G/cm^2].
       if (cmd == "set_field_quad") {
-        HQ = get_one_arg<double>(args); continue; }
+        pp.HQ = get_one_arg<double>(args); continue; }
 
       // Sweep uniform field: destination [G], rate [G/s].
       if (cmd == "sweep_field") {
-        cmd_sweep(args, &H0, &HT); continue; }
+        cmd_sweep(args, &pp.H0, &pp.HT); continue; }
 
       // Set uniform field in frequency shift units [Hz from NMR freq].
       if (cmd == "set_field_hz") {
-        H0 = get_one_arg<double>(args) * 2*M_PI/gyro; continue; }
+        pp.H0 = get_one_arg<double>(args) * 2*M_PI/pp.gyro; continue; }
 
       // Uniform field step [Hz].
       if (cmd == "step_field_hz") {
-        H0 += get_one_arg<double>(args) * 2*M_PI/gyro; continue; }
+        pp.H0 += get_one_arg<double>(args) * 2*M_PI/pp.gyro; continue; }
 
       // Sweep uniform field: destination [Hz], rate [Hz/s].
       if (cmd == "sweep_field_hz") {
-        cmd_sweep(args, &H0, &HT, 2*M_PI/gyro); continue; }
+        cmd_sweep(args, &pp.H0, &pp.HT, 2*M_PI/pp.gyro); continue; }
 
       // Set uniform field in Larmor position units [cm].
       // Gradient term is used to convert field to cm. Quadratic term is not used.
       // Lower Larmor positon means higher field.
       if (cmd == "set_field_cm") {
-        if (HG == 0.0) throw Err() << "can't set Larmor position if "
+        if (pp.HG == 0.0) throw Err() << "can't set Larmor position if "
                                       "field gradient is zero";
-        H0 = -get_one_arg<double>(args)*HG; continue; }
+        pp.H0 = -get_one_arg<double>(args)*pp.HG; continue; }
 
       // Uniform field step [cm].
       if (cmd == "step_field_cm") {
-        if (HG == 0.0) throw Err() << "can't set Larmor position if "
+        if (pp.HG == 0.0) throw Err() << "can't set Larmor position if "
                                       "field gradient is zero";
-        H0 -= get_one_arg<double>(args)*HG; continue; }
+        pp.H0 -= get_one_arg<double>(args)*pp.HG; continue; }
 
       // Sweep uniform field: destination [cm], rate [cm/s].
       if (cmd == "sweep_field_cm") {
-        if (HG == 0.0) throw Err() << "can't set Larmor position if "
+        if (pp.HG == 0.0) throw Err() << "can't set Larmor position if "
                                       "field gradient is zero";
-        cmd_sweep(args, &H0, &HT, -HG); continue; }
+        cmd_sweep(args, &pp.H0, &pp.HT, -pp.HG); continue; }
 
       // Set/step/sweep RF field [G].
       if (cmd == "set_rf_field") {
-        HR0 = get_one_arg<double>(args); continue; }
+        pp.HR0 = get_one_arg<double>(args); continue; }
       if (cmd == "step_rf_field") {
-        HR0 += get_one_arg<double>(args); continue; }
+        pp.HR0 += get_one_arg<double>(args); continue; }
       if (cmd == "sweep_rf_field") {
-        cmd_sweep(args, &HR0, &HRT); continue; }
+        cmd_sweep(args, &pp.HR0, &pp.HRT); continue; }
 
       // RF-field profile, gradient term [1/cm], quadratic term [1/cm^2].
       if (cmd == "set_rf_prof") {
         check_nargs(narg, 2);
-        HRGP = get_arg<double>(args[0]);
-        HRQP = get_arg<double>(args[1]);
+        pp.HRGP = get_arg<double>(args[0]);
+        pp.HRQP = get_arg<double>(args[1]);
         continue;
       }
 
@@ -1120,33 +1121,33 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
 
       // Set/sweep relaxation time t_1 [s]
       if (cmd == "set_t1") {
-        T10 = get_one_arg<double>(args); continue; }
+        pp.T10 = get_one_arg<double>(args); continue; }
       if (cmd == "sweep_t1") {
-        cmd_sweep(args, &T10, &T1T); continue; }
+        cmd_sweep(args, &pp.T10, &pp.T1T); continue; }
 
       // Set/sweep Leggett-Takagi relaxation time tau_f [s]
       if (cmd == "set_tf") {
-        TF0 = get_one_arg<double>(args); continue; }
+        pp.TF0 = get_one_arg<double>(args); continue; }
       if (cmd == "sweep_tf") {
-        cmd_sweep(args, &TF0, &TFT); continue; }
+        cmd_sweep(args, &pp.TF0, &pp.TFT); continue; }
 
       // Set/sweep spin diffusion [cm^2/s]
       if (cmd == "set_diff") {
-        DF0 = get_one_arg<double>(args); continue; }
+        pp.DF0 = get_one_arg<double>(args); continue; }
       if (cmd == "sweep_diff") {
-        cmd_sweep(args, &DF0, &DFT); continue; }
+        cmd_sweep(args, &pp.DF0, &pp.DFT); continue; }
 
       // Set and sweep spin-wave velocity c_parallel [cm/s]
       if (cmd == "set_cpar") {
-        CP0 = get_one_arg<double>(args); continue; }
+        pp.CP0 = get_one_arg<double>(args); continue; }
       if (cmd == "sweep_cpar") {
-        cmd_sweep(args, &CP0, &CPT); continue; }
+        cmd_sweep(args, &pp.CP0, &pp.CPT); continue; }
 
       // Set and sweep Leggett frequency [Hz]
       if (cmd == "set_leggett_freq") {
-        LF0 = get_one_arg<double>(args); continue; }
+        pp.LF0 = get_one_arg<double>(args); continue; }
       if (cmd == "sweep_leggett_freq") {
-        cmd_sweep(args, &LF0, &LFT); continue; }
+        cmd_sweep(args, &pp.LF0, &pp.LFT); continue; }
 
       /*******************************************************/
 
@@ -1194,12 +1195,12 @@ try{
 
   // find prefix (command file name without extension)
   const char * pos = rindex(argv[1], '.');
-  pref = pos ? std::string(argv[1], pos-argv[1]) : argv[1];
+  pp.pref = pos ? std::string(argv[1], pos-argv[1]) : argv[1];
 
 
-  std::ofstream out_m((pref + ".magn.dat").c_str()); // log total magnetization
+  std::ofstream out_m((pp.pref + ".magn.dat").c_str()); // log total magnetization
   out_m << "# Integral magnetization log: T, LP, Mx, Mx, Mz\n";
-  std::ofstream out_l((pref + ".run.log").c_str()); // log commands
+  std::ofstream out_l((pp.pref + ".run.log").c_str()); // log commands
   out_l << "# Commands and main parameters\n";
 
   write_pars(out_l);
@@ -1211,20 +1212,20 @@ try{
 
     // If we reach final time, read new cmd.
     // If it returns 1, finish the program
-    if (tcurr >= tend && read_cmd(in_c, out_l)) break;
+    if (pp.tcurr >= pp.tend && read_cmd(in_c, out_l)) break;
     // do the next step
-    if (solver) {
-      tcurr += tstep;
-      solver->step(tcurr);
+    if (pp.solver) {
+      pp.tcurr += pp.tstep;
+      pp.solver->step(pp.tcurr);
 
       // No need to use original mesh.
       // Maybe it would be better to use unifirm mesh here...
-      std::vector<double> xsol = solver->get_xmesh();
-      std::vector<double> usol = solver->values(xsol, nder);
+      std::vector<double> xsol = pp.solver->get_xmesh();
+      std::vector<double> usol = pp.solver->values(xsol, nder);
 
       // write results
       write_magn(out_m, xsol, usol);
-      pnm_writers.write(xsol, usol);
+      pp.pnm_writers.write(xsol, usol);
       write_pars(out_l);
     }
 
