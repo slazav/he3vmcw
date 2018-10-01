@@ -15,6 +15,7 @@ HE3LIB = 1
 TARGETS=vmcw
 LDLIBS= -lgfortran -lm
 FFLAGS=-I/usr/include -fno-range-check
+CPPFLAGS=-std=c++11
 CC=g++
 
 ifeq ($(SOLVER), pde_dp)
