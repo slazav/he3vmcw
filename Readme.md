@@ -42,9 +42,9 @@ the running solver.
 * `mindt <value>` -- Change min. time step. It can be changes at any
 time, but real change happenes when the new solver is started.
 
-* `npts <number>` -- Change number of points. It can be changed at any time,
-but real change happenes when the new solver is started. It is also used in
-set_icond_hpd command.
+* `npts <number>` -- Change number of points. It is used when a new solver
+is started. It also used to get data from the solver (and can be different
+from the value which was used to start the current solver).
 
 * `tstep <value>` -- Set time step. Can be changed during calculation.
 

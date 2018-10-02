@@ -328,8 +328,9 @@ void set_he3tp(double ttc, double p){
 void
 write_profile(pdecol_solver *solver, const std::string & fname) {
 
-  // use solver->get_xmesh() as an x-grid, but it is not needed
-  std::vector<double> xsol = pp.solver->get_xmesh();
+  // build mesh using current value for npts
+  std::vector<double> xsol(pp.npts);
+  set_mesh(xsol);
   std::vector<double> usol = pp.solver->values(xsol, nder);
 
   std::ofstream ss(fname.c_str());
@@ -514,7 +515,10 @@ init_data_hpd(int sn=1, int st=1){
 // save current profile to init_data
 void
 init_data_save(pdecol_solver *solver) {
-  std::vector<double> xsol = solver->get_xmesh();
+
+  // build mesh using current value for npts
+  std::vector<double> xsol(pp.npts);
+  set_mesh(xsol);
   std::vector<double> usol = solver->values(xsol, 0); // no derivatives!
 
   pp.init_data = std::vector<double>(xsol.size()*(npde+1));
@@ -1218,9 +1222,9 @@ try{
       pp.tcurr += pp.tstep;
       pp.solver->step(pp.tcurr);
 
-      // No need to use original mesh.
-      // Maybe it would be better to use unifirm mesh here...
-      std::vector<double> xsol = pp.solver->get_xmesh();
+      // build mesh using current value for npts
+      std::vector<double> xsol(pp.npts);
+      set_mesh(xsol);
       std::vector<double> usol = pp.solver->values(xsol, nder);
 
       // write results
