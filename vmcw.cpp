@@ -915,7 +915,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         int N = pp.init_data.size()/(npde+1);
         // do not modify first and last point to keep
         // consistency with boundary conditions
-        for (int i=1; i<N-1; i++){
+        for (int i=0; i<N; i++){
           double  x = pp.init_data[i*(npde+1) + 0];
           double mx = pp.init_data[i*(npde+1) + 1];
           double my = pp.init_data[i*(npde+1) + 2];
@@ -933,7 +933,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
           double bn = acos(nz/nn);
 
           int n;
-          double w;
+          double w, d;
           switch (type) {
             // trivial
             case 0: break;
@@ -954,11 +954,79 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
                     am += 4*atan(exp(x/w)); break;
 
             // 2pi theta soliton
+            // 1: bn: bn0 -> pi
+            // 2: th: th0 -> 2*pi-delta, 
+            // 3: bn: pi -> 0,  an=-an before or after
+            // 4: th: 2*pi-delta -> 2pi - th0
+            // 5: bn = 0 -> bn0
             case 5: w = (narg<2)? 0.01 : get_arg<double>(args[1]);
-                    th+=4*atan(exp(x/w));; break;
+                    d = (narg<3)? 0.1 : get_arg<double>(args[2]);
+                    if (x/w>=-2.5 && x/w<-1.5){
+                      double k = x/w+2.5; // 0..1
+                      bn = bn*(1-k) + M_PI*k;
+                      bm = bm*(1-k);
+                    }
+                    if (x/w>=-1.5 && x/w<-0.5){
+                      double k = x/w+1.5; // 0..1
+                      bn = M_PI;
+//                      th = th*(1-k) + (2*M_PI-d)*k;
+                      th = th*(1-k) + d*k;
+                    }
+                    if (x/w>=-0.5 && x/w<+0.5){
+                      double k = x/w+0.5; // 0..1
+//                      th = 2*M_PI-d;
+                      th = d;
+                      bn = M_PI*(1-k);
+                      an=-M_PI/2;
+                    }
+                    if (x/w>=+0.5 && x/w<+1.5){
+                      double k = x/w-0.5; // 0..1
+//                      th = (2*M_PI-d)*(1-k) + (2*M_PI-th)*k;
+                      th = d*(1-k) + (2*M_PI-th)*k;
+                      bn = 0;
+                    }
+                    if (x/w>=+1.5 && x/w<+2.5){
+                      double k = x/w-1.5; // 0..1
+                      th = 2*M_PI-th;
+                      bn = k*bn;
+                      bm = bm*k;
+                      an=-an;
+                    }
+                    if (x/w>=+2.5){
+                      th = 2*M_PI-th;
+                      an=-an;
+                    }
+                    if (x/w>=-1.5 && x/w<1.5) bm = 0;
+                break;
+
+            case 6: w = (narg<2)? 0.01 : get_arg<double>(args[1]);
+                    d = (narg<3)? 0.1 : get_arg<double>(args[2]);
+                    if (x/w>=-1.5 && x/w<-0.5){
+                      double k = x/w+1.5; // 0..1
+                      bn = bn*(1-k) + M_PI*k;
+                      bm = bm*(1-k);
+                    }
+                    if (x/w>=-0.5 && x/w<+0.5){
+                      double k = x/w+0.5; // 0..1
+                      bn = M_PI;
+                      th = th*(1-k) + (2*M_PI-th)*k;
+                    }
+                    if (x/w>=+0.5 && x/w<+1.5){
+                      double k = x/w-0.5; // 0..1
+                      th = 2*M_PI-th;
+                      bn = M_PI*(1-k)+k*bn;
+                      bm = bm*k;
+                      an=-an;
+                    }
+                    if (x/w>=+1.5){
+                      th = 2*M_PI-th;
+                      an=-an;
+                    }
+                    if (x/w>=-0.5 && x/w<0.5) bm = 0;
+                break;
 
             //
-            case 6: if (x*pp.cell_len < 0) break;
+            case 7: if (x*pp.cell_len < 0) break;
                 th = -th; an = -an; bn = M_PI - bn; break;
 
           }
