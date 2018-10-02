@@ -913,7 +913,9 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         init_data_save(pp.solver); // save current profile to the init data
 
         int N = pp.init_data.size()/(npde+1);
-        for (int i=0; i<N; i++){
+        // do not modify first and last point to keep
+        // consistency with boundary conditions
+        for (int i=1; i<N-1; i++){
           double  x = pp.init_data[i*(npde+1) + 0];
           double mx = pp.init_data[i*(npde+1) + 1];
           double my = pp.init_data[i*(npde+1) + 2];
