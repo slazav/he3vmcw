@@ -912,8 +912,8 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         double w = (narg<2)? 0.1 : get_arg<double>(args[1]);
         init_data_save(pp.solver); // save current profile to the init data
 
-        int nn = pp.init_data.size()/(npde+1);
-        for (int i=0; i<nn; i++){
+        int N = pp.init_data.size()/(npde+1);
+        for (int i=0; i<N; i++){
           double  x = pp.init_data[i*(npde+1) + 0];
           double mx = pp.init_data[i*(npde+1) + 1];
           double my = pp.init_data[i*(npde+1) + 2];
