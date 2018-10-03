@@ -87,17 +87,17 @@ make pi hpd soliton, restart solver.
 * `make_npd_soliton` -- Update initial condition from current function values,
  make npd soliton, restart solver
 
-* `hpd_deform <type> [<par>]` -- Update initial condition from current function values,
-make some modification, and restart the solver. Types:
+* `deform <type> [<par>]` -- Update initial condition from current
+function values, make some modification, and restart the solver. Types:
 
-  * hpd_deform 0 - no modifications;
-  * hpd_deform 1 - invert theta angle
-  * hpd_deform 2 - rotate alpha_n, alpha_m by pi.
-  * hpd_deform 3 <N> - add constant gradient to alpha_n, alpha_m
+  * `deform none` - no modifications;
+  * `deform half_turn` - rotate alpha_n, alpha_m by pi.
+  * `deform rotation <N>` - add constant gradient to alpha_n, alpha_m
     to have N full turns on the cell length.
-  * hpd_deform 4 <w> - add a 2-pi soliton in alpha_n, alpha_m
-    in the middle of the cell, with width <w>.
-  * hpd_deform 5 <w> - 2pi theta soliton
+  * `deform 2pi_soliton <w>` - add a 2-pi soliton in alpha_n, alpha_m
+    in the middle of the cell, with width `<w>`.
+  * `deform th_soliton <w>` - add a theta soliton in the middle
+    of the cell, with width `<w>`.
 
 After the deformation the solver uses same parameters as before,
 pnm_writer is not restarted.
@@ -106,7 +106,7 @@ If one wants to restart the solver with different parameters (cell length, numbe
 using initial conditions from the old one one can do:
 ```
 npts 512     # some parameters for the new solver
-hpd_deform 0 # save function profiles for new initial conditions
+deform none  # save function profiles for new initial conditions
 start        # start new solver with new parameters
 pnm_start    # start new pnm_writer
 ```

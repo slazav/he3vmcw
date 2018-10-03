@@ -904,17 +904,17 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         continue;
       }
 
-      // swap n and/or ny
-      if (cmd == "hpd_deform") {
+      // deform the current solution and restart the solver
+      if (cmd == "deform") {
         if (!pp.solver) throw Err() << "solver is not running";
-        check_nargs(narg, 1, 2);
-        int type = get_arg<int>(args[0]);
-        double w = (narg<2)? 0.1 : get_arg<double>(args[1]);
+        check_nargs(narg, 1, 3);
+        std::string type = args[0];
         init_data_save(pp.solver); // save current profile to the init data
 
         int N = pp.init_data.size()/(npde+1);
-        // do not modify first and last point to keep
-        // consistency with boundary conditions
+        // Be careful with first and last point!
+        // Initial conditions should be compatable with boundary conditions.
+        // It is better not to modify these points
         for (int i=0; i<N; i++){
           double  x = pp.init_data[i*(npde+1) + 0];
           double mx = pp.init_data[i*(npde+1) + 1];
@@ -932,103 +932,53 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
           double an = atan2(ny,nx);
           double bn = acos(nz/nn);
 
-          int n;
-          double w, d;
-          switch (type) {
-            // trivial
-            case 0: break;
+          // trivial
+          if (type == "0") break;
 
-            case 1: th=-th; break;  // invert theta
+          // rotate by PI
+          if (type == "half_turn") {
+            an+=M_PI; am+=M_PI;}
 
-            // rotate by PI
-            case 2: an+=M_PI; am+=M_PI; break;
+          // constant rotation aroung z axis (number of periods - parameter n)
+          if (type == "rotation") {
+            int n = (narg<2)? 1 : get_arg<int>(args[1]);
+            an -= 2*n*M_PI*(x+0.5);
+            am -= 2*n*M_PI*(x+0.5);
+          }
 
-            // constant rotation (number of periods - parameter n)
-            case 3: n = (narg<2)? 1 : get_arg<int>(args[1]);
-                    an -= 2*n*M_PI*(x+0.5);
-                    am -= 2*n*M_PI*(x+0.5); break;
+          // 2pi soliton with width w (orientation depends on w sign)
+          if (type == "2pi_soliton") {
+            double w = (narg<2)? 0.1 : get_arg<double>(args[1]);
+            an += 4*atan(exp(x/w));
+            am += 4*atan(exp(x/w));
+          }
 
-            // 2pi soliton with width w (orientation depends on w sign)
-            case 4: w = (narg<2)? 0.1 : get_arg<double>(args[1]);
-                    an += 4*atan(exp(x/w));
-                    am += 4*atan(exp(x/w)); break;
-
-            // 2pi theta soliton
-            // 1: bn: bn0 -> pi
-            // 2: th: th0 -> 2*pi-delta, 
-            // 3: bn: pi -> 0,  an=-an before or after
-            // 4: th: 2*pi-delta -> 2pi - th0
-            // 5: bn = 0 -> bn0
-            case 5: w = (narg<2)? 0.01 : get_arg<double>(args[1]);
-                    d = (narg<3)? 0.1 : get_arg<double>(args[2]);
-                    if (x/w>=-2.5 && x/w<-1.5){
-                      double k = x/w+2.5; // 0..1
-                      bn = bn*(1-k) + M_PI*k;
-                      bm = bm*(1-k);
-                    }
-                    if (x/w>=-1.5 && x/w<-0.5){
-                      double k = x/w+1.5; // 0..1
-                      bn = M_PI;
-//                      th = th*(1-k) + (2*M_PI-d)*k;
-                      th = th*(1-k) + d*k;
-                    }
-                    if (x/w>=-0.5 && x/w<+0.5){
-                      double k = x/w+0.5; // 0..1
-//                      th = 2*M_PI-d;
-                      th = d;
-                      bn = M_PI*(1-k);
-                      an=-M_PI/2;
-                    }
-                    if (x/w>=+0.5 && x/w<+1.5){
-                      double k = x/w-0.5; // 0..1
-//                      th = (2*M_PI-d)*(1-k) + (2*M_PI-th)*k;
-                      th = d*(1-k) + (2*M_PI-th)*k;
-                      bn = 0;
-                    }
-                    if (x/w>=+1.5 && x/w<+2.5){
-                      double k = x/w-1.5; // 0..1
-                      th = 2*M_PI-th;
-                      bn = k*bn;
-                      bm = bm*k;
-                      an=-an;
-                    }
-                    if (x/w>=+2.5){
-                      th = 2*M_PI-th;
-                      an=-an;
-                    }
-                    if (x/w>=-1.5 && x/w<1.5) bm = 0;
-                break;
-
-            case 6: w = (narg<2)? 0.01 : get_arg<double>(args[1]);
-                    d = (narg<3)? 0.1 : get_arg<double>(args[2]);
-                    if (x/w>=-1.5 && x/w<-0.5){
-                      double k = x/w+1.5; // 0..1
-                      bn = bn*(1-k) + M_PI*k;
-                      bm = bm*(1-k);
-                    }
-                    if (x/w>=-0.5 && x/w<+0.5){
-                      double k = x/w+0.5; // 0..1
-                      bn = M_PI;
-                      th = th*(1-k) + (2*M_PI-th)*k;
-                    }
-                    if (x/w>=+0.5 && x/w<+1.5){
-                      double k = x/w-0.5; // 0..1
-                      th = 2*M_PI-th;
-                      bn = M_PI*(1-k)+k*bn;
-                      bm = bm*k;
-                      an=-an;
-                    }
-                    if (x/w>=+1.5){
-                      th = 2*M_PI-th;
-                      an=-an;
-                    }
-                    if (x/w>=-0.5 && x/w<0.5) bm = 0;
-                break;
-
-            //
-            case 7: if (x*pp.cell_len < 0) break;
-                th = -th; an = -an; bn = M_PI - bn; break;
-
+          // theta soliton
+          if (type == "th_soliton") {
+            double w = (narg<2)? 0.01 : get_arg<double>(args[1]);
+            double d = (narg<3)? 0.1 : get_arg<double>(args[2]);
+            if (x/w>=-1.5 && x/w<-0.5){
+              double k = x/w+1.5; // 0..1
+              bn = bn*(1-k) + M_PI*k;
+              bm = bm*(1-k);
+            }
+            if (x/w>=-0.5 && x/w<+0.5){
+              double k = x/w+0.5; // 0..1
+              bn = M_PI;
+              th = th*(1-k) + (2*M_PI-th)*k;
+            }
+            if (x/w>=+0.5 && x/w<+1.5){
+              double k = x/w-0.5; // 0..1
+              th = 2*M_PI-th;
+              bn = M_PI*(1-k)+k*bn;
+              bm = bm*k;
+              an=-an;
+            }
+            if (x/w>=+1.5){
+              th = 2*M_PI-th;
+              an=-an;
+            }
+            if (x/w>=-0.5 && x/w<0.5) bm = 0;
           }
 
           nx = nn*sin(bn)*cos(an);
