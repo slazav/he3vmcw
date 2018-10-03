@@ -131,9 +131,13 @@ C-- BNDRY ------ BOUNDARY CONDITIONS -- B(U,UX)=Z(T) ------------
           enddo
         enddo
 
-!       NPD wall, all functions are constant
+!       Symmetric th-soliton, N and theta are constants (and should be
+!       started from NPD initial conditions), dM/dz = 0 (symmetric waves only)
         if (IBN.EQ.3) THEN
-          do J=1,NPDE
+          do J=1,3
+            DBDUX(J,J)=1.0D0
+          enddo
+          do J=4,NPDE
             DBDU(J,J)=1.0D0
           enddo
           return
