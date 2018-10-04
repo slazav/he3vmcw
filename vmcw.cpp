@@ -956,7 +956,6 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
           // theta soliton
           if (type == "th_soliton") {
             double w = (narg<2)? 0.01 : get_arg<double>(args[1]);
-            double d = (narg<3)? 0.1 : get_arg<double>(args[2]);
             if (x/w>=-1.5 && x/w<-0.5){
               double k = x/w+1.5; // 0..1
               bn = bn*(1-k) + M_PI*k;
@@ -980,6 +979,37 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
             }
             if (x/w>=-0.5 && x/w<0.5) bm = 0;
           }
+
+          // theta soliton
+          if (type == "th_soliton1") {
+            double w = (narg<2)? 0.01 : get_arg<double>(args[1]);
+            if (x/w>=-1.5 && x/w<-0.5){
+              double k = x/w+1.5; // 0..1
+              bn = bn*(1-k) + M_PI*k;
+              bm = bm*(1-k);
+            }
+            if (x/w>=-0.5 && x/w<0){
+              double k = (x/w+0.5)*2; // 0..1
+              bn = M_PI;
+              th = th*(1-k) + (2*M_PI-0.01)*k;
+            }
+            if (x/w>=0 && x/w<+0.5){
+              double k = x/w*2; // 0..1
+              bn = M_PI;
+              th = (2*M_PI+0.01)*(1-k) + (2*M_PI+th)*k;
+            }
+            if (x/w>=+0.5 && x/w<+1.5){
+              double k = x/w-0.5; // 0..1
+              th = 2*M_PI+th;
+              bn = M_PI*(1-k) + k*bn;
+              bm = bm*k;
+            }
+            if (x/w>=+1.5){
+              th = 2*M_PI+th;
+            }
+            if (x/w>=-0.5 && x/w<0.5) bm = 0;
+          }
+
 
           nx = nn*sin(bn)*cos(an);
           ny = nn*sin(bn)*sin(an);
