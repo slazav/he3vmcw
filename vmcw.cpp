@@ -530,69 +530,6 @@ init_data_save(pdecol_solver *solver) {
   }
 }
 
-// create 2pi-soliton in the init_data (on top of existing data)
-void
-init_data_2pi_soliton(double w) {
-  int nn = pp.init_data.size()/(npde+1);
-  for (int i=0; i<nn; i++){
-    double x = pp.init_data[i*(npde+1)]*pp.cell_len;
-    double p = x/w;
-    if (p<-1.0) p=-1.0;
-    if (p>+1.0) p=+1.0;
-    p+=1.0; // 0..2
-    double mx = pp.init_data[i*(npde+1)+1 + 0];
-    double my = pp.init_data[i*(npde+1)+1 + 1];
-    double nx = pp.init_data[i*(npde+1)+1 + 3];
-    double ny = pp.init_data[i*(npde+1)+1 + 4];
-    double ct = cos(p*M_PI), st=sin(p*M_PI);
-    pp.init_data[i*(npde+1)+1 + 0] =  mx*ct + my*st; // Mx
-    pp.init_data[i*(npde+1)+1 + 1] = -mx*st + my*ct; // My
-    pp.init_data[i*(npde+1)+1 + 3] =  nx*ct + ny*st; // nx
-    pp.init_data[i*(npde+1)+1 + 4] = -nx*st + ny*ct; // ny
-  }
-}
-
-// create pi-soliton in the init_data (on top of existing data)
-void
-init_data_pi_soliton(double w) {
-  int nn = pp.init_data.size()/(npde+1);
-  for (int i=0; i<nn; i++){
-    double x = pp.init_data[i*(npde+1)]*pp.cell_len;
-    double p = x/w;
-    if (p<-0.5) p=-0.5;
-    if (p>+0.5) p=+0.5;
-    p+=0.5; // 0..1
-    double mx = pp.init_data[i*(npde+1)+1 + 0];
-    double my = pp.init_data[i*(npde+1)+1 + 1];
-    double nx = pp.init_data[i*(npde+1)+1 + 3];
-    double ny = pp.init_data[i*(npde+1)+1 + 4];
-    double ct = cos(p*M_PI), st=sin(p*M_PI);
-    pp.init_data[i*(npde+1)+1 + 0] =  mx*ct + my*st; // Mx
-    pp.init_data[i*(npde+1)+1 + 1] = -mx*st + my*ct; // My
-    pp.init_data[i*(npde+1)+1 + 3] =  nx*ct + ny*st; // nx
-    pp.init_data[i*(npde+1)+1 + 4] = -nx*st + ny*ct; // ny
-  }
-}
-
-// create NPD-soliton in the init_data (on top of existing data)
-void
-init_data_npd_soliton(double w) {
-  int nn = pp.init_data.size()/(npde+1);
-  for (int i=0; i<nn; i++){
-    double x = pp.init_data[i*(npde+1)]*pp.cell_len;
-    double p = x/w;
-    if (p>-1 && p<1){
-      pp.init_data[i*(npde+1)+1 + 0] = 0; // Mx
-      pp.init_data[i*(npde+1)+1 + 1] = 0; // My
-      pp.init_data[i*(npde+1)+1 + 2] = 1; // Mz
-      pp.init_data[i*(npde+1)+1 + 3] = 0; // nx
-      pp.init_data[i*(npde+1)+1 + 4] = 0; // ny
-      pp.init_data[i*(npde+1)+1 + 5] = 1; // nz
-      pp.init_data[i*(npde+1)+1 + 6] = acos(-0.25); // th
-    }
-  }
-}
-
 
 /******************************************************************/
 // Halpers for command parsing
@@ -873,36 +810,6 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         continue;
       }
 
-
-      // make 2-pi hpd soliton, restart solver
-      if (cmd == "make_2pi_soliton") {
-        if (!pp.solver) throw Err() << "solver is not running";
-        double w = get_one_arg<double>(args);
-        init_data_save(pp.solver); // save current profile to the init data
-        init_data_2pi_soliton(w); // create 2-pi soliton with half-width w
-        pp.solver->restart();
-        continue;
-      }
-
-      // make pi hpd soliton, restart solver
-      if (cmd == "make_pi_soliton") {
-        if (!pp.solver) throw Err() << "solver is not running";
-        double w = get_one_arg<double>(args);
-        init_data_save(pp.solver); // save current profile to the init data
-        init_data_pi_soliton(w); // create pi soliton with half-width w
-        pp.solver->restart();
-        continue;
-      }
-
-      // make npd soliton, restart solver
-      if (cmd == "make_npd_soliton") {
-        if (!pp.solver) throw Err() << "solver is not running";
-        double w = get_one_arg<double>(args);
-        init_data_save(pp.solver); // save current profile to the init data
-        init_data_npd_soliton(w); // create npd soliton with half-width w
-        pp.solver->restart();
-        continue;
-      }
 
       // deform the current solution and restart the solver
       if (cmd == "deform") {

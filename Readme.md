@@ -75,18 +75,6 @@ only when the solver is starded next time.
 * `set_icond_nsol <width>` -- set i.c witn a simple n-soliton. Width >0 does not work yet
 * `set_icond_tsol <width>` -- set i.c witn a simple t-soliton
 
-Following commands update initial condition from current function values,
-modify it somehow and restart the solver.
-
-* `make_2pi_soliton` -- Update initial condition from current function values,
-make 2-pi hpd soliton, and restart the solver.
-
-* `make_pi_soliton` -- Update initial condition from current function values,
-make pi hpd soliton, restart solver.
-
-* `make_npd_soliton` -- Update initial condition from current function values,
- make npd soliton, restart solver
-
 * `deform <type> [<par>]` -- Update initial condition from current
 function values, make some modification, and restart the solver. Types:
 
