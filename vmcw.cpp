@@ -1010,6 +1010,48 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
             if (x/w>=-0.5 && x/w<0.5) bm = 0;
           }
 
+          // theta half-HDP soliton
+          if (type == "th_hsoliton1") {
+            double w = (narg<2)? 0.01 : get_arg<double>(args[1]);
+            if (x/w<-0.5){
+              bn = M_PI;
+              th = 2*M_PI-th;
+              bm = 0;
+            }
+            if (x/w>=-0.5 && x/w<0.5){
+              double k = (x/w+0.5); // 0..1
+              bn = M_PI;
+              th = (2*M_PI-th)*(1-k) + th*k;
+              bm = 0;
+            }
+            if (x/w>=+0.5 && x/w<+1.5){
+              double k = x/w-0.5; // 0..1
+              bn = M_PI*(1-k) + k*bn;
+              bm = bm*k;
+            }
+          }
+
+          // theta half-HDP soliton
+          if (type == "th_hsoliton2") {
+            double w = (narg<2)? 0.01 : get_arg<double>(args[1]);
+            if (x/w<-0.5){
+              bn = 0;
+              th = 2*M_PI-th;
+              bm = 0;
+            }
+            if (x/w>=-0.5 && x/w<0.5){
+              double k = (x/w+0.5); // 0..1
+              bn = 0;
+              th = (2*M_PI-th)*(1-k) + th*k;
+              bm = 0;
+            }
+            if (x/w>=+0.5 && x/w<+1.5){
+              double k = x/w-0.5; // 0..1
+              bn = k*bn;
+              bm = bm*k;
+            }
+          }
+
 
           nx = nn*sin(bn)*cos(an);
           ny = nn*sin(bn)*sin(an);
