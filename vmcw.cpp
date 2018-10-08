@@ -810,6 +810,28 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         continue;
       }
 
+      // set the initial condtions
+      if (cmd == "init") {
+        check_nargs(narg, 1, 2);
+        std::string type = args[0];
+        if (type == "NPD"){
+          init_data_uniform(0,0,1, 0,0,1);
+          break;
+        }
+        if (type == "NPD-"){
+          init_data_uniform(0,0,1, 0,0,-1);
+          break;
+        }
+        if (type == "th_soliton"){
+          double th0 = acos(-0.25);
+          double w = (narg<2)? 0.01 : get_arg<double>(args[1]);
+          init_data_soliton(w, 0,0, 0,0, 1,1,
+                               0,0, 0,0, 1,1, th0, 2*M_PI-th0);
+          break;
+        }
+
+      }
+
 
       // deform the current solution and restart the solver
       if (cmd == "deform") {
@@ -860,7 +882,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
             am += 4*atan(exp(x/w));
           }
 
-          // theta soliton
+          // theta soliton: HPD -> NPD- -> NPD+ -> HPD
           if (type == "th_soliton") {
             double w = (narg<2)? 0.01 : get_arg<double>(args[1]);
             if (x/w>=-1.5 && x/w<-0.5){
@@ -887,8 +909,51 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
             if (x/w>=-0.5 && x/w<0.5) bm = 0;
           }
 
-          // theta soliton
+          // theta soliton: HPD -> NPD- NPD+ -> HPD
           if (type == "th_soliton1") {
+            double w = (narg<2)? 0.01 : get_arg<double>(args[1]);
+            if (x/w>=-1 && x/w<0){
+              double k = x/w+1; // 0..1
+              bn = bn*(1-k) + M_PI*k;
+              bm = bm*(1-k);
+            }
+            if (x/w>=0 && x/w<1){
+              double k = (x/w); // 0..1
+              an = an+M_PI;
+              th = 2*M_PI-th;
+              bn = M_PI*(1-k) + bn*k;
+              bm = bm*k;
+            }
+            if (x/w>=1){
+              an = an+M_PI;
+              th = 2*M_PI-th;
+            }
+          }
+
+          // theta soliton: HPD -> NPD- -> 0 NPD- -> HPD
+          if (type == "th_soliton2") {
+            double w = (narg<2)? 0.01 : get_arg<double>(args[1]);
+            if (x/w>=-1 && x/w<0){
+              double k = x/w+1; // 0..1
+              bn = bn*(1-k) + M_PI*k;
+              bm = bm*(1-k);
+            }
+            if (x/w>=0 && x/w<1){
+              double k = (x/w); // 0..1
+              an = an+M_PI;
+              th = 2*M_PI-th;
+              bn = bn*k;
+              bm = bm*k;
+            }
+            if (x/w>=1){
+              an = an+M_PI;
+              th = 2*M_PI-th;
+            }
+          }
+
+
+          // theta soliton
+          if (type == "th_soliton1a") {
             double w = (narg<2)? 0.01 : get_arg<double>(args[1]);
             if (x/w>=-1.5 && x/w<-0.5){
               double k = x/w+1.5; // 0..1
@@ -897,22 +962,21 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
             }
             if (x/w>=-0.5 && x/w<0){
               double k = (x/w+0.5)*2; // 0..1
-              bn = M_PI;
-              th = th*(1-k) + (2*M_PI-0.01)*k;
+              an = -an;
+              bn = M_PI*(1-k) + (M_PI-0.1)*k;
+              th = th*(1-k) + (2*M_PI-th)*k;
             }
             if (x/w>=0 && x/w<+0.5){
               double k = x/w*2; // 0..1
+              an = -an;
+              bn = (M_PI-0.1)*(1-k) + M_PI*k;
               bn = M_PI;
-              th = (2*M_PI+0.01)*(1-k) + (2*M_PI+th)*k;
+              th = (2*M_PI-th)*(1-k) + th*k;
             }
             if (x/w>=+0.5 && x/w<+1.5){
               double k = x/w-0.5; // 0..1
-              th = 2*M_PI+th;
               bn = M_PI*(1-k) + k*bn;
               bm = bm*k;
-            }
-            if (x/w>=+1.5){
-              th = 2*M_PI+th;
             }
             if (x/w>=-0.5 && x/w<0.5) bm = 0;
           }

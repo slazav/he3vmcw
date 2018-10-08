@@ -14,9 +14,28 @@ reset_time
 pnm_start
 wait 0.02
 
-tstep 1e-5
-deform th_soliton 0.01
+sweep_diff 0.06 1
+
+tstep 1e-6
+deform th_soliton2 0.02
 reset_time
 pnm_hline
-wait 5e-3
+
+
+wait 2e-6
+write_profile
+
+wait 15e-6
+write_profile
+
+wait 2e-6
+write_profile
+
+wait 2e-6
+write_profile
+
+wait 2e-5
+write_profile
+
+wait 2e-4
 write_profile
