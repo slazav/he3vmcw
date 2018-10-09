@@ -11,7 +11,7 @@
 #include "pnm_writer.h"
 
 /* Number of equations. Can not be changed. */
-const int npde = 7;
+const int npde = 6;
 
 /* How many derivatives to calculate. Can not be changed. */
 const int nder = 3;
@@ -267,10 +267,9 @@ extern "C" {
     u[0] = 0.0; // Mx
     u[1] = 0.0; // My
     u[2] = 1.0; // Mz
-    u[3] = 0.0; // nx
-    u[4] = 0.0; // ny
-    u[5] = 1.0; // nz
-    u[6] = acos(-0.25); // theta
+    u[3] = 0.0; // nx*th
+    u[4] = 0.0; // ny*th
+    u[5] = acos(-0.25); // nz*th
 
     double w; // width
     double p; // -1..1
@@ -419,17 +418,16 @@ class Err {
 // make uniform initial conditions in init_data
 void
 init_data_uniform(const double mx, const double my, const double mz,
-                  const double nx, const double ny, const double nz,
+                  const double ntx, const double nty, const double ntz,
                   const double th = acos(-0.25)) {
-  pp.init_data.resize(8);
+  pp.init_data.resize(7);
   pp.init_data[0]=0;
   pp.init_data[1]=mx;
   pp.init_data[2]=my;
   pp.init_data[3]=mz;
-  pp.init_data[4]=nx;
-  pp.init_data[5]=ny;
-  pp.init_data[6]=nz;
-  pp.init_data[7]=th;
+  pp.init_data[4]=ntx;
+  pp.init_data[5]=nty;
+  pp.init_data[6]=ntz;
 }
 
 // make initial conditions with a simple soliton in init_data
@@ -440,26 +438,23 @@ init_data_soliton(double w, // soliton width
                   double mx1, double mx2, // mx on the left and write side
                   double my1, double my2, // my on the left and write side
                   double mz1, double mz2, // mz on the left and write side
-                  double nx1, double nx2, // nx on the left and write side
-                  double ny1, double ny2, // ny on the left and write side
-                  double nz1, double nz2, // nz on the left and write side
-                  double th1, double th2  // th on the left and write side
+                  double ntx1, double ntx2, // nx*th on the left and write side
+                  double nty1, double nty2, // ny*th on the left and write side
+                  double ntz1, double ntz2  // nz*th on the left and write side
                  ) {
   if (w<0){
     w=-w;
     std::swap(mx1,mx2); std::swap(my1,my2);  std::swap(mz1,mz2); 
-    std::swap(nx1,nx2); std::swap(ny1,ny2);  std::swap(nz1,nz2); 
-    std::swap(th1,th2);
+    std::swap(ntx1,ntx2); std::swap(nty1,nty2);  std::swap(ntz1,ntz2); 
   }
-  pp.init_data.resize(16);
-  pp.init_data[0]=-w/2; pp.init_data[ 8]=+w/2;
-  pp.init_data[1]=mx1;   pp.init_data[ 9]=mx2;
-  pp.init_data[2]=my1;   pp.init_data[10]=my2;
-  pp.init_data[3]=mz1;   pp.init_data[11]=mz2;
-  pp.init_data[4]=nx1;   pp.init_data[12]=nx2;
-  pp.init_data[5]=ny1;   pp.init_data[13]=ny2;
-  pp.init_data[6]=nz1;   pp.init_data[14]=nz2;
-  pp.init_data[7]=th1;   pp.init_data[15]=th2;
+  pp.init_data.resize(14);
+  pp.init_data[0]=-w/2; pp.init_data[ 7]=+w/2;
+  pp.init_data[1]=mx1;  pp.init_data[ 8]=mx2;
+  pp.init_data[2]=my1;  pp.init_data[ 9]=my2;
+  pp.init_data[3]=mz1;  pp.init_data[10]=mz2;
+  pp.init_data[4]=ntx1; pp.init_data[11]=ntx2;
+  pp.init_data[5]=nty1; pp.init_data[12]=nty2;
+  pp.init_data[6]=ntz1; pp.init_data[13]=ntz2;
 }
 
 // set HPD initial condition (RF-field, freq shift, Leggett-Takagi relaxation is used).
@@ -500,10 +495,9 @@ init_data_hpd(int sn=1, int st=1){
     pp.init_data[8*i+1] = wx + h;
     pp.init_data[8*i+2] = wy;
     pp.init_data[8*i+3] = wz - d;
-    pp.init_data[8*i+4] = nx;
-    pp.init_data[8*i+5] = ny;
-    pp.init_data[8*i+6] = nz;
-    pp.init_data[8*i+7] = th;
+    pp.init_data[8*i+4] = nx*th;
+    pp.init_data[8*i+5] = ny*th;
+    pp.init_data[8*i+6] = nz*th;
 //std::cout <<  x[i]
 //  << "  " << wx + h << " " << wy << " " << wz - d
 //  << "  " << nx << " " << ny << " " << nz  << " "  << th
@@ -532,7 +526,7 @@ init_data_save(pdecol_solver *solver) {
 
 
 /******************************************************************/
-// Halpers for command parsing
+// Helpers for command parsing
 
 
 // check number of arguments for a command, throw Err if it is wrong
@@ -767,7 +761,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         check_nargs(narg, 0, 1);
         int nz = narg>0 ? get_arg<int>(args[0]) : 1;
         nz = nz>=0? 1:-1;
-        init_data_uniform(0,0,1, 0,0,nz);
+        init_data_uniform(0,0,1, 0,0,acos(-0.25));
         continue;
       }
 
@@ -787,7 +781,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         double th = M_PI+1.298;
         double mx=0.923,  my=-0.305, mz=-sqrt(1-mx*mx-my*my);
         double nx=-0.482, ny=-0.859, nz=-sqrt(1-nx*nx-ny*ny);
-        init_data_uniform(mx,my,mz,nx,ny,nz,th);
+        init_data_uniform(mx,my,mz,nx*th,ny*th,nz*th);
         continue;
       }
 
@@ -797,7 +791,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         double w = get_one_arg<double>(args);
         double th = acos(-0.25);
         init_data_soliton(w, 0,0, 0,0, 1,1,
-                             0,0, 0,0, -1,1, th, th);
+                             0,0, 0,0, -th,th);
         continue;
       }
 
@@ -806,27 +800,27 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         double w = get_one_arg<double>(args);
         double th = acos(-0.25);
         init_data_soliton(w, 0,0, 0,0, 1,1,
-                             0,0, 0,0, 1,1, -th, th);
+                             0,0, 0,0, -th,th);
         continue;
       }
 
       // set the initial condtions
       if (cmd == "init") {
+        double th0 = acos(-0.25);
         check_nargs(narg, 1, 2);
         std::string type = args[0];
         if (type == "NPD"){
-          init_data_uniform(0,0,1, 0,0,1);
+          init_data_uniform(0,0,1, 0,0,th0);
           break;
         }
         if (type == "NPD-"){
-          init_data_uniform(0,0,1, 0,0,-1);
+          init_data_uniform(0,0,1, 0,0,-th0);
           break;
         }
         if (type == "th_soliton"){
-          double th0 = acos(-0.25);
           double w = (narg<2)? 0.01 : get_arg<double>(args[1]);
           init_data_soliton(w, 0,0, 0,0, 1,1,
-                               0,0, 0,0, 1,1, th0, 2*M_PI-th0);
+                               0,0, 0,0, th0, 2*M_PI-th0);
           break;
         }
 
@@ -849,17 +843,16 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
           double mx = pp.init_data[i*(npde+1) + 1];
           double my = pp.init_data[i*(npde+1) + 2];
           double mz = pp.init_data[i*(npde+1) + 3];
-          double nx = pp.init_data[i*(npde+1) + 4];
-          double ny = pp.init_data[i*(npde+1) + 5];
-          double nz = pp.init_data[i*(npde+1) + 6];
-          double th = pp.init_data[i*(npde+1) + 7];
+          double ntx = pp.init_data[i*(npde+1) + 4];
+          double nty = pp.init_data[i*(npde+1) + 5];
+          double ntz = pp.init_data[i*(npde+1) + 6];
 
           double mm = sqrt(mx*mx + my*my + mz*mz);
           double am = atan2(my,mx);
           double bm = acos(mz/mm);
-          double nn = sqrt(nx*nx + ny*ny + nz*nz);
-          double an = atan2(ny,nx);
-          double bn = acos(nz/nn);
+          double th = sqrt(ntx*ntx + nty*nty + ntz*ntz);
+          double an = atan2(nty,ntx);
+          double bn = acos(ntz/th);
 
           // trivial
           if (type == "0") break;
@@ -1024,9 +1017,9 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
           }
 
 
-          nx = nn*sin(bn)*cos(an);
-          ny = nn*sin(bn)*sin(an);
-          nz = nn*cos(bn);
+          ntx = th*sin(bn)*cos(an);
+          nty = th*sin(bn)*sin(an);
+          ntz = th*cos(bn);
 
           mx = mm*sin(bm)*cos(am);
           my = mm*sin(bm)*sin(am);
@@ -1036,10 +1029,9 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
           pp.init_data[i*(npde+1) + 1] = mx;
           pp.init_data[i*(npde+1) + 2] = my;
           pp.init_data[i*(npde+1) + 3] = mz;
-          pp.init_data[i*(npde+1) + 4] = nx;
-          pp.init_data[i*(npde+1) + 5] = ny;
-          pp.init_data[i*(npde+1) + 6] = nz;
-          pp.init_data[i*(npde+1) + 7] = th;
+          pp.init_data[i*(npde+1) + 4] = ntx;
+          pp.init_data[i*(npde+1) + 5] = nty;
+          pp.init_data[i*(npde+1) + 6] = ntz;
        }
         pp.solver->restart();
         continue;
