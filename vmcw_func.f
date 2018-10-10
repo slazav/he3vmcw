@@ -162,10 +162,6 @@ C-- BNDRY ------ BOUNDARY CONDITIONS -- B(U,UX)=Z(T) ------------
         real*8 FTN4,FTN5,FTN7,FTNX4,FTNX5,C46,C56,C66,C266
         real*8 dBdnx,dBdny,dBdnz,dBdth
         real*8 dBdgnx,dBdgny,dBdgnz,dBdgth
-
-        real*8 dBdnx1,dBdny1,dBdnz1,dBdth1
-        real*8 dBdgnx1,dBdgny1,dBdgnz1,dBdgth1
-
         real*8 W,AF,DA
         integer I,J
 
@@ -220,25 +216,8 @@ C         dn = dU/|U| - U d|U|/|U|^2
           GNz = UX(6)/UTh - U(6)*Gth/Uth**2
 
           ST=dsin(Uth)
-          ST2=2.0D0*ST
           CT=dcos(Uth)
           CTM=1.0D0-CT
-          CTM2=2.0D0*CTM
-
-          DD45=UNx*GNy-GNx*UNy
-          FTN=CTM*DD45-ST*GNz-Gth*UNz
-
-          CTF=CTM*FTN
-          STF=ST*FTN
-          FTN4=CTM*GNy
-          FTN5=-CTM*GNx
-          FTN7=ST*DD45-CT*GNz
-          FTNX4=-CTM*UNy
-          FTNX5=CTM*UNx
-          C46=CTM*UNx*UNz+UNy*ST
-          C56=CTM*UNy*UNz-UNx*ST             !!!!!!!!!!!
-          C66=CTM*UNz**2+CT
-          C266=2.0D0-C66
 
           AF=-Cpar**2/W0
           DA=-Diff/AF
@@ -272,34 +251,6 @@ C         dn = dU/|U| - U d|U|/|U|^2
           dBdgnz =  CTM*(1D0 - CT + CTM*UNz**2)*UNy
      *           - 2D0*ST*CTM*UNx*UNz
           dBdgth = UNx + (1D0-CTM*UNz**2)*UNx - ST*UNy*UNz
-
-          dBdnx1 =  2.0D0*Gth+CTF*UNz+C46*FTN4
-          dBdny1 =  CTM2*GNz+STF+C46*FTN5
-          dBdnz1 = -CTM2*GNy+CTF*UNx-C46*Gth
-          dBdth1 =  2.0D0*(CT*GNx+ST*(UNy*GNz-GNy*UNz))+
-     *             STF*UNx*UNz+UNy*CT*FTN+C46*FTN7
-          dBdgnx1 =  ST2+C46*FTNX4
-          dBdgny1 = -CTM2*UNz+C46*FTNX5
-          dBdgnz1 =  CTM2*UNy-C46*ST
-          dBdgth1 =  2.0D0*UNx-C46*UNz
-
-!          if (dabs(dBdnx1 - dBdnx).GT.1D-4)
-!     *      write (*,*) "1 dBdnx: ", dBdnx1, dBdnx
-!          if (dabs(dBdny1 - dBdny).GT.1D-4)
-!     *      write (*,*) "1 dBdny: ", dBdny1, dBdny
-!          if (dabs(dBdnz1 - dBdnz).GT.1D-4)
-!     *      write (*,*) "1 dBdnz: ", dBdnz1, dBdnz
-!          if (dabs(dBdth1 - dBdth).GT.1D-4)
-!     *      write (*,*) "1 dBdth: ", dBdth1, dBdth
-!
-!          if (dabs(dBdgnx1 - dBdgnx).GT.1D-4)
-!     *      write (*,*) "1 dBdgnx: ", dBdgnx1, dBdgnx
-!          if (dabs(dBdgny1 - dBdgny).GT.1D-4)
-!     *      write (*,*) "1 dBdgny: ", dBdny1, dBdny
-!          if (dabs(dBdgnz1 - dBdgnz).GT.1D-4)
-!     *      write (*,*) "1 dBdgnz: ", dBdgnz1, dBdgnz
-!          if (dabs(dBdgth1 - dBdgth).GT.1D-4)
-!     *      write (*,*) "1 dBdgth: ", dBdgth1, dBdgth
 
           ! see He3B_04_HPD_Q2.tex
           DBDU(1,4) = dBdth*UNx + dBdgth*GNx
@@ -349,35 +300,6 @@ C         dn = dU/|U| - U d|U|/|U|^2
      *           - 2D0*ST*CTM*UNy*UNz
           dBdgth = UNy + (1D0-CTM*UNz**2)*UNy + ST*UNx*UNz
 
-          dBdnx1 = -CTM2*GNz-STF+C56*FTN4
-          dBdny1 =  2.0D0*Gth+CTF*UNz+C56*FTN5
-          dBdnz1 =  CTM2*GNx+CTF*UNy-C56*Gth
-          dBdth1 =  2.0D0*(CT*GNy-ST*(UNx*GNz-GNx*UNz))+
-     *             STF*UNy*UNz-UNx*CT*FTN+C56*FTN7
-          dBdgnx1 = CTM2*UNz+C56*FTNX4
-          dBdgny1 = ST2+C56*FTNX5
-          dBdgnz1 = -CTM2*UNx-C56*ST
-          dBdgth1 = 2.0D0*UNy-C56*UNz
-
-!          if (dabs(dBdnx1 - dBdnx).GT.1D-4)
-!     *      write (*,*) "2 dBdnx: ", dBdnx1, dBdnx
-!          if (dabs(dBdny1 - dBdny).GT.1D-4)
-!     *      write (*,*) "2 dBdny: ", dBdny1, dBdny
-!          if (dabs(dBdnz1 - dBdnz).GT.1D-4)
-!     *      write (*,*) "2 dBdnz: ", dBdnz1, dBdnz
-!          if (dabs(dBdth1 - dBdth).GT.1D-4)
-!     *      write (*,*) "2 dBdth: ", dBdth1, dBdth
-!
-!          if (dabs(dBdgnx1 - dBdgnx).GT.1D-4)
-!     *      write (*,*) "2 dBdgnx: ", dBdgnx1, dBdgnx
-!          if (dabs(dBdgny1 - dBdgny).GT.1D-4)
-!     *      write (*,*) "2 dBdgny: ", dBdny1, dBdny
-!          if (dabs(dBdgnz1 - dBdgnz).GT.1D-4)
-!     *      write (*,*) "2 dBdgnz: ", dBdgnz1, dBdgnz
-!          if (dabs(dBdgth1 - dBdgth).GT.1D-4)
-!     *      write (*,*) "dBdgth: ", dBdgth1, dBdgth
-
-
           DBDU(2,4) = dBdth*UNx + dBdgth*GNx
      *    + dBdnx/Uth - Unx*(dBdnx*Unx+dBdny*Uny+dBdnz*Unz)/Uth
      *    + dBdgnx*(Gth/Uth*(UNx**2-1D0)-2D0*UNx*GNx)/Uth
@@ -419,33 +341,178 @@ C         dn = dU/|U| - U d|U|/|U|^2
           dBdgnz = ST + ST*CTM*(1D0-UNz**2)
           dBdgth = UNz + CTM*(1D0-UNz**2)*UNz
 
-          dBdnx1 =  CTM2*GNy+C66*FTN4
-          dBdny1 = -CTM2*GNx+C66*FTN5
-          dBdnz1 =  2.0D0*UNz*CTF+C266*Gth
-          dBdth1 =  2.0D0*(CT*GNz+ST*DD45)+
-     *             STF*(UNz**2-1.0D0)+C66*FTN7
-          dBdgnx1= -CTM2*UNy+C66*FTNX4
-          dBdgny1=  CTM2*UNx+C66*FTNX5
-          dBdgnz1=  C266*ST
-          dBdgth1=  C266*UNz
+          DBDU(3,4) = dBdth*UNx + dBdgth*GNx
+     *    + dBdnx/Uth - Unx*(dBdnx*Unx+dBdny*Uny+dBdnz*Unz)/Uth
+     *    + dBdgnx*(Gth/Uth*(UNx**2-1D0)-2D0*UNx*GNx)/Uth
+     *    + dBdgny*(Gth/Uth*(UNx*UNy)-UNx*GNy-UNy*GNx)/Uth
+     *    + dBdgnz*(Gth/Uth*(UNx*UNz)-UNx*GNz-UNz*GNx)/Uth
+          DBDU(3,5) = dBdth*UNy + dBdgth*GNy
+     *    + dBdny/Uth - Uny*(dBdnx*Unx+dBdny*Uny+dBdnz*Unz)/Uth
+     *    + dBdgnx*(Gth/Uth*(UNy*UNx)-UNy*GNx-UNx*GNy)/Uth
+     *    + dBdgny*(Gth/Uth*(UNy**2-1D0)-2D0*UNy*GNy)/Uth
+     *    + dBdgnz*(Gth/Uth*(UNy*UNz)-UNy*GNz-UNz*GNy)/Uth
+          DBDU(3,6) = dBdth*UNz + dBdgth*GNz
+     *    + dBdnz/Uth - Unz*(dBdnx*Unx+dBdny*Uny+dBdnz*Unz)/Uth
+     *    + dBdgnx*(Gth/Uth*(UNz*UNx)-UNz*GNx-UNx*GNz)/Uth
+     *    + dBdgny*(Gth/Uth*(UNz*UNy)-UNz*GNy-UNy*GNz)/Uth
+     *    + dBdgnz*(Gth/Uth*(UNz**2-1D0)-2D0*UNz*GNz)/Uth
+          DBDUX(3,4) = dBdgth*UNx
+     *    + dBdgnx/Uth - Unx*(dBdgnx*Unx+dBdgny*Uny+dBdgnz*Unz)/Uth
+          DBDUX(3,5) = dBdgth*UNy
+     *    + dBdgny/Uth - Uny*(dBdgnx*Unx+dBdgny*Uny+dBdgnz*Unz)/Uth
+          DBDUX(3,6) = dBdgth*UNz
+     *    + dBdgnz/Uth - Unz*(dBdgnx*Unx+dBdgny*Uny+dBdgnz*Unz)/Uth
 
-!          if (dabs(dBdnx1 - dBdnx).GT.1D-4)
-!     *      write (*,*) "3 dBdnx: ", dBdnx1, dBdnx
-!          if (dabs(dBdny1 - dBdny).GT.1D-4)
-!     *      write (*,*) "3 dBdny: ", dBdny1, dBdny
-!          if (dabs(dBdnz1 - dBdnz).GT.1D-4)
-!     *      write (*,*) "3 dBdnz: ", dBdnz1, dBdnz
-!          if (dabs(dBdth1 - dBdth).GT.1D-4)
-!     *      write (*,*) "3 dBdth: ", dBdth1, dBdth
-!
-!          if (dabs(dBdgnx1 - dBdgnx).GT.1D-4)
-!     *      write (*,*) "3 dBdgnx: ", dBdgnx1, dBdgnx
-!          if (dabs(dBdgny1 - dBdgny).GT.1D-4)
-!     *      write (*,*) "3 dBdgny: ", dBdny1, dBdny
-!          if (dabs(dBdgnz1 - dBdgnz).GT.1D-4)
-!     *      write (*,*) "3 dBdgnz: ", dBdgnz1, dBdgnz
-!          if (dabs(dBdgth1 - dBdgth).GT.1D-4)
-!     *      write (*,*) "3 dBdgth: ", dBdgth1, dBdgth
+!         Test spin currents
+!          DD45=UNx*GNy-GNx*UNy
+!          FTN=CTM*DD45-ST*GNz-Gth*UNz
+!          UJX=2.0D0*(Gth*UNx+ST*GNx+CTM*(UNy*GNz-GNy*UNz))
+!     *     + (CTM*UNx*UNz+UNy*ST)*FTN + DA*UX(1)
+!          UJY=2.0D0*(Gth*UNy+ST*GNy-CTM*(UNx*GNz-GNx*UNz))
+!     *     + (CTM*UNy*UNz-UNx*ST)*FTN + DA*UX(2)
+!          UJZ=2.0D0*(Gth*UNz+ST*GNz+CTM*(UNx*GNy-GNx*UNy))
+!     *     + (CTM*UNz**2+CT)*FTN + DA*UX(3)
+!          if (dabs(UJX).gt.1D-6) write(*,*) "UJX: ", UJX
+!          if (dabs(UJY).gt.1D-6) write(*,*) "UJY: ", UJY
+!          if (dabs(UJZ).gt.1D-6) write(*,*) "UJZ: ", UJZ
+
+!          write (*,*) DBDU(3,4), DBDU(3,5), DBDU(3,6)
+!          write (*,*) DBDUX(3,4), DBDUX(3,5), DBDUX(3,6)
+!          write(*,*) dBdgth, UNx, dBdgth, UNy
+          return
+        endif
+
+
+!       Closed cell: no spin flow through walls
+!       Dmitriev's version
+!       Jiz - Diff Mi' = 0
+        if(IBN.EQ.4)THEN       ! CLOSED CELL
+
+          Uth=dsqrt(U(4)**2+U(5)**2+U(6)**2)
+          UNx = U(4)/Uth
+          UNy = U(5)/Uth
+          UNz = U(6)/Uth
+
+C         d|U| = (U*dU)/|U|
+C         dn = dU/|U| - U d|U|/|U|^2
+          Gth = (U(4)*UX(4)+U(5)*UX(5)+U(6)*UX(6))/Uth
+          GNx = UX(4)/UTh - U(4)*Gth/Uth**2
+          GNy = UX(5)/UTh - U(5)*Gth/Uth**2
+          GNz = UX(6)/UTh - U(6)*Gth/Uth**2
+
+          ST=dsin(Uth)
+          ST2=2.0D0*ST
+          CT=dcos(Uth)
+          CTM=1.0D0-CT
+          CTM2=2.0D0*CTM
+
+          DD45=UNx*GNy-GNx*UNy
+          FTN=CTM*DD45-ST*GNz-Gth*UNz
+
+          CTF=CTM*FTN
+          STF=ST*FTN
+          FTN4=CTM*GNy
+          FTN5=-CTM*GNx
+          FTN7=ST*DD45-CT*GNz
+          FTNX4=-CTM*UNy
+          FTNX5=CTM*UNx
+          C46=CTM*UNx*UNz+UNy*ST
+          C56=CTM*UNy*UNz-UNx*ST             !!!!!!!!!!!
+          C66=CTM*UNz**2+CT
+          C266=2.0D0-C66
+
+          AF=-Cpar**2/W0
+          DA=-Diff/AF
+
+          DBDUX(1,1)=DA
+          DBDUX(2,2)=DA
+          DBDUX(3,3)=DA
+
+!          U = n th
+!          GU = GN Uth + UN GTh
+
+!         B(4) == JX
+          dBdnx =  2.0D0*Gth+CTF*UNz+C46*FTN4
+          dBdny =  CTM2*GNz+STF+C46*FTN5
+          dBdnz = -CTM2*GNy+CTF*UNx-C46*Gth
+          dBdth =  2.0D0*(CT*GNx+ST*(UNy*GNz-GNy*UNz))+
+     *             STF*UNx*UNz+UNy*CT*FTN+C46*FTN7
+          dBdgnx =  ST2+C46*FTNX4
+          dBdgny = -CTM2*UNz+C46*FTNX5
+          dBdgnz =  CTM2*UNy-C46*ST
+          dBdgth =  2.0D0*UNx-C46*UNz
+
+          ! see He3B_04_HPD_Q2.tex
+          DBDU(1,4) = dBdth*UNx + dBdgth*GNx
+     *    + dBdnx/Uth - Unx*(dBdnx*Unx+dBdny*Uny+dBdnz*Unz)/Uth
+     *    + dBdgnx*(Gth/Uth*(UNx**2-1D0)-2D0*UNx*GNx)/Uth
+     *    + dBdgny*(Gth/Uth*(UNx*UNy)-UNx*GNy-UNy*GNx)/Uth
+     *    + dBdgnz*(Gth/Uth*(UNx*UNz)-UNx*GNz-UNz*GNx)/Uth
+          DBDU(1,5) = dBdth*UNy + dBdgth*GNy
+     *    + dBdny/Uth - Uny*(dBdnx*Unx+dBdny*Uny+dBdnz*Unz)/Uth
+     *    + dBdgnx*(Gth/Uth*(UNy*UNx)-UNy*GNx-UNx*GNy)/Uth
+     *    + dBdgny*(Gth/Uth*(UNy**2-1D0)-2D0*UNy*GNy)/Uth
+     *    + dBdgnz*(Gth/Uth*(UNy*UNz)-UNy*GNz-UNz*GNy)/Uth
+          DBDU(1,6) = dBdth*UNz + dBdgth*GNz
+     *    + dBdnz/Uth - Unz*(dBdnx*Unx+dBdny*Uny+dBdnz*Unz)/Uth
+     *    + dBdgnx*(Gth/Uth*(UNz*UNx)-UNz*GNx-UNx*GNz)/Uth
+     *    + dBdgny*(Gth/Uth*(UNz*UNy)-UNz*GNy-UNy*GNz)/Uth
+     *    + dBdgnz*(Gth/Uth*(UNz**2-1D0)-2D0*UNz*GNz)/Uth
+          DBDUX(1,4) = dBdgth*UNx
+     *    + dBdgnx/Uth - Unx*(dBdgnx*Unx+dBdgny*Uny+dBdgnz*Unz)/Uth
+          DBDUX(1,5) = dBdgth*UNy
+     *    + dBdgny/Uth - Uny*(dBdgnx*Unx+dBdgny*Uny+dBdgnz*Unz)/Uth
+          DBDUX(1,6) = dBdgth*UNz
+     *    + dBdgnz/Uth - Unz*(dBdgnx*Unx+dBdgny*Uny+dBdgnz*Unz)/Uth
+!         write (*,*) DBDU(1,4), DBDU(1,5), DBDU(1,6)
+!         write (*,*) DBDUX(1,4), DBDUX(1,5), DBDUX(1,6)
+
+!         B(2) == JY
+          dBdnx = -CTM2*GNz-STF+C56*FTN4
+          dBdny =  2.0D0*Gth+CTF*UNz+C56*FTN5
+          dBdnz =  CTM2*GNx+CTF*UNy-C56*Gth
+          dBdth =  2.0D0*(CT*GNy-ST*(UNx*GNz-GNx*UNz))+
+     *             STF*UNy*UNz-UNx*CT*FTN+C56*FTN7
+          dBdgnx = CTM2*UNz+C56*FTNX4
+          dBdgny = ST2+C56*FTNX5
+          dBdgnz = -CTM2*UNx-C56*ST
+          dBdgth = 2.0D0*UNy-C56*UNz
+
+          DBDU(2,4) = dBdth*UNx + dBdgth*GNx
+     *    + dBdnx/Uth - Unx*(dBdnx*Unx+dBdny*Uny+dBdnz*Unz)/Uth
+     *    + dBdgnx*(Gth/Uth*(UNx**2-1D0)-2D0*UNx*GNx)/Uth
+     *    + dBdgny*(Gth/Uth*(UNx*UNy)-UNx*GNy-UNy*GNx)/Uth
+     *    + dBdgnz*(Gth/Uth*(UNx*UNz)-UNx*GNz-UNz*GNx)/Uth
+          DBDU(2,5) = dBdth*UNy + dBdgth*GNy
+     *    + dBdny/Uth - Uny*(dBdnx*Unx+dBdny*Uny+dBdnz*Unz)/Uth
+     *    + dBdgnx*(Gth/Uth*(UNy*UNx)-UNy*GNx-UNx*GNy)/Uth
+     *    + dBdgny*(Gth/Uth*(UNy**2-1D0)-2D0*UNy*GNy)/Uth
+     *    + dBdgnz*(Gth/Uth*(UNy*UNz)-UNy*GNz-UNz*GNy)/Uth
+          DBDU(2,6) = dBdth*UNz + dBdgth*GNz
+     *    + dBdnz/Uth - Unz*(dBdnx*Unx+dBdny*Uny+dBdnz*Unz)/Uth
+     *    + dBdgnx*(Gth/Uth*(UNz*UNx)-UNz*GNx-UNx*GNz)/Uth
+     *    + dBdgny*(Gth/Uth*(UNz*UNy)-UNz*GNy-UNy*GNz)/Uth
+     *    + dBdgnz*(Gth/Uth*(UNz**2-1D0)-2D0*UNz*GNz)/Uth
+          DBDUX(2,4) = dBdgth*UNx
+     *    + dBdgnx/Uth - Unx*(dBdgnx*Unx+dBdgny*Uny+dBdgnz*Unz)/Uth
+          DBDUX(2,5) = dBdgth*UNy
+     *    + dBdgny/Uth - Uny*(dBdgnx*Unx+dBdgny*Uny+dBdgnz*Unz)/Uth
+          DBDUX(2,6) = dBdgth*UNz
+     *    + dBdgnz/Uth - Unz*(dBdgnx*Unx+dBdgny*Uny+dBdgnz*Unz)/Uth
+
+!          write (*,*) DBDU(2,4), DBDU(2,5), DBDU(2,6)
+!          write (*,*) DBDUX(2,4), DBDUX(2,5), DBDUX(2,6)
+
+!         B(3) == JZ
+          dBdnx =  CTM2*GNy+C66*FTN4
+          dBdny = -CTM2*GNx+C66*FTN5
+          dBdnz =  2.0D0*UNz*CTF+C266*Gth
+          dBdth =  2.0D0*(CT*GNz+ST*DD45)+
+     *             STF*(UNz**2-1.0D0)+C66*FTN7
+          dBdgnx= -CTM2*UNy+C66*FTNX4
+          dBdgny=  CTM2*UNx+C66*FTNX5
+          dBdgnz=  C266*ST
+          dBdgth=  C266*UNz
 
           DBDU(3,4) = dBdth*UNx + dBdgth*GNx
      *    + dBdnx/Uth - Unx*(dBdnx*Unx+dBdny*Uny+dBdnz*Unz)/Uth
@@ -470,23 +537,22 @@ C         dn = dU/|U| - U d|U|/|U|^2
      *    + dBdgnz/Uth - Unz*(dBdgnx*Unx+dBdgny*Uny+dBdgnz*Unz)/Uth
 
 !         Test spin currents
-          UJX=2.0D0*(Gth*UNx+ST*GNx+CTM*(UNy*GNz-GNy*UNz))
-     *     + (CTM*UNx*UNz+UNy*ST)*FTN + DA*UX(1)
-          UJY=2.0D0*(Gth*UNy+ST*GNy-CTM*(UNx*GNz-GNx*UNz))
-     *     + (CTM*UNy*UNz-UNx*ST)*FTN + DA*UX(2)
-          UJZ=2.0D0*(Gth*UNz+ST*GNz+CTM*(UNx*GNy-GNx*UNy))
-     *     + (CTM*UNz**2+CT)*FTN + DA*UX(3)
-          if (dabs(UJX).gt.1D-6) write(*,*) "UJX: ", UJX
-          if (dabs(UJY).gt.1D-6) write(*,*) "UJY: ", UJY
-          if (dabs(UJZ).gt.1D-6) write(*,*) "UJZ: ", UJZ
+!          UJX=2.0D0*(Gth*UNx+ST*GNx+CTM*(UNy*GNz-GNy*UNz))
+!     *     + (CTM*UNx*UNz+UNy*ST)*FTN + DA*UX(1)
+!          UJY=2.0D0*(Gth*UNy+ST*GNy-CTM*(UNx*GNz-GNx*UNz))
+!     *     + (CTM*UNy*UNz-UNx*ST)*FTN + DA*UX(2)
+!          UJZ=2.0D0*(Gth*UNz+ST*GNz+CTM*(UNx*GNy-GNx*UNy))
+!     *     + (CTM*UNz**2+CT)*FTN + DA*UX(3)
+!          if (dabs(UJX).gt.1D-6) write(*,*) "UJX: ", UJX
+!          if (dabs(UJY).gt.1D-6) write(*,*) "UJY: ", UJY
+!          if (dabs(UJZ).gt.1D-6) write(*,*) "UJZ: ", UJZ
 
 !          write (*,*) DBDU(3,4), DBDU(3,5), DBDU(3,6)
 !          write (*,*) DBDUX(3,4), DBDUX(3,5), DBDUX(3,6)
 !          write(*,*) dBdgth, UNx, dBdgth, UNy
-
-
           return
         endif
+
         return
       end
 
