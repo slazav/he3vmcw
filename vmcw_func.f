@@ -28,7 +28,7 @@ C-- F ---------- EVALUATION OF F ------------------------------------
         real*8 GNx,GNy,GNz, GMx,GMy,GMz, Gth
         real*8 GGNx,GGNy,GGNz, GGMx,GGMy,GGMz, GGth
         real*8 dNx, dNy, dNz, dTh
-        real*8 DD45,ST,CT,CTM,CT1,CTG,UT,AUT,AF,DAF,FTN,DFTN,B
+        real*8 DD45,ST,CT,CTM,CT1,CTGT,UT,AUT,AF,DAF,FTN,DFTN,B
         real*8 UJX,UJY,UJZ,DJX,DJY,DJZ ! spin current J and dJ/dz
 
 !       set parameters:
@@ -86,7 +86,11 @@ C           - U d2|U|/|U|^2 + 2 U d|U|^2/|U|^3
 
         CTM=1.0D0-CT
         CT1=1.0D0+CT
-        CTG=ST/CTM      ! ctg(T/2) = sin(T)/(1-cos(T))
+        if (dabs(Uth).gt.1D-3) then
+          CTGT=ST/CTM*Uth      ! T*ctg(T/2) = sin(T)/(1-cos(T))
+        else
+          CTGT=2D0-Uth**2/6D0
+        endif
         UT=ST*(1.0D0+4.0D0*CT)*0.2666666D0 ! 4/15 sin(t)*(1+4*cos(t))
 
         AUT=UT*WB**2/Wz
@@ -134,14 +138,21 @@ C       Leggett equations
         FV(1)=   (Wz-W0)*UMy          + AUT*UNx - DJX
         FV(2)= - (Wz-W0)*UMx + Wr*UMz + AUT*UNy - DJY
         FV(3)=               - Wr*UMy + AUT*UNz - DJZ - UMzm/T1
-        dNx = -W0*UNy-0.5D0*Wz*(UMzm*UNy-UMym*UNz+CTG*(B*UNx-UMxm))
-        dNy =  W0*UNx-0.5D0*Wz*(UMxm*UNz-UMzm*UNx+CTG*(B*UNy-UMym))
-        dNz =        -0.5D0*Wz*(UMym*UNx-UMxm*UNy+CTG*(B*UNz-UMzm))
-        dTh =  Wz*B + UT/Tf
+!        dNx = -W0*UNy-0.5D0*Wz*(UMzm*UNy-UMym*UNz+CTG*(B*UNx-UMxm))
+!        dNy =  W0*UNx-0.5D0*Wz*(UMxm*UNz-UMzm*UNx+CTG*(B*UNy-UMym))
+!        dNz =        -0.5D0*Wz*(UMym*UNx-UMxm*UNy+CTG*(B*UNz-UMzm))
+!        dTh =  Wz*B + UT/Tf
 
-        FV(4) = dNx*Uth + dTh*UNx
-        FV(5) = dNy*Uth + dTh*UNy
-        FV(6) = dNz*Uth + dTh*UNz
+        FV(4) = -W0*UNy*Uth - 0.5D0*Wz*(
+     *              (UMzm*UNy-UMym*UNz)*Uth
+     *             +CTGT*(B*UNx-UMxm)) + (Wz*B + UT/Tf)*UNx
+        FV(5) = W0*UNx*Uth - 0.5D0*Wz*(
+     *              (UMxm*UNz-UMzm*UNx)*Uth
+     *             +CTGT*(B*UNy-UMym)) + (Wz*B + UT/Tf)*UNy
+        FV(6) = -0.5D0*Wz*(
+     *         UMym*UNx*Uth
+     *        -UMxm*UNy*Uth
+     *        +CTGT*(B*UNz-UMzm)) + (Wz*B + UT/Tf)*UNz
 
         return
       end
