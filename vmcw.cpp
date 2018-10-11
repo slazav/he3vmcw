@@ -1275,7 +1275,7 @@ try{
     // do the next step
     if (pp.solver) {
       pp.tcurr += pp.tstep;
-      pp.solver->step(pp.tcurr);
+      pp.solver->step(pp.tcurr, (pp.tcurr>=pp.tend));
 
       // build mesh using current value for npts
       std::vector<double> xsol(pp.npts);
