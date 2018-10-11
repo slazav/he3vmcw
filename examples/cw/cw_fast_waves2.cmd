@@ -6,7 +6,7 @@ cell_len 0.9
 
 set_ttc_press 0.93 24.8
 
-set_diff 0.01
+set_diff 0.02
 
 set_rf_field    1.5e-3    # RF-field
 set_field_grad  0.0  # field gradient, 15.7 G/cm/A

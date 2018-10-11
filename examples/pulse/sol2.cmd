@@ -2,7 +2,7 @@
 # Two n-solitons appear.
 # Same as solitons1.txt, but gradient is larger and RF pumping is smaller
 
-npts 257
+npts 129
 mindt 1e-20
 acc2 18
 tstep 5e-5
