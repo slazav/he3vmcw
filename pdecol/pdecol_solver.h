@@ -14,8 +14,6 @@
       subroutine DERIVF(T,X,U,UX,UXX,DFDU,DFDUX,DFDUXX,NPDE)
 **/
 
-/// TODO: save/restore state
-
 /********************************************************************/
 // wrapper class
 class pdecol_solver {
@@ -42,7 +40,9 @@ class pdecol_solver {
 
   /// Do calculation until time t.
   // TODO: some more exotic calculations can be done (INDEX=2,3)
-  int step(double t);
+  // Set exect=true to go to the time t exactly (should be done before
+  // changing something in functions).
+  int step(double t, bool exact=false);
 
   void restart();
 

@@ -145,7 +145,8 @@ pdecol_solver::reset_time() {t0=t=gear1_.T = 0;}
 
 // step
 int
-pdecol_solver::step(double t_) {
+pdecol_solver::step(double t_, bool exact) {
+  if (exact) INDEX=2;
   t=t_;
   // Here INDEX should be 1, 0 or 4. For call types 2, 3
   // additional methods should be done (?).
