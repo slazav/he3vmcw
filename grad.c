@@ -191,7 +191,38 @@ void fill_JGD_nt_(double J[DIM],
        - (ctm*n[2]*n[2]+ct)*FTN;
 }
 
+/***********************************************************/
+/// Spin current derivative, DJa/Dgn
+void fill_DJGgn_nt_(double DJa[DIM][DIM], double DJb[DIM][DIM],
+                 const double n[DIM], const double t,
+                 const double gn[DIM], const double gt) {
+  double ct=cos(t), ctm=(1.0-ct), st=sin(t);
+  double nz2 = n[2]*n[2];
 
+  DJa[0][0] = -2*st;
+  DJa[0][1] = +2*ctm*n[2];
+  DJa[0][2] = -2*ctm*n[1];
+
+  DJa[1][0] = -2*ctm*n[2];
+  DJa[1][1] = -2*st;
+  DJa[1][2] = +2*ctm*n[0];
+
+  DJa[2][0] = +2*ctm*n[1];
+  DJa[2][1] = -2*ctm*n[0];
+  DJa[2][2] = -2*st;
+
+  DJb[0][0] = -st*(ct+ctm*nz2);
+  DJb[0][1] = +ctm*(ct+ctm*nz2)*n[2];
+  DJb[0][2] = +ctm*(ct-ctm*nz2)*n[1] + 2*st*ctm*n[0]*n[2];
+
+  DJb[1][0] = -ctm*(ct+ctm*nz2)*n[2];
+  DJb[1][1] = -st*(ct+ctm*nz2);
+  DJb[1][2] = -ctm*(ct-ctm*nz2)*n[0] + 2*st*ctm*n[1]*n[2];
+
+  DJb[2][0] = +(st*st+ctm*ctm*nz2)*n[1];
+  DJb[2][1] = -(st*st+ctm*ctm*nz2)*n[0];
+  DJb[2][2] = -st*ctm*(1-nz2);
+}
 
 /***********************************************************/
 // Calculate gradient torques Ta, Tb (just by definition)

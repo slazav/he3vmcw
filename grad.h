@@ -147,6 +147,12 @@ void fill_JGD_nt_(double J[DIM],
                  const double gn[DIM], const double gt);
 
 /***********************************************************/
+/// Spin current derivative, DJa/Dgn
+void fill_DJGgn_nt_(double DJa[DIM][DIM], double DJb[DIM][DIM],
+                 const double n[DIM], const double t,
+                 const double gn[DIM], const double gt);
+
+/***********************************************************/
 /// Calculate gradient torques Ta, Tb (just by definition)
 /// T = -\nabla J
 void fill_TG0_nt_(double Ta[DIM], double Tb[DIM],

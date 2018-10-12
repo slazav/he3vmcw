@@ -184,6 +184,42 @@ main(){
     printf("test T0-TD: OK\n");
   }
 
-}
+  // test spin current derivatives
+  // apply small change to n, th, gn, gt and check
+  // that J(n+dn) = J(n) + dJ/dn dn
+  {
+    double dn[DIM], dgn[DIM], dt, dgt;
+    double n1[DIM], gn1[DIM];
+    double J0a[3], J0b[3], J1a[3], J1b[3];
+    double DJa[3][3], DJb[3][3];
+    double v;
+    fill_vec_rnd_(dn, -D, D);
+    fill_vec_rnd_(gn, -D, D);
+    dt  = (2*drand48()-1)*D;
+    dgt = (2*drand48()-1)*D;
+    // dn should be perpendicular to n. Find projection:
+    // dn = dn - n (n*dn)
+    v = n0[0]*dn[0]+n0[1]*dn[1]+n0[2]*dn[2];
+    dn[0] -= n0[0]*v;
+    dn[1] -= n0[1]*v;
+    dn[2] -= n0[2]*v;
 
+    // test DJ/Dgn
+    gn1[0]=gn[0]+dgn[0];
+    gn1[1]=gn[1]+dgn[1];
+    gn1[2]=gn[2]+dgn[2];
+    fill_JG0_nt_(J0a, J0b, n0, t0, gn, gt);
+    fill_JG0_nt_(J1a, J1b, n0, t0, gn1, gt);
+
+    fill_DJGgn_nt_(DJa, DJb, n0, t0, gn, gt);
+
+    FOR(i){
+      J0a[i] += dgn[0]*DJa[i][0] + dgn[1]*DJa[i][1] + dgn[2]*DJa[i][2];
+      J0b[i] += dgn[0]*DJb[i][0] + dgn[1]*DJb[i][1] + dgn[2]*DJb[i][2];
+    }
+    check3(J0a, J1a, D);
+    check3(J0b, J1b, D);
+    printf("test DJgn: OK\n");
+  }
+}
 }
