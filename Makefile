@@ -12,7 +12,8 @@ SOLVER = pde_dp
 HE3LIB = 1
 
 
-TARGETS=vmcw
+TARGETS=vmcw grad_test grad_speed
+
 LDLIBS= -lgfortran -lm
 FFLAGS=-I/usr/include -fno-range-check
 CPPFLAGS=-std=c++11
@@ -45,6 +46,11 @@ $(COBJ): %.o: %.cpp
 $(FOBJ): %.o: %.f
 vmcw.o: pdecol/pdecol_solver.h pnm_writer.h
 
+
+# grad functions and tests
+grad.c grad_test.c: grad.h
+grad_test: grad_test.o grad.o
+grad_speed: grad_speed.o grad.o
 
 vmcw: $(FOBJ) $(COBJ)
 
