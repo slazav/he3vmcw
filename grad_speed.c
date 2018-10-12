@@ -113,6 +113,11 @@ main(){
     printf("T1: %e us\n", (double)t1/(double)N);
 
     t1 = get_time();
+    for (i=0; i<N; i++) fill_TG2_nt_(Ta, Tb, n0, t0, gn, gt, ggn, ggt);
+    t1 = get_time() - t1;
+    printf("T2: %e us\n", (double)t1/(double)N);
+
+    t1 = get_time();
     for (i=0; i<N; i++) fill_TGD_nt_(Ta, n0, t0, gn, gt, ggn, ggt);
     t1 = get_time() - t1;
     printf("TD: %e us\n", (double)t1/(double)N);

@@ -148,10 +148,18 @@ void fill_TG1_nt_(double Ta[DIM], double Tb[DIM],
                  const double gn[DIM], const double gt,
                  const double ggn[DIM], const double ggt);
 
+// Calculate gradient torques Ta, Tb (v2, in conponents)
+void fill_TG2_nt_(double Ta[DIM], double Tb[DIM],
+                 const double n[DIM], const double t,
+                 const double gn[DIM], const double gt,
+                 const double ggn[DIM], const double ggt);
+
 // Calculate gradient torque TD = Ta/2+Tb (as in Dmitriev's program)
 void fill_TGD_nt_(double T[DIM],
                  const double n[DIM], const double t,
                  const double gn[DIM], const double gt,
                  const double ggn[DIM], const double ggt);
+
+
 }// extern
 #endif

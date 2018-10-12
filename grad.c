@@ -80,29 +80,27 @@ void fill_EG0_nt_(double *Ea, double *Eb,
   FOR(a)        *Eb += pow(gR[a][2],2); // (K2+K3)
 }
 
-// v1
+// v1, in n-th coordinates
 void fill_EG1_nt_(double *Ea, double *Eb,
                  const double n[DIM], const double t,
                  const double gn[DIM], const double gt) {
-  int a,l,m,j;
+  int a,j;
   double ct=cos(t), ctm=(1.0-ct), st=sin(t);
-  double ee[DIM][DIM][DIM];
+  double en[DIM][DIM];
+  double eg[DIM][DIM];
   double dd[DIM][DIM];
-  fill_ee_(ee);
+  fill_en_(en, n);
+  fill_en_(eg, gn);
   fill_dd_(dd);
   *Ea=*Eb=0.0;
 
-  FOR(a) FOR(l) FOR(m) FOR(j) *Ea +=
-      ((ctm*(dd[a][l]*n[j] + dd[j][l]*n[a]) - st*ee[a][j][l]) * gn[l] +
-      (st*(n[a]*n[j] - dd[a][j])*dd[j][l] - ct*ee[a][j][l]*n[l]) * gt) *
-      ((ctm*(dd[a][m]*n[j] + dd[j][m]*n[a]) - st*ee[a][j][m]) * gn[m] +
-      (st*(n[a]*n[j] - dd[a][j])*dd[j][m] - ct*ee[a][j][m]*n[m]) * gt);
+  FOR(a) FOR(j) *Ea +=
+      pow((ctm*(n[j]*gn[a] + n[a]*gn[j]) - st*eg[a][j])  +
+      (st*(n[a]*n[j] - dd[a][j]) - ct*en[a][j]) * gt, 2);
 
-  FOR(a) FOR(l) FOR(m) *Eb +=
-      (((1-ct)*(dd[a][l]*n[2] + dd[2][l]*n[a]) - st*ee[a][2][l]) * gn[l] +
-      (st*(n[a]*n[2] - dd[a][2])*dd[2][l] - ct*ee[a][2][l]*n[l]) * gt) *
-      (((1-ct)*(dd[a][m]*n[2] + dd[2][m]*n[a]) - st*ee[a][2][m]) * gn[m] +
-      (st*(n[a]*n[2] - dd[a][2])*dd[2][m] - ct*ee[a][2][m]*n[m]) * gt);
+  FOR(a) *Eb +=
+      pow((ctm*(n[2]*gn[a] + n[a]*gn[2]) - st*eg[a][2]) +
+      (st*(n[a]*n[2] - dd[a][2]) - ct*en[a][2]) * gt, 2);
 
 }
 
@@ -251,10 +249,10 @@ void fill_TG1_nt_(double Ta[DIM], double Tb[DIM],
        +          2*st*ctm *n[a]*n[j]*ggn[j]
        +          2*ctm*st *n[a]*gn[j]*gn[j];
     Tb[a] +=
-       - dd[j][0]*dd[a][2] *n[2]*st*gt*gt
-       + dd[j][0]*dd[a][2] *n[2]*ct*ggt
-       + dd[j][0]*dd[a][2] *2*(ct*ct-st*st)*gn[2]*gt
-       + dd[j][0]*dd[a][2] *(2*ct-1)*st *ggn[2]
+       - dd[j][0] *dd[a][2] *n[2]*st*gt*gt
+       + dd[j][0] *dd[a][2] *n[2]*ct*ggt
+       + dd[j][0] *dd[a][2] *2*(ct*ct-st*st)*gn[2]*gt
+       + dd[j][0] *dd[a][2] *(2*ct-1)*st *ggn[2]
        + dd[j][0] *st*n[a]*n[2]*n[2] *gt*gt
        + dd[j][0] *2*st*ctm*n[a]*gn[2]*gn[2]
        - dd[j][0] *2*ct*ct *gn[a]*gt
@@ -274,6 +272,66 @@ void fill_TG1_nt_(double Ta[DIM], double Tb[DIM],
        + ctm*ctm* en[a][j]*n[2]*n[2]*ggn[j];
      }
 }
+
+/***********************************************************/
+// Calculate gradient torques Ta, Tb (v2, in conponents)
+void fill_TG2_nt_(double Ta[DIM], double Tb[DIM],
+                 const double n[DIM], const double t,
+                 const double gn[DIM], const double gt,
+                 const double ggn[DIM], const double ggt) {
+  double ct=cos(t), ctm=(1.0-ct), st=sin(t);
+  int a,b,j,k,m;
+  double nz2 = n[2]*n[2];
+  double cp=ct+ctm*nz2, cm=ct-ctm*nz2;
+
+  double xx=st*ctm*(n[0]*ggn[0]+gn[0]*gn[0] +
+                    n[1]*ggn[1]+gn[1]*gn[1] +
+                    n[2]*ggn[2]+gn[2]*gn[2]);
+  double x0=st*gn[0]*gt+ctm*ggn[0];
+  double x1=st*gn[1]*gt+ctm*ggn[1];
+  double x2=st*gn[2]*gt+ctm*ggn[2];
+
+  Ta[0] = - 2*(ctm*gn[0]*gt + st*ggn[0] + n[0]*ggt
+             - x1*n[2] + x2*n[1] - xx*n[0]);
+  Ta[1] = - 2*(ctm*gn[1]*gt + st*ggn[1] + n[1]*ggt
+             + x0*n[2] - x2*n[0] - xx*n[1]);
+  Ta[2] = - 2*(ctm*gn[2]*gt + st*ggn[2] + n[2]*ggt
+             - x0*n[1] + x1*n[0] - xx*n[2]);
+
+  Tb[0] =
+     - ((1.0- ctm*nz2)*n[0] - st*n[1]*n[2])*ggt
+     + st*n[0]*nz2*gt*gt
+     - 2*ct*cp*gn[0]*gt
+     + 2*ctm*st*nz2*n[2]*gn[1]*gt
+     + 2*st*cm*n[1]*gn[2]*gt
+     + 4*st*st*n[0]*n[2]*gn[2]*gt
+     + 2*st*ctm*n[0]*gn[2]*gn[2]
+     -  st*cp*ggn[0]
+     + ctm*cp*n[2]*ggn[1]
+     + ctm*cm*n[1]*ggn[2]
+     + 2*ctm*st*n[0]*n[2]*ggn[2];
+  Tb[1] =
+     - ((1.0- ctm*nz2)*n[1] + st*n[0]*n[2])*ggt
+     + st*n[1]*nz2*gt*gt
+     - 2*ctm*st*nz2*n[2]*gn[0]*gt
+     - 2*ct*cp*gn[1]*gt
+     - 2*st*cm*n[0]*gn[2]*gt
+     + 4*st*st*  n[1]*n[2]*gn[2]*gt
+     + 2*st*ctm*n[1]*gn[2]*gn[2]
+     - ctm*cp*n[2]*ggn[0]
+     - st*cp*ggn[1]
+     - ctm*cm*n[0]*ggn[2]
+     + 2*ctm*st*n[1]*n[2]*ggn[2];
+  Tb[2] =
+     - (1.0-nz2)*n[2]*(st*gt*gt + ctm*ggt)
+     + 2*ctm*st*nz2*(n[1]*gn[0]-n[0]*gn[1])*gt
+     + 2*(st*st - (ctm*ct+2*st*st)*nz2)*gn[2]*gt
+     + 2*st*ctm*n[2]*gn[2]*gn[2]
+     + (st*st+ctm*ctm*nz2) *(n[1]*ggn[0]-n[0]*ggn[1])
+     - st*ctm*(1.0-nz2)*ggn[2];
+}
+
+
 
 // Calculate gradient torque TD = Ta/2+Tb (as in Dmitriev's program)
 void fill_TGD_nt_(double T[DIM],

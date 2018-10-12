@@ -163,6 +163,17 @@ main(){
     printf("test T0-T1: OK\n");
   }
 
+  // test T0 vs T2
+  {
+    int i;
+    double T0a[3], T0b[3], T2a[3], T2b[3];
+    fill_TG0_nt_(T0a, T0b, n0, t0, gn, gt, ggn, ggt);
+    fill_TG2_nt_(T2a, T2b, n0, t0, gn, gt, ggn, ggt);
+    check3(T0a, T2a, E);
+    check3(T0b, T2b, E);
+    printf("test T0-T2: OK\n");
+  }
+
   // test T0 vs TD
   {
     int i;
