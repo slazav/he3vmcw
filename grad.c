@@ -191,38 +191,123 @@ void fill_JGD_nt_(double J[DIM],
        - (ctm*n[2]*n[2]+ct)*FTN;
 }
 
-/***********************************************************/
-/// Spin current derivative, DJa/Dgn
-void fill_DJGgn_nt_(double DJa[DIM][DIM], double DJb[DIM][DIM],
+/// Spin current derivative, D(J)/D(U), D(J)/D(U') where U = nx,ny,nz,th
+void fill_DJ_nt_(double DJDUa[DIM][4],  double DJDUb[DIM][4],
+                 double DJDUXa[DIM][4], double DJDUXb[DIM][4],
                  const double n[DIM], const double t,
-                 const double gn[DIM], const double gt) {
+                 const double gn[DIM], const double gt){
+
   double ct=cos(t), ctm=(1.0-ct), st=sin(t);
   double nz2 = n[2]*n[2];
 
-  DJa[0][0] = -2*st;
-  DJa[0][1] = +2*ctm*n[2];
-  DJa[0][2] = -2*ctm*n[1];
+  DJDUa[0][0] = -2*gt;
+  DJDUa[0][1] = -2*ctm*gn[2];
+  DJDUa[0][2] = +2*ctm*gn[1];
 
-  DJa[1][0] = -2*ctm*n[2];
-  DJa[1][1] = -2*st;
-  DJa[1][2] = +2*ctm*n[0];
+  DJDUa[1][0] = +2*ctm*gn[2];
+  DJDUa[1][1] = -2*gt;
+  DJDUa[1][2] = -2*ctm*gn[0];
 
-  DJa[2][0] = +2*ctm*n[1];
-  DJa[2][1] = -2*ctm*n[0];
-  DJa[2][2] = -2*st;
+  DJDUa[2][0] = -2*ctm*gn[1];
+  DJDUa[2][1] = +2*ctm*gn[0];
+  DJDUa[2][2] = -2*gt;
 
-  DJb[0][0] = -st*(ct+ctm*nz2);
-  DJb[0][1] = +ctm*(ct+ctm*nz2)*n[2];
-  DJb[0][2] = +ctm*(ct-ctm*nz2)*n[1] + 2*st*ctm*n[0]*n[2];
+  // d(J)/d(n)
+  DJDUa[0][3] = -2*(n[0]*gt + st*gn[0] + ctm *(n[1]*gn[2] - n[2]*gn[1]));
+  DJDUa[1][3] = -2*(n[1]*gt + st*gn[1] + ctm *(n[2]*gn[0] - n[0]*gn[2]));
+  DJDUa[2][3] = -2*(n[2]*gt + st*gn[2] + ctm *(n[0]*gn[1] - n[1]*gn[0]));
 
-  DJb[1][0] = -ctm*(ct+ctm*nz2)*n[2];
-  DJb[1][1] = -st*(ct+ctm*nz2);
-  DJb[1][2] = -ctm*(ct-ctm*nz2)*n[0] + 2*st*ctm*n[1]*n[2];
+  DJDUb[0][0] = - (1-ctm*nz2)*gt + 2*st*ctm*n[2]*gn[2];
+  DJDUb[0][1] = + st*n[2]*gt + ctm*(ct-ctm*nz2)*gn[2];
+  DJDUb[0][2] =
+   + 2.0*ctm*n[2]*n[0]*gt + st*n[1]*gt
+   - 2.0*st*ctm*n[2]*gn[0]
+   + ctm*(ct + 3.0*ctm*n[2]*n[2])*gn[1]
+   - 2.0*ctm*ctm*n[2]*n[1]*gn[2]
+   + 2.0*st*ctm*n[0]*gn[2];
 
-  DJb[2][0] = +(st*st+ctm*ctm*nz2)*n[1];
-  DJb[2][1] = -(st*st+ctm*ctm*nz2)*n[0];
-  DJb[2][2] = -st*ctm*(1-nz2);
+  DJDUb[1][0] = - st*n[2]*gt - ctm*(ct-ctm*nz2)*gn[2];
+  DJDUb[1][1] = - (1-ctm*nz2)*gt + 2*st*ctm*n[2]*gn[2];
+  DJDUb[1][2] =
+   + 2.0*ctm*n[2]*n[1]*gt - st*n[0]*gt
+   - ctm*(ct + 3.0*ctm*n[2]*n[2])*gn[0]
+   - 2.0*st*ctm*n[2] *gn[1]
+   + 2.0*ctm*ctm*n[2]*n[0]*gn[2]
+   + 2.0*st*ctm*n[1]*gn[2];
+
+  DJDUb[2][0] = - (st*st + ctm*ctm *nz2)*gn[1];
+  DJDUb[2][1] = + (st*st + ctm*ctm *nz2)*gn[0];
+  DJDUb[2][2] =
+   - ctm*(1 - 3*n[2]*n[2])*gt
+   + 2.0*ctm*ctm*n[2]*n[1]*gn[0]
+   - 2.0*ctm*ctm*n[2]*n[0]*gn[1]
+   + 2.0*st*ctm*n[2]*gn[2];
+
+  // d(J)/d(t) -- todo
+  DJDUb[0][3] =
+     st*nz2*n[0]*gt
+   + ct*n[1]*n[2]*gt
+   - ct*(ct + ctm*nz2) *gn[0]
+   + st*(ct + ctm*nz2) *n[2]*gn[1]
+   + st*(ct - ctm*nz2) *n[1]*gn[2]
+   + 2*ct*ctm*n[0]*n[2]*gn[2]
+   +  st*st*(1-nz2) *gn[0]
+   - ctm*st*(1-nz2) *n[2]*gn[1]
+   - ctm*st*(1+nz2) *n[1]*gn[2]
+   + 2*st*st*n[0]*n[2]*gn[2];
+  DJDUb[1][3] =
+     st*nz2*n[1]*gt
+   - ct*n[0]*n[2]*gt
+   - st*(ct+ctm*nz2) *n[2]*gn[0]
+   - ct*(ct+ctm*nz2) *gn[1]
+   - st*(ct-ctm*nz2) *n[0]*gn[2]
+   + 2.0*ct*ctm*n[1]*n[2]*gn[2]
+   + ctm*st*(1-nz2) *n[2]*gn[0]
+   + st*st*(1-nz2) *gn[1]
+   + ctm*st*(1+nz2) *n[0]*gn[2]
+   + 2.0*st*st*n[1]*n[2]*gn[2];
+  DJDUb[2][3] =
+   - st*(1 - nz2) * n[2]*gt
+   + 2.0*st*(ct+ctm*nz2) *n[1]*gn[0]
+   - 2.0*st*(ct+ctm*nz2) *n[0]*gn[1]
+   - ct*ctm*(1-nz2)*gn[2]
+   - st*st*(1-nz2)*gn[2];
+
+  // d(J)/d(gn)
+  DJDUXa[0][0] = -2*st;
+  DJDUXa[0][1] = +2*ctm*n[2];
+  DJDUXa[0][2] = -2*ctm*n[1];
+
+  DJDUXa[1][0] = -2*ctm*n[2];
+  DJDUXa[1][1] = -2*st;
+  DJDUXa[1][2] = +2*ctm*n[0];
+
+  DJDUXa[2][0] = +2*ctm*n[1];
+  DJDUXa[2][1] = -2*ctm*n[0];
+  DJDUXa[2][2] = -2*st;
+
+  DJDUXb[0][0] = -st*(ct+ctm*nz2);
+  DJDUXb[0][1] = +ctm*(ct+ctm*nz2)*n[2];
+  DJDUXb[0][2] = +ctm*(ct-ctm*nz2)*n[1] + 2*st*ctm*n[0]*n[2];
+
+  DJDUXb[1][0] = -ctm*(ct+ctm*nz2)*n[2];
+  DJDUXb[1][1] = -st*(ct+ctm*nz2);
+  DJDUXb[1][2] = -ctm*(ct-ctm*nz2)*n[0] + 2*st*ctm*n[1]*n[2];
+
+  DJDUXb[2][0] = +(st*st+ctm*ctm*nz2)*n[1];
+  DJDUXb[2][1] = -(st*st+ctm*ctm*nz2)*n[0];
+  DJDUXb[2][2] = -st*ctm*(1-nz2);
+
+  // d(J)/d(gt)
+  DJDUXa[0][3] = -2*n[0];
+  DJDUXa[1][3] = -2*n[1];
+  DJDUXa[2][3] = -2*n[2];
+
+  DJDUXb[0][3] = -(1-ctm*nz2)*n[0] + st*n[1]*n[2];
+  DJDUXb[1][3] = -(1-ctm*nz2)*n[1] - st*n[0]*n[2];
+  DJDUXb[2][3] = - ctm*(1 - nz2) * n[2];
 }
+
 
 /***********************************************************/
 // Calculate gradient torques Ta, Tb (just by definition)

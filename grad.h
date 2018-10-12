@@ -147,8 +147,9 @@ void fill_JGD_nt_(double J[DIM],
                  const double gn[DIM], const double gt);
 
 /***********************************************************/
-/// Spin current derivative, DJa/Dgn
-void fill_DJGgn_nt_(double DJa[DIM][DIM], double DJb[DIM][DIM],
+/// Spin current derivative, D(J)/D(U), D(J)/D(U') where U = nx,ny,nz,th
+void fill_DJ_nt_(double DJDUa[DIM][4],  double DJDUb[DIM][4],
+                 double DJDUXa[DIM][4], double DJDUXb[DIM][4],
                  const double n[DIM], const double t,
                  const double gn[DIM], const double gt);
 

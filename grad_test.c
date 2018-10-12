@@ -190,13 +190,15 @@ main(){
   {
     double dn[DIM], dgn[DIM], dt, dgt;
     double n1[DIM], gn1[DIM];
-    double J0a[3], J0b[3], J1a[3], J1b[3];
-    double DJa[3][3], DJb[3][3];
+    double J0a[DIM], J0b[DIM], J1a[DIM], J1b[DIM];
+    double DJDUa[DIM][4], DJDUb[DIM][4];
+    double DJDUXa[DIM][4], DJDUXb[DIM][4];
     double v;
     fill_vec_rnd_(dn, -D, D);
     fill_vec_rnd_(gn, -D, D);
     dt  = (2*drand48()-1)*D;
     dgt = (2*drand48()-1)*D;
+
     // dn should be perpendicular to n. Find projection:
     // dn = dn - n (n*dn)
     v = n0[0]*dn[0]+n0[1]*dn[1]+n0[2]*dn[2];
@@ -208,18 +210,35 @@ main(){
     gn1[0]=gn[0]+dgn[0];
     gn1[1]=gn[1]+dgn[1];
     gn1[2]=gn[2]+dgn[2];
+    n1[0]=n0[0]+dn[0];
+    n1[1]=n0[1]+dn[1];
+    n1[2]=n0[2]+dn[2];
     fill_JG0_nt_(J0a, J0b, n0, t0, gn, gt);
-    fill_JG0_nt_(J1a, J1b, n0, t0, gn1, gt);
+    fill_JG0_nt_(J1a, J1b, n1, t0+dt, gn1, gt+dgt);
 
-    fill_DJGgn_nt_(DJa, DJb, n0, t0, gn, gt);
+    fill_DJ_nt_(DJDUa, DJDUb, DJDUXa, DJDUXb, n0, t0, gn, gt);
 
     FOR(i){
-      J0a[i] += dgn[0]*DJa[i][0] + dgn[1]*DJa[i][1] + dgn[2]*DJa[i][2];
-      J0b[i] += dgn[0]*DJb[i][0] + dgn[1]*DJb[i][1] + dgn[2]*DJb[i][2];
+      J0a[i] += dn[0]*DJDUa[i][0]
+              + dn[1]*DJDUa[i][1]
+              + dn[2]*DJDUa[i][2]
+              + dt*DJDUa[i][3];
+              + dgn[0]*DJDUXa[i][0]
+              + dgn[1]*DJDUXa[i][1]
+              + dgn[2]*DJDUXa[i][2]
+              + dgt*DJDUXa[i][3];
+      J0b[i] += dn[0]*DJDUb[i][0]
+              + dn[1]*DJDUb[i][1]
+              + dn[2]*DJDUb[i][2]
+              + dt*DJDUb[i][3];
+              + dgn[0]*DJDUXb[i][0]
+              + dgn[1]*DJDUXb[i][1]
+              + dgn[2]*DJDUXb[i][2]
+              + dgt*DJDUXb[i][3];
     }
     check3(J0a, J1a, D);
     check3(J0b, J1b, D);
-    printf("test DJgn: OK\n");
+    printf("test DJ/DU, DJ/DUX: OK\n");
   }
 }
 }
