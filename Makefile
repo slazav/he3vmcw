@@ -12,7 +12,7 @@ SOLVER = pde_dp
 HE3LIB = 1
 
 
-TARGETS=vmcw grad_test grad_speed
+TARGETS=vmcw grad_test grad_speed TESTS
 
 LDLIBS= -lgfortran -lm
 FFLAGS=-I/usr/include -fno-range-check
@@ -52,5 +52,7 @@ grad.c grad_test.c: grad.h
 grad_test: grad_test.o grad.o
 grad_speed: grad_speed.o grad.o
 
-vmcw: $(FOBJ) $(COBJ)
+vmcw: $(FOBJ) $(COBJ) grad.o
 
+TESTS: grad_test
+	./grad_test
