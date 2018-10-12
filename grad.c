@@ -8,77 +8,7 @@ suffix for using in Fortran code.
 *************************************************************/
 
 extern "C" {
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-
-#define DIM 3
-#define FOR(i) for(i=0; i<DIM; i++)
-
-// Fill a zero vector.
-inline void fill_vec_zero_(double v[DIM]){
-  memset(v, 0, DIM*sizeof(double));
-}
-
-// Fill a zero matrix.
-inline void fill_matr_zero_(double v[DIM][DIM]){
-  memset(v, 0, DIM*DIM*sizeof(double));
-}
-
-// Fill a zero matrix DIMxDIMxDIM.
-inline void fill_matr3_zero_(double v[DIM][DIM][DIM]){
-  memset(v, 0, DIM*DIM*DIM*sizeof(double));
-}
-
-// Print 3x3 matrix
-inline void print_matr_(double v[DIM][DIM]){
-  int i,j;
-  FOR(i){ FOR(j){ printf(" %e", v[i][j]); } printf("\n"); }
-}
-
-
-// Fill e_{ijk} matrix.
-inline void fill_ee_(double ee[DIM][DIM][DIM]){
-  fill_matr3_zero_(ee);
-  ee[0][1][2] = ee[1][2][0] = ee[2][0][1] = +1.0;
-  ee[2][1][0] = ee[1][0][2] = ee[0][2][1] = -1.0;
-}
-
-// Fill delta_{ij} matrix.
-inline void fill_dd_(double dd[DIM][DIM]){
-  int i;
-  fill_matr_zero_(dd);
-  FOR(i) dd[i][i] = 1.0;
-}
-
-// Fill e_{ijk}*n_k matrix.
-inline void fill_en_(double en[DIM][DIM], const double n[DIM]){
-  en[0][1] = +n[2]; en[1][0] = -n[2];
-  en[1][2] = +n[0]; en[2][1] = -n[0];
-  en[2][0] = +n[1]; en[0][2] = -n[1];
-  en[0][0] = en[1][1] = en[2][2] = 0.0;
-}
-
-// Fill a unit vector using polar and azimuthal abgles a,b
-inline void fill_vec_ab_(double v[DIM], const double a, const double b){
-  v[0]=sin(b)*cos(a);
-  v[1]=sin(b)*sin(a);
-  v[2]=cos(b);
-}
-
-// Fill a random vector.
-void fill_vec_rnd_(double v[DIM], const double min, const double max){
-  int i;
-  FOR(i) v[i] = min+drand48()*(max-min);
-}
-
-// Fill a random unit vector
-void fill_vec_urnd_(double v[DIM]){
-  double a = 2.0*M_PI*drand48(); // azimuthal angle
-  double b = M_PI*drand48(); // polar angle
-  fill_vec_ab_(v,a,b);
-}
+#include "grad.h"
 
 /***********************************************************/
 // Fill a rotation matrix using rotation axis (n) and
@@ -138,18 +68,42 @@ void fill_ggR_nt_(double ggR[DIM][DIM],
 
 /***********************************************************/
 // Calculate gradient energies Ea, Eb (just by definition)
-void fill_EG0_nt_(double Ea, double Eb, double Ec,
+void fill_EG0_nt_(double *Ea, double *Eb,
                  const double n[DIM], const double t,
                  const double gn[DIM], const double gt) {
   int a,j;
   double gR[DIM][DIM];
   fill_gR_nt_(gR,n,t,gn,gt);
-  Ea=Eb=0.0;
+  *Ea=*Eb=0.0;
 
-  FOR(a) FOR(j){
-    Ea += gR[a][j]*gR[a][j]; // K1
-    Eb += gR[a][3]*gR[a][3]; // (K2+K3)
-  }
+  FOR(a) FOR(j) *Ea += pow(gR[a][j],2); // K1
+  FOR(a)        *Eb += pow(gR[a][2],2); // (K2+K3)
+}
+
+// v1
+void fill_EG1_nt_(double *Ea, double *Eb,
+                 const double n[DIM], const double t,
+                 const double gn[DIM], const double gt) {
+  int a,l,m,j;
+  double ct=cos(t), ctm=(1.0-ct), st=sin(t);
+  double ee[DIM][DIM][DIM];
+  double dd[DIM][DIM];
+  fill_ee_(ee);
+  fill_dd_(dd);
+  *Ea=*Eb=0.0;
+
+  FOR(a) FOR(l) FOR(m) FOR(j) *Ea +=
+      ((ctm*(dd[a][l]*n[j] + dd[j][l]*n[a]) - st*ee[a][j][l]) * gn[l] +
+      (st*(n[a]*n[j] - dd[a][j])*dd[j][l] - ct*ee[a][j][l]*n[l]) * gt) *
+      ((ctm*(dd[a][m]*n[j] + dd[j][m]*n[a]) - st*ee[a][j][m]) * gn[m] +
+      (st*(n[a]*n[j] - dd[a][j])*dd[j][m] - ct*ee[a][j][m]*n[m]) * gt);
+
+  FOR(a) FOR(l) FOR(m) *Eb +=
+      (((1-ct)*(dd[a][l]*n[2] + dd[2][l]*n[a]) - st*ee[a][2][l]) * gn[l] +
+      (st*(n[a]*n[2] - dd[a][2])*dd[2][l] - ct*ee[a][2][l]*n[l]) * gt) *
+      (((1-ct)*(dd[a][m]*n[2] + dd[2][m]*n[a]) - st*ee[a][2][m]) * gn[m] +
+      (st*(n[a]*n[2] - dd[a][2])*dd[2][m] - ct*ee[a][2][m]*n[m]) * gt);
+
 }
 
 /***********************************************************/
@@ -165,9 +119,90 @@ void fill_JG0_nt_(double Ja[DIM], double Jb[DIM],
   fill_vec_zero_(Jb);
   fill_R_nt_(R,n,t);
   fill_gR_nt_(gR,n,t,gn, gt);
-  FOR(a) FOR(b) FOR(c) FOR(j) Ja[a] += ee[a][b][c]*R[c][j]*gR[b][j];
-  FOR(a) FOR(b) FOR(c)        Jb[a] += ee[a][b][c]*R[c][3]*gR[b][3];
+  FOR(a) FOR(b) FOR(c) FOR(j) Ja[a] -= ee[a][b][c]*R[c][j]*gR[b][j];
+  FOR(a) FOR(b) FOR(c)        Jb[a] -= ee[a][b][c]*R[c][2]*gR[b][2];
 }
+
+// Calculate spin currents Ja, Jb (v1)
+void fill_JG1_nt_(double Ja[DIM], double Jb[DIM],
+                 const double n[DIM], const double t,
+                 const double gn[DIM], const double gt) {
+  int a,b,c,j;
+  double ct=cos(t), ctm=(1.0-ct), st=sin(t);
+  double ee[DIM][DIM][DIM];
+  double nxng[DIM];
+  double en[DIM][DIM];
+  double eg[DIM][DIM];
+  fill_ee_(ee);
+  fill_en_(en,n);
+  fill_en_(eg,gn);
+  fill_vxv_(nxng,n,gn);
+
+  fill_vec_zero_(Ja);
+  fill_vec_zero_(Jb);
+
+  FOR(a) Ja[a] += 2*(n[a]*gt + st*gn[a] + ctm*nxng[a]);
+
+  FOR(a) Jb[a] +=
+      n[a]*gt  *(1-ctm*n[2]*n[2])
+     - st*ctm   *2*n[a]*n[2]*gn[2]
+     - st       *en[2][a]*n[2]*gt
+     - ct*ctm   *(en[2][a]*gn[2] + eg[2][a]*n[2])
+     + ctm*ctm  *nxng[a]*n[2]*n[2]
+     + st*gn[a] *(ct + ctm*n[2]*n[2]);
+    ;
+  Jb[2] += - ct*n[2]*gt + st*(1-2*ct)*gn[2] + st*st*nxng[2];
+}
+
+/// Calculate spin currents Ja, Jb (v2 - in coordinates)
+void fill_JG2_nt_(double Ja[DIM], double Jb[DIM],
+                 const double n[DIM], const double t,
+                 const double gn[DIM], const double gt) {
+  double ct=cos(t), ctm=(1.0-ct), st=sin(t);
+  double nz2 = n[2]*n[2];
+
+  Ja[0] = 2*(n[0]*gt + st*gn[0] + ctm *(n[1]*gn[2] - n[2]*gn[1]));
+  Ja[1] = 2*(n[1]*gt + st*gn[1] + ctm *(n[2]*gn[0] - n[0]*gn[2]));
+  Ja[2] = 2*(n[2]*gt + st*gn[2] + ctm *(n[0]*gn[1] - n[1]*gn[0]));
+
+  Jb[0] =
+   + (1-ctm*nz2)*n[0]*gt
+   - st*n[1]*n[2]*gt
+   +  st*(ct + ctm*nz2) *gn[0]
+   - ctm*(ct + ctm*nz2) *n[2]*gn[1]
+   - ctm*(ct - ctm*nz2) *n[1]*gn[2]
+   - 2*st*ctm*n[0]*n[2]*gn[2];
+
+  Jb[1] =
+   + (1-ctm*nz2)*n[1]*gt
+   + st*n[0]*n[2]*gt
+   + ctm*(ct+ctm*nz2) *n[2]*gn[0]
+   +  st*(ct+ctm*nz2) *gn[1]
+   + ctm*(ct-ctm*nz2) *n[0]*gn[2]
+   - 2*st*ctm*n[1]*n[2]*gn[2];
+
+  Jb[2] =
+   + ctm*(1 - nz2) * n[2]*gt
+   - (st*st + ctm*ctm *nz2) *n[1]*gn[0]
+   + (st*st + ctm*ctm *nz2) *n[0]*gn[1]
+   + st*ctm*(1-nz2)*gn[2];
+}
+
+/// Calculate spin current J = Ja/2 + Jb (as in Dmitriev's program)
+void fill_JGD_nt_(double J[DIM],
+                 const double n[DIM], const double t,
+                 const double gn[DIM], const double gt) {
+  double ct=cos(t), ctm=(1.0-ct), st=sin(t);
+  double FTN=ctm*(n[0]*gn[1]-n[1]*gn[0]) - st*gn[2] - gt*n[2];
+  J[0] = 2.0*(gt*n[0]+st*gn[0]+ctm*(n[1]*gn[2]-gn[1]*n[2]))
+       + (ctm*n[0]*n[2]+n[1]*st)*FTN;
+  J[1] = 2.0*(gt*n[1]+st*gn[1]-ctm*(n[0]*gn[2]-gn[0]*n[2]))
+       + (ctm*n[1]*n[2]-n[0]*st)*FTN;
+  J[2] = 2.0*(gt*n[2]+st*gn[2]+ctm*(n[0]*gn[1]-gn[0]*n[1]))
+       + (ctm*n[2]*n[2]+ct)*FTN;
+}
+
+
 
 /***********************************************************/
 // Calculate gradient torques Ta, Tb (just by definition)
@@ -184,118 +219,89 @@ void fill_TG0_nt_(double Ta[DIM], double Tb[DIM],
   fill_R_nt_(R,n,t);
   fill_ggR_nt_(ggR, n,t, gn, gt, ggn, ggt);
   FOR(a) FOR(b) FOR(c) FOR(j) Ta[a] += ee[a][b][c]*R[c][j]*ggR[b][j];
-  FOR(a) FOR(b) FOR(c)        Tb[a] += ee[a][b][c]*R[c][3]*ggR[b][3];
+  FOR(a) FOR(b) FOR(c)        Tb[a] += ee[a][b][c]*R[c][2]*ggR[b][2];
 }
 
 /***********************************************************/
-// Calculate gradient energies Ea, Eb (just by definition)
-void fill_EG1_nt_(double Ea, double Eb, double Ec,
+// Calculate gradient torques Ta, Tb (v1, in n and th)
+void fill_TG1_nt_(double Ta[DIM], double Tb[DIM],
                  const double n[DIM], const double t,
-                 const double gn[DIM], const double gt) {
-  int a,j;
-  double gR[DIM][DIM];
-  fill_gR_nt_(gR,n,t,gn,gt);
-  Ea=Eb=0.0;
+                 const double gn[DIM], const double gt,
+                 const double ggn[DIM], const double ggt) {
+  double ct=cos(t), ctm=(1.0-ct), st=sin(t);
+  int a,b,j,k,m;
+  double ee[DIM][DIM][DIM];
+  double dd[DIM][DIM];
 
-%  for a=1:3; for j=1:3; for k=1:3; for l=1:3; for m=1:3;
-%    e1 = e1 +...
-%      (((1-ct)*(dd(a,l)*n(j) + dd(j,l)*n(a)) - st*ee(a,j,l)) * gn(l,k) + ...
-%      (st*(n(a)*n(j) - dd(a,j))*dd(j,l) - ct*ee(a,j,l)*n(l)) * gt(k)) * ...
-%      (((1-ct)*(dd(a,m)*n(j) + dd(j,m)*n(a)) - st*ee(a,j,m)) * gn(m,k) + ...
-%      (st*(n(a)*n(j) - dd(a,j))*dd(j,m) - ct*ee(a,j,m)*n(m)) * gt(k));
-%    e2 = e2 +...
-%      (((1-ct)*(dd(a,l)*n(j) + dd(j,l)*n(a)) - st*ee(a,j,l)) * gn(l,k) + ...
-%      (st*(n(a)*n(j) - dd(a,j))*dd(j,l) - ct*ee(a,j,l)*n(l)) * gt(k)) * ...
-%      (((1-ct)*(dd(a,m)*n(k) + dd(k,m)*n(a)) - st*ee(a,k,m)) * gn(m,j) + ...
-%      (st*(n(a)*n(k) - dd(a,k))*dd(k,m) - ct*ee(a,k,m)*n(m)) *gt(j));
-%    e3 = e3 +...
-%      (((1-ct)*(dd(a,l)*n(j) + dd(j,l)*n(a)) - st*ee(a,j,l)) * gn(l,j) + ...
-%      (st*(n(a)*n(j) - dd(a,j))*dd(j,l) - ct*ee(a,j,l)*n(l)) * gt(j)) * ...
-%      (((1-ct)*(dd(a,m)*n(k) + dd(k,m)*n(a)) - st*ee(a,k,m)) * gn(m,k) + ...
-%      (st*(n(a)*n(k) - dd(a,k))*dd(k,m) - ct*ee(a,k,m)*n(m)) *gt(k));
-%  end; end; end; end; end;
+  double en[DIM][DIM];
+  fill_dd_(dd);
+  fill_ee_(ee);
+  fill_en_(en, n);
+  fill_vec_zero_(Ta);
+  fill_vec_zero_(Tb);
 
-}
 
-/***********************************************************/
-main(){
-  int i,j;
-  double a0, b0, t0, n0[DIM], R0[DIM][DIM];
-  double am, bm, tm, nm[DIM], Rm[DIM][DIM];
-  double ap, bp, tp, np[DIM], Rp[DIM][DIM];
-
-  double gn[DIM], gt, gR[DIM][DIM], ga, gb;
-  double ggn[DIM], ggt, ggR[DIM][DIM];
-  double D = 1e-6; // grid size
-
-  // make a random rotation matrix: R0
-  // make left and right matricis Rm, Rp,
-  // assuming gradients ~1 and grid size D
-  t0 = M_PI*(2*drand48()-1);
-  a0 = 2*M_PI*drand48();
-  b0 = M_PI*drand48();
-
-  am = a0 + drand48()*D;
-  bm = b0 + drand48()*D;
-  tm = t0 + drand48()*D;
-
-  ap = a0 + drand48()*D;
-  bp = b0 + drand48()*D;
-  tp = t0 + drand48()*D;
-
-  fill_vec_ab_(n0, a0,b0);
-  fill_vec_ab_(nm, am,bm);
-  fill_vec_ab_(np, ap,bp);
-
-  fill_R_nt_(R0, n0,t0);
-  fill_R_nt_(Rm, nm,tm);
-  fill_R_nt_(Rp, np,tp);
-
-  // Make first and second-order derivatives of n, th, R
-  // For small D this should be accurate:
-  gt  = (tp-tm)/D;
-  ggt = (tp+tm-2.*t0)/D/D;
-  FOR(i) {
-    gn[i]  = (np[i]-nm[i])/D;
-    ggn[i] = (np[i]+nm[i]-2.*n0[i])/D/D;
-  }
-  FOR(i) FOR(j) {
-    gR[i][j]  = (Rp[i][j]-Rm[i][j])/D;
-    ggR[i][j] = (Rp[i][j]+Rm[i][j]-2.*R0[i][j])/D/D;
-  }
-
-  // test 1: check formula for gR
-  {
-     int a,j;
-     double r0,r1;
-     double gR1[DIM][DIM];
-     fill_gR_nt_(gR1, n0,t0, gn, gt);
-
-     // calculate difference with gR:
-     FOR(a) FOR(j){
-       r1 += pow(gR1[a][j]-gR[a][j], 2);
-       r0 += pow(gR[a][j], 2);
+  FOR(a) FOR(j){
+    Ta[a] +=
+       - dd[j][0] *2*ctm   *gn[a]*gt
+       - dd[j][0] *2*st    *ggn[a]
+       - dd[j][0] *2*n[a]  *ggt
+       +          2*st     *en[a][j]*gn[j]*gt
+       -          2*ctm    *en[j][a]*ggn[j]
+       +          2*st*ctm *n[a]*n[j]*ggn[j]
+       +          2*ctm*st *n[a]*gn[j]*gn[j];
+    Tb[a] +=
+       - dd[j][0]*dd[a][2] *n[2]*st*gt*gt
+       + dd[j][0]*dd[a][2] *n[2]*ct*ggt
+       + dd[j][0]*dd[a][2] *2*(ct*ct-st*st)*gn[2]*gt
+       + dd[j][0]*dd[a][2] *(2*ct-1)*st *ggn[2]
+       + dd[j][0] *st*n[a]*n[2]*n[2] *gt*gt
+       + dd[j][0] *2*st*ctm*n[a]*gn[2]*gn[2]
+       - dd[j][0] *2*ct*ct *gn[a]*gt
+       - dd[j][0] *2*ctm*ct* n[2]*n[2] *gn[a]*gt
+       + dd[j][0] *4*st*st*  n[a]*n[2] *gn[2]*gt
+       + dd[j][0] *2*ct*st*  en[2][a]  *gn[2]*gt
+       - dd[j][0] *n[a]*ggt
+       + dd[j][0] *ctm*n[a]*n[2]*n[2] * ggt
+       + dd[j][0] *st*en[2][a]*n[2]*ggt
+       - dd[j][0] *ct * st     *ggn[a]
+       - dd[j][0] *ctm*st *n[2]*n[2] * ggn[a]
+       + dd[j][0] *2*ctm*st *n[a]*n[2] * ggn[2]
+       + dd[j][0] *ct*ctm *en[2][a] * ggn[2]
+       + dd[a][2] *st*st *en[2][j]* ggn[j]
+       + 2*ctm*st *en[a][j]*n[2]*n[2]*gn[j]*gt
+       +  ct*ctm *ee[a][j][2] *n[2] * ggn[j]
+       + ctm*ctm* en[a][j]*n[2]*n[2]*ggn[j];
      }
-     r1 = sqrt(r1)/sqrt(r0);
-     printf("test gR:  %e\n", r1);
-  }
-
-  // test 2: check formula for ggR
-  {
-     int a,j;
-     double r0,r1;
-     double ggR1[DIM][DIM];
-     fill_ggR_nt_(ggR1, n0,t0, gn, gt, ggn, ggt);
-
-     // calculate difference with gR:
-     FOR(a) FOR(j){
-       r1 += pow(ggR1[a][j]-ggR[a][j], 2);
-       r0 += pow(ggR[a][j], 2);
-     }
-     r1 = sqrt(r1)/sqrt(r0);
-     printf("test ggR: %e\n", r1);
-  }
-
 }
 
+// Calculate gradient torque TD = Ta/2+Tb (as in Dmitriev's program)
+void fill_TGD_nt_(double T[DIM],
+                 const double n[DIM], const double t,
+                 const double gn[DIM], const double gt,
+                 const double ggn[DIM], const double ggt) {
+  double ct=cos(t), ctm=1.0-ct, ctp=1.0+ct, st=sin(t);
+
+  double DD45=n[0]*gn[1]-n[1]*gn[0];
+  double FTN=ctm*DD45 - st*gn[2] - gt*n[2];
+  double DFTN=ctm*(n[0]*ggn[1]-ggn[0]*n[1])-st*ggn[2]-ggt*n[2]-
+              ctp*gt*gn[2]+st*gt*DD45;
+
+  T[0] = 2.0*(ggt*n[0]+ctp*gt*gn[0]+st*ggn[0]+
+        st*gt*(n[1]*gn[2]-gn[1]*n[2])+ctm*(n[1]*ggn[2]-ggn[1]*n[2]))+
+        (ctm*n[0]*n[2]+n[1]*st)*DFTN+(st*gt*n[0]*n[2]+
+        ctm*(gn[0]*n[2]+n[0]*gn[2])+gn[1]*st+n[1]*ct*gt)*FTN;
+  T[1] = 2.0*(ggt*n[1]+ctp*gt*gn[1]+st*ggn[1]-
+        st*gt*(n[0]*gn[2]-gn[0]*n[2])-ctm*(n[0]*ggn[2]-ggn[0]*n[2]))+
+        (ctm*n[1]*n[2]-n[0]*st)*DFTN+(st*gt*n[1]*n[2]+
+        ctm*(gn[1]*n[2]+n[1]*gn[2])-gn[0]*st-n[0]*ct*gt)*FTN;
+  T[2] = 2.0*(ggt*n[2]+ctp*gt*gn[2]+st*ggn[2]+
+        st*gt*DD45+ctm*(n[0]*ggn[1]-ggn[0]*n[1]))+
+        (ctm*n[2]*n[2]+ct)*DFTN+(st*gt*n[2]*n[2]+
+        ctm*2.0*n[2]*gn[2]-st*gt)*FTN;
+  T[0] = -T[0];
+  T[1] = -T[1];
+  T[2] = -T[2];
 }
+
+} // extern
