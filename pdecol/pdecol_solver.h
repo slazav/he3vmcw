@@ -134,8 +134,9 @@ class pdecol_solver {
   /************************************/
   private:
 
-  void check_error(const int index) const; // throw Err if index!=0;
-  void print_index_info(const int index) const; // print call info
+  // throw Err if index!=0 && index!=-5 If index==-5, reset INDEX to 4;
+  void check_error();
+  void print_index_info() const; // print call info
 
   int INDEX;  // type of call -- result
   double EPS; // Accuracy. Can be changed during calculations

@@ -150,7 +150,7 @@ pdecol_solver::step(double t_, bool exact) {
   t=t_;
   // Here INDEX should be 1, 0 or 4. For call types 2, 3
   // additional methods should be done (?).
-  if (verbose) print_index_info(INDEX);
+  if (verbose) print_index_info();
 
   // Run pdecol. Some parameters are used only in the first call INDEX=1.
   double dt = mindt; // don't want to change original value (for restarting)
@@ -159,7 +159,7 @@ pdecol_solver::step(double t_, bool exact) {
     WORK.data(), IWORK.data() );
 
   // check INDEX after run (0 or error)
-  check_error(INDEX);
+  check_error();
 
   if (verbose) {
     std::cerr << " DT: " << get_dtused() << " NQ: " << get_nqused() << "\n";
@@ -336,7 +336,7 @@ pdecol_solver::get_nje() const { return gear0_.NJE;}
 
 /********************************************************************/
 void
-pdecol_solver::check_error(const int index) const {
+pdecol_solver::check_error(){
   switch (INDEX){
   case  0: break;
   case -1: throw Err() <<
@@ -354,12 +354,15 @@ pdecol_solver::check_error(const int index) const {
   case -4: throw Err() <<
     "PDECOL: SINGULAR MATRIX ENCOUNTERED.  PROBABLY DUE TO STORAGE "
     "OVERWRITES.";
-  case -5: throw Err() <<
+  case -5:
+    std::cerr <<
     "PDECOL: INDEX WAS 4 ON INPUT, BUT THE DESIRED CHANGES OF "
     "PARAMETERS WERE NOT IMPLEMENTED BECAUSE TOUT "
     "WAS NOT BEYOND T.  INTERPOLATION TO T = TOUT WAS "
     "PERFORMED AS ON A NORMAL RETURN.  TO TRY AGAIN, "
     "SIMPLY CALL AGAIN WITH INDEX = 4 AND A NEW TOUT.";
+    INDEX=4; // try again with INDEX=4
+    break;
   case -6: throw Err() << "PDECOL: ILLEGAL INDEX VALUE.";
   case -7: throw Err() << "PDECOL: ILLEGAL EPS VALUE.";
   case -8: throw Err() <<
@@ -378,15 +381,15 @@ pdecol_solver::check_error(const int index) const {
 }
 
 void
-pdecol_solver::print_index_info(const int index) const{
+pdecol_solver::print_index_info() const{
   struct timeval tt;
   gettimeofday(&tt, NULL);
 
-  switch (index){
+  switch (INDEX){
   case 0:
   case 2:
     std::cerr << tt.tv_sec << "." << std::setw(6) << std::setfill('0') << tt.tv_usec << ": ";
-    std::cerr << "PDECOL: INDEX: " << index <<
+    std::cerr << "PDECOL: INDEX: " << INDEX <<
                  " TOUT:" << std::scientific << std::setprecision(4) << t  << " ";
     break;
 
@@ -418,6 +421,6 @@ pdecol_solver::print_index_info(const int index) const{
     break;
 
   default:
-    throw Err() << "bad or unknown INDEX setting in pdecol_solver::step";
+    throw Err() << "bad or unknown INDEX setting in pdecol_solver::step: " << INDEX;
   }
 }
