@@ -3,7 +3,19 @@
 /************************************************************
 1D Gradient energy terms for Leggett equations.
 
-See also http://github.com/slazav/he3en for 3D formulas etc.
+- Gradiend energy:
+  E = K1 \nabla_j Rak \nabla_j Rak
+    + K2 \nabla_j Raj \nabla_k Rak
+    + K3 \nabla_j Rak \nabla_k Raj
+
+- Spin current
+  J_ak = e_{abc} Rcj [K1 \nabla_k Rbj + (K2+K3) \nabla_j Rbk]
+
+- Gradient torque:
+  T = -\nabla_m J_am =
+    = -e_{abc} Rcj [K1 \nabla_k\nabla_k Rbj + (K2+K3) \nabla_k\nabla_j Rbk]
+
+See also http://github.com/slazav/he3en for 3D formulas.
 All functions are inside <extern "C"> and have names with "_"
 suffix for using in Fortran code.
 

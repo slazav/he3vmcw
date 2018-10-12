@@ -1,12 +1,3 @@
-/************************************************************
-1D Gradient energy terms for Leggett equations.
-
-See also http://github.com/slazav/he3en for 3D formulas etc.
-All functions are inside <extern "C"> and have names with "_"
-suffix for using in Fortran code.
-
-*************************************************************/
-
 extern "C" {
 #include "grad.h"
 
@@ -117,8 +108,8 @@ void fill_JG0_nt_(double Ja[DIM], double Jb[DIM],
   fill_vec_zero_(Jb);
   fill_R_nt_(R,n,t);
   fill_gR_nt_(gR,n,t,gn, gt);
-  FOR(a) FOR(b) FOR(c) FOR(j) Ja[a] -= ee[a][b][c]*R[c][j]*gR[b][j];
-  FOR(a) FOR(b) FOR(c)        Jb[a] -= ee[a][b][c]*R[c][2]*gR[b][2];
+  FOR(a) FOR(b) FOR(c) FOR(j) Ja[a] += ee[a][b][c]*R[c][j]*gR[b][j];
+  FOR(a) FOR(b) FOR(c)        Jb[a] += ee[a][b][c]*R[c][2]*gR[b][2];
 }
 
 // Calculate spin currents Ja, Jb (v1)
@@ -139,17 +130,17 @@ void fill_JG1_nt_(double Ja[DIM], double Jb[DIM],
   fill_vec_zero_(Ja);
   fill_vec_zero_(Jb);
 
-  FOR(a) Ja[a] += 2*(n[a]*gt + st*gn[a] + ctm*nxng[a]);
+  FOR(a) Ja[a] += -2*(n[a]*gt + st*gn[a] + ctm*nxng[a]);
 
   FOR(a) Jb[a] +=
-      n[a]*gt  *(1-ctm*n[2]*n[2])
-     - st*ctm   *2*n[a]*n[2]*gn[2]
-     - st       *en[2][a]*n[2]*gt
-     - ct*ctm   *(en[2][a]*gn[2] + eg[2][a]*n[2])
-     + ctm*ctm  *nxng[a]*n[2]*n[2]
-     + st*gn[a] *(ct + ctm*n[2]*n[2]);
+     - n[a]*gt  *(1-ctm*n[2]*n[2])
+     + st*ctm   *2*n[a]*n[2]*gn[2]
+     + st       *en[2][a]*n[2]*gt
+     + ct*ctm   *(en[2][a]*gn[2] + eg[2][a]*n[2])
+     - ctm*ctm  *nxng[a]*n[2]*n[2]
+     - st*gn[a] *(ct + ctm*n[2]*n[2]);
     ;
-  Jb[2] += - ct*n[2]*gt + st*(1-2*ct)*gn[2] + st*st*nxng[2];
+  Jb[2] +=  ct*n[2]*gt - st*(1-2*ct)*gn[2] - st*st*nxng[2];
 }
 
 /// Calculate spin currents Ja, Jb (v2 - in coordinates)
@@ -159,31 +150,31 @@ void fill_JG2_nt_(double Ja[DIM], double Jb[DIM],
   double ct=cos(t), ctm=(1.0-ct), st=sin(t);
   double nz2 = n[2]*n[2];
 
-  Ja[0] = 2*(n[0]*gt + st*gn[0] + ctm *(n[1]*gn[2] - n[2]*gn[1]));
-  Ja[1] = 2*(n[1]*gt + st*gn[1] + ctm *(n[2]*gn[0] - n[0]*gn[2]));
-  Ja[2] = 2*(n[2]*gt + st*gn[2] + ctm *(n[0]*gn[1] - n[1]*gn[0]));
+  Ja[0] = -2*(n[0]*gt + st*gn[0] + ctm *(n[1]*gn[2] - n[2]*gn[1]));
+  Ja[1] = -2*(n[1]*gt + st*gn[1] + ctm *(n[2]*gn[0] - n[0]*gn[2]));
+  Ja[2] = -2*(n[2]*gt + st*gn[2] + ctm *(n[0]*gn[1] - n[1]*gn[0]));
 
   Jb[0] =
-   + (1-ctm*nz2)*n[0]*gt
-   - st*n[1]*n[2]*gt
-   +  st*(ct + ctm*nz2) *gn[0]
-   - ctm*(ct + ctm*nz2) *n[2]*gn[1]
-   - ctm*(ct - ctm*nz2) *n[1]*gn[2]
-   - 2*st*ctm*n[0]*n[2]*gn[2];
+   - (1-ctm*nz2)*n[0]*gt
+   + st*n[1]*n[2]*gt
+   -  st*(ct + ctm*nz2) *gn[0]
+   + ctm*(ct + ctm*nz2) *n[2]*gn[1]
+   + ctm*(ct - ctm*nz2) *n[1]*gn[2]
+   + 2*st*ctm*n[0]*n[2]*gn[2];
 
   Jb[1] =
-   + (1-ctm*nz2)*n[1]*gt
-   + st*n[0]*n[2]*gt
-   + ctm*(ct+ctm*nz2) *n[2]*gn[0]
-   +  st*(ct+ctm*nz2) *gn[1]
-   + ctm*(ct-ctm*nz2) *n[0]*gn[2]
-   - 2*st*ctm*n[1]*n[2]*gn[2];
+   - (1-ctm*nz2)*n[1]*gt
+   - st*n[0]*n[2]*gt
+   - ctm*(ct+ctm*nz2) *n[2]*gn[0]
+   -  st*(ct+ctm*nz2) *gn[1]
+   - ctm*(ct-ctm*nz2) *n[0]*gn[2]
+   + 2*st*ctm*n[1]*n[2]*gn[2];
 
   Jb[2] =
-   + ctm*(1 - nz2) * n[2]*gt
-   - (st*st + ctm*ctm *nz2) *n[1]*gn[0]
-   + (st*st + ctm*ctm *nz2) *n[0]*gn[1]
-   + st*ctm*(1-nz2)*gn[2];
+   - ctm*(1 - nz2) * n[2]*gt
+   + (st*st + ctm*ctm *nz2) *n[1]*gn[0]
+   - (st*st + ctm*ctm *nz2) *n[0]*gn[1]
+   - st*ctm*(1-nz2)*gn[2];
 }
 
 /// Calculate spin current J = Ja/2 + Jb (as in Dmitriev's program)
@@ -192,12 +183,12 @@ void fill_JGD_nt_(double J[DIM],
                  const double gn[DIM], const double gt) {
   double ct=cos(t), ctm=(1.0-ct), st=sin(t);
   double FTN=ctm*(n[0]*gn[1]-n[1]*gn[0]) - st*gn[2] - gt*n[2];
-  J[0] = 2.0*(gt*n[0]+st*gn[0]+ctm*(n[1]*gn[2]-gn[1]*n[2]))
-       + (ctm*n[0]*n[2]+n[1]*st)*FTN;
-  J[1] = 2.0*(gt*n[1]+st*gn[1]-ctm*(n[0]*gn[2]-gn[0]*n[2]))
-       + (ctm*n[1]*n[2]-n[0]*st)*FTN;
-  J[2] = 2.0*(gt*n[2]+st*gn[2]+ctm*(n[0]*gn[1]-gn[0]*n[1]))
-       + (ctm*n[2]*n[2]+ct)*FTN;
+  J[0] = -2.0*(gt*n[0]+st*gn[0]+ctm*(n[1]*gn[2]-gn[1]*n[2]))
+       - (ctm*n[0]*n[2]+n[1]*st)*FTN;
+  J[1] = -2.0*(gt*n[1]+st*gn[1]-ctm*(n[0]*gn[2]-gn[0]*n[2]))
+       - (ctm*n[1]*n[2]-n[0]*st)*FTN;
+  J[2] = -2.0*(gt*n[2]+st*gn[2]+ctm*(n[0]*gn[1]-gn[0]*n[1]))
+       - (ctm*n[2]*n[2]+ct)*FTN;
 }
 
 
@@ -216,8 +207,8 @@ void fill_TG0_nt_(double Ta[DIM], double Tb[DIM],
   fill_vec_zero_(Tb);
   fill_R_nt_(R,n,t);
   fill_ggR_nt_(ggR, n,t, gn, gt, ggn, ggt);
-  FOR(a) FOR(b) FOR(c) FOR(j) Ta[a] += ee[a][b][c]*R[c][j]*ggR[b][j];
-  FOR(a) FOR(b) FOR(c)        Tb[a] += ee[a][b][c]*R[c][2]*ggR[b][2];
+  FOR(a) FOR(b) FOR(c) FOR(j) Ta[a] += -ee[a][b][c]*R[c][j]*ggR[b][j];
+  FOR(a) FOR(b) FOR(c)        Tb[a] += -ee[a][b][c]*R[c][2]*ggR[b][2];
 }
 
 /***********************************************************/
@@ -241,35 +232,35 @@ void fill_TG1_nt_(double Ta[DIM], double Tb[DIM],
 
   FOR(a) FOR(j){
     Ta[a] +=
-       - dd[j][0] *2*ctm   *gn[a]*gt
-       - dd[j][0] *2*st    *ggn[a]
-       - dd[j][0] *2*n[a]  *ggt
-       +          2*st     *en[a][j]*gn[j]*gt
-       -          2*ctm    *en[j][a]*ggn[j]
-       +          2*st*ctm *n[a]*n[j]*ggn[j]
-       +          2*ctm*st *n[a]*gn[j]*gn[j];
+       + dd[j][0] *2*ctm   *gn[a]*gt
+       + dd[j][0] *2*st    *ggn[a]
+       + dd[j][0] *2*n[a]  *ggt
+       -          2*st     *en[a][j]*gn[j]*gt
+       +          2*ctm    *en[j][a]*ggn[j]
+       -          2*st*ctm *n[a]*n[j]*ggn[j]
+       -          2*ctm*st *n[a]*gn[j]*gn[j];
     Tb[a] +=
-       - dd[j][0] *dd[a][2] *n[2]*st*gt*gt
-       + dd[j][0] *dd[a][2] *n[2]*ct*ggt
-       + dd[j][0] *dd[a][2] *2*(ct*ct-st*st)*gn[2]*gt
-       + dd[j][0] *dd[a][2] *(2*ct-1)*st *ggn[2]
-       + dd[j][0] *st*n[a]*n[2]*n[2] *gt*gt
-       + dd[j][0] *2*st*ctm*n[a]*gn[2]*gn[2]
-       - dd[j][0] *2*ct*ct *gn[a]*gt
-       - dd[j][0] *2*ctm*ct* n[2]*n[2] *gn[a]*gt
-       + dd[j][0] *4*st*st*  n[a]*n[2] *gn[2]*gt
-       + dd[j][0] *2*ct*st*  en[2][a]  *gn[2]*gt
-       - dd[j][0] *n[a]*ggt
-       + dd[j][0] *ctm*n[a]*n[2]*n[2] * ggt
-       + dd[j][0] *st*en[2][a]*n[2]*ggt
-       - dd[j][0] *ct * st     *ggn[a]
-       - dd[j][0] *ctm*st *n[2]*n[2] * ggn[a]
-       + dd[j][0] *2*ctm*st *n[a]*n[2] * ggn[2]
-       + dd[j][0] *ct*ctm *en[2][a] * ggn[2]
-       + dd[a][2] *st*st *en[2][j]* ggn[j]
-       + 2*ctm*st *en[a][j]*n[2]*n[2]*gn[j]*gt
-       +  ct*ctm *ee[a][j][2] *n[2] * ggn[j]
-       + ctm*ctm* en[a][j]*n[2]*n[2]*ggn[j];
+       + dd[j][0] *dd[a][2] *n[2]*st*gt*gt
+       - dd[j][0] *dd[a][2] *n[2]*ct*ggt
+       - dd[j][0] *dd[a][2] *2*(ct*ct-st*st)*gn[2]*gt
+       - dd[j][0] *dd[a][2] *(2*ct-1)*st *ggn[2]
+       - dd[j][0] *st*n[a]*n[2]*n[2] *gt*gt
+       - dd[j][0] *2*st*ctm*n[a]*gn[2]*gn[2]
+       + dd[j][0] *2*ct*ct *gn[a]*gt
+       + dd[j][0] *2*ctm*ct* n[2]*n[2] *gn[a]*gt
+       - dd[j][0] *4*st*st*  n[a]*n[2] *gn[2]*gt
+       - dd[j][0] *2*ct*st*  en[2][a]  *gn[2]*gt
+       + dd[j][0] *n[a]*ggt
+       - dd[j][0] *ctm*n[a]*n[2]*n[2] * ggt
+       - dd[j][0] *st*en[2][a]*n[2]*ggt
+       + dd[j][0] *ct * st     *ggn[a]
+       + dd[j][0] *ctm*st *n[2]*n[2] * ggn[a]
+       - dd[j][0] *2*ctm*st *n[a]*n[2] * ggn[2]
+       - dd[j][0] *ct*ctm *en[2][a] * ggn[2]
+       - dd[a][2] *st*st *en[2][j]* ggn[j]
+       - 2*ctm*st *en[a][j]*n[2]*n[2]*gn[j]*gt
+       -  ct*ctm *ee[a][j][2] *n[2] * ggn[j]
+       - ctm*ctm* en[a][j]*n[2]*n[2]*ggn[j];
      }
 }
 
@@ -291,44 +282,44 @@ void fill_TG2_nt_(double Ta[DIM], double Tb[DIM],
   double x1=st*gn[1]*gt+ctm*ggn[1];
   double x2=st*gn[2]*gt+ctm*ggn[2];
 
-  Ta[0] = - 2*(ctm*gn[0]*gt + st*ggn[0] + n[0]*ggt
-             - x1*n[2] + x2*n[1] - xx*n[0]);
-  Ta[1] = - 2*(ctm*gn[1]*gt + st*ggn[1] + n[1]*ggt
-             + x0*n[2] - x2*n[0] - xx*n[1]);
-  Ta[2] = - 2*(ctm*gn[2]*gt + st*ggn[2] + n[2]*ggt
-             - x0*n[1] + x1*n[0] - xx*n[2]);
+  Ta[0] =  2*(ctm*gn[0]*gt + st*ggn[0] + n[0]*ggt
+            - x1*n[2] + x2*n[1] - xx*n[0]);
+  Ta[1] =  2*(ctm*gn[1]*gt + st*ggn[1] + n[1]*ggt
+            + x0*n[2] - x2*n[0] - xx*n[1]);
+  Ta[2] =  2*(ctm*gn[2]*gt + st*ggn[2] + n[2]*ggt
+            - x0*n[1] + x1*n[0] - xx*n[2]);
 
   Tb[0] =
-     - ((1.0- ctm*nz2)*n[0] - st*n[1]*n[2])*ggt
-     + st*n[0]*nz2*gt*gt
-     - 2*ct*cp*gn[0]*gt
-     + 2*ctm*st*nz2*n[2]*gn[1]*gt
-     + 2*st*cm*n[1]*gn[2]*gt
-     + 4*st*st*n[0]*n[2]*gn[2]*gt
-     + 2*st*ctm*n[0]*gn[2]*gn[2]
-     -  st*cp*ggn[0]
-     + ctm*cp*n[2]*ggn[1]
-     + ctm*cm*n[1]*ggn[2]
-     + 2*ctm*st*n[0]*n[2]*ggn[2];
+     + ((1.0- ctm*nz2)*n[0] - st*n[1]*n[2])*ggt
+     - st*n[0]*nz2*gt*gt
+     + 2*ct*cp*gn[0]*gt
+     - 2*ctm*st*nz2*n[2]*gn[1]*gt
+     - 2*st*cm*n[1]*gn[2]*gt
+     - 4*st*st*n[0]*n[2]*gn[2]*gt
+     - 2*st*ctm*n[0]*gn[2]*gn[2]
+     +  st*cp*ggn[0]
+     - ctm*cp*n[2]*ggn[1]
+     - ctm*cm*n[1]*ggn[2]
+     - 2*ctm*st*n[0]*n[2]*ggn[2];
   Tb[1] =
-     - ((1.0- ctm*nz2)*n[1] + st*n[0]*n[2])*ggt
-     + st*n[1]*nz2*gt*gt
-     - 2*ctm*st*nz2*n[2]*gn[0]*gt
-     - 2*ct*cp*gn[1]*gt
-     - 2*st*cm*n[0]*gn[2]*gt
-     + 4*st*st*  n[1]*n[2]*gn[2]*gt
-     + 2*st*ctm*n[1]*gn[2]*gn[2]
-     - ctm*cp*n[2]*ggn[0]
-     - st*cp*ggn[1]
-     - ctm*cm*n[0]*ggn[2]
-     + 2*ctm*st*n[1]*n[2]*ggn[2];
+     + ((1.0- ctm*nz2)*n[1] + st*n[0]*n[2])*ggt
+     - st*n[1]*nz2*gt*gt
+     + 2*ctm*st*nz2*n[2]*gn[0]*gt
+     + 2*ct*cp*gn[1]*gt
+     + 2*st*cm*n[0]*gn[2]*gt
+     - 4*st*st*  n[1]*n[2]*gn[2]*gt
+     - 2*st*ctm*n[1]*gn[2]*gn[2]
+     + ctm*cp*n[2]*ggn[0]
+     + st*cp*ggn[1]
+     + ctm*cm*n[0]*ggn[2]
+     - 2*ctm*st*n[1]*n[2]*ggn[2];
   Tb[2] =
-     - (1.0-nz2)*n[2]*(st*gt*gt + ctm*ggt)
-     + 2*ctm*st*nz2*(n[1]*gn[0]-n[0]*gn[1])*gt
-     + 2*(st*st - (ctm*ct+2*st*st)*nz2)*gn[2]*gt
-     + 2*st*ctm*n[2]*gn[2]*gn[2]
-     + (st*st+ctm*ctm*nz2) *(n[1]*ggn[0]-n[0]*ggn[1])
-     - st*ctm*(1.0-nz2)*ggn[2];
+     + (1.0-nz2)*n[2]*(st*gt*gt + ctm*ggt)
+     - 2*ctm*st*nz2*(n[1]*gn[0]-n[0]*gn[1])*gt
+     - 2*(st*st - (ctm*ct+2*st*st)*nz2)*gn[2]*gt
+     - 2*st*ctm*n[2]*gn[2]*gn[2]
+     - (st*st+ctm*ctm*nz2) *(n[1]*ggn[0]-n[0]*ggn[1])
+     + st*ctm*(1.0-nz2)*ggn[2];
 }
 
 
@@ -357,9 +348,6 @@ void fill_TGD_nt_(double T[DIM],
         st*gt*DD45+ctm*(n[0]*ggn[1]-ggn[0]*n[1]))+
         (ctm*n[2]*n[2]+ct)*DFTN+(st*gt*n[2]*n[2]+
         ctm*2.0*n[2]*gn[2]-st*gt)*FTN;
-  T[0] = -T[0];
-  T[1] = -T[1];
-  T[2] = -T[2];
 }
 
 } // extern
