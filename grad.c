@@ -303,6 +303,7 @@ void fill_DJ_nt_(double DJDUa[DIM][4],  double DJDUb[DIM][4],
 void fill_DJD_nt_(double DJDU[DIM][4], double DJDUZ[DIM][4],
                  const double n[DIM], const double t,
                  const double gn[DIM], const double gt){
+  int i,j;
   double ct=cos(t), ctm=(1.0-ct), st=sin(t);
   double nz2 = n[2]*n[2];
 
@@ -346,6 +347,12 @@ void fill_DJD_nt_(double DJDU[DIM][4], double DJDUZ[DIM][4],
   DJDUZ[2][1] =  2.0*ctm*n[0]+C66*FTNX5;
   DJDUZ[2][2] =  C266*st;
   DJDUZ[2][3] =  C266*n[2];
+
+  // invert sign
+  FOR(i) for (j=0;j<4; j++){
+    DJDU[i][j] = -DJDU[i][j];
+    DJDUZ[i][j] = -DJDUZ[i][j];
+  }
 }
 
 /***********************************************************/
@@ -448,14 +455,26 @@ void fill_DJ_t_(double DJDUa[DIM][DIM],  double DJDUb[DIM][DIM],
       double Dgny = (k==0)? DZa[i][1]:DZb[i][1];
       double Dgnz = (k==0)? DZa[i][2]:DZb[i][2];
       double Dgt  = (k==0)? DZa[i][3]:DZb[i][3];
-      FOR(j) {
-        NDx[j] = Dt*n[j] + Dgt*gn[j]
-         + Dnx/t - n[j]*(Dnx*n[0]+Dny*n[1]+Dnz*n[2])/t
-         + Dgnx*(gt/t*(n[j]*n[0]-dd[j][0])-n[j]*gn[0]-n[0]*gn[j])/t
-         + Dgny*(gt/t*(n[j]*n[1]-dd[j][1])-n[j]*gn[1]-n[1]*gn[j])/t
-         + Dgnz*(gt/t*(n[j]*n[2]-dd[j][2])-n[j]*gn[2]-n[2]*gn[j])/t;
-        NDgx[j] = Dgt*n[j] + Dgnx/t - n[j]*(Dgnx*n[0]+Dgny*n[1]+Dgnz*n[2])/t;
-      }
+
+      NDx[0] = Dt*n[0] + Dgt*gn[0]
+      + Dnx/t - n[0]*(Dnx*n[0]+Dny*n[1]+Dnz*n[2])/t
+      + Dgnx*(gt/t*(n[0]*n[0]-1.0)-2.0*n[0]*gn[0])/t
+      + Dgny*(gt/t*(n[0]*n[1])-n[0]*gn[1]-n[1]*gn[0])/t
+      + Dgnz*(gt/t*(n[0]*n[2])-n[0]*gn[2]-n[2]*gn[0])/t;
+      NDx[1] = Dt*n[1] + Dgt*gn[1]
+      + Dny/t - n[1]*(Dnx*n[0]+Dny*n[1]+Dnz*n[2])/t
+      + Dgnx*(gt/t*(n[1]*n[0])-n[1]*gn[0]-n[0]*gn[1])/t
+      + Dgny*(gt/t*(n[1]*n[1]-1.0)-2.0*n[1]*gn[1])/t
+      + Dgnz*(gt/t*(n[1]*n[2])-n[1]*gn[2]-n[2]*gn[1])/t;
+      NDx[2] = Dt*n[2] + Dgt*gn[2]
+      + Dnz/t - n[2]*(Dnx*n[0]+Dny*n[1]+Dnz*n[2])/t
+      + Dgnx*(gt/t*(n[2]*n[0])-n[2]*gn[0]-n[0]*gn[2])/t
+      + Dgny*(gt/t*(n[2]*n[1])-n[2]*gn[1]-n[1]*gn[2])/t
+      + Dgnz*(gt/t*(n[2]*n[2]-1.0)-2.0*n[2]*gn[2])/t;
+
+      NDgx[0] = Dgt*n[0] + Dgnx/t - n[0]*(Dgnx*n[0]+Dgny*n[1]+Dgnz*n[2])/t;
+      NDgx[1] = Dgt*n[1] + Dgny/t - n[1]*(Dgnx*n[0]+Dgny*n[1]+Dgnz*n[2])/t;
+      NDgx[2] = Dgt*n[2] + Dgnz/t - n[2]*(Dgnx*n[0]+Dgny*n[1]+Dgnz*n[2])/t;
     }
   }
 }

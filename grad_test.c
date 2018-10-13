@@ -210,33 +210,38 @@ main(){
     double n1[DIM], gn1[DIM];
     double J0a[DIM], J0b[DIM], J1a[DIM], J1b[DIM];
     double DIFFa[DIM], DIFFb[DIM];
+    double DIFFax[DIM], DIFFbx[DIM];
     double Da[DIM][4], Db[DIM][4];
     double DZa[DIM][4], DZb[DIM][4];
     double NDa[DIM][3], NDb[DIM][3];
     double NDZa[DIM][3], NDZb[DIM][3];
     double dtn[DIM], dgtn[DIM];
     double v;
+    D=1e-6; // D^2 should be large enough to be visible in J~1
 
     fill_vec_rnd_(dn,  -D, D);
     fill_vec_rnd_(dgn, -D, D);
     dt  = (2*drand48()-1)*D;
     dgt = (2*drand48()-1)*D;
 
-    // dn should be perpendicular to n. Find projection:
-    // dn = dn - n (n*dn)
-    v = n0[0]*dn[0]+n0[1]*dn[1]+n0[2]*dn[2];
-    dn[0] -= n0[0]*v;
-    dn[1] -= n0[1]*v;
-    dn[2] -= n0[2]*v;
-// Do not work
-dn[0] = 0;
-dn[1] = 0;
-dn[2] = 0;
-dgn[0] = 0;
-dgn[1] = 0;
-dgn[2] = 0;
-//dgt=0;
-//dt=0;
+    // There are some restrictions on dn and dgn because
+    // of the fact that n is a unit vector:
+    // (dn*n) = 0, g(dn*n)=0.
+    // This is not important if we use fill_JG1_nt_ or fill_JG2_nt_
+    // functions for calculating spin currents (derivatives are
+    // found correctly without any restrictions). But fill_JG0_nt_
+    // differs from these fuctions for "incorrect" gn.
+
+    // dn and dgn can be fixed by the following way:
+    //   dn = dn - n*(n*dn);
+    //   dgn = dgn - n*(dgn*n + dn*gn)
+    // (it makes them correct and do not change correct values).
+    v = n0[0]*dn[0] + n0[1]*dn[1] + n0[2]*dn[2];
+    FOR(i) dn[i] -= n0[i]*v;
+    v = n0[0]*dgn[0] + n0[1]*dgn[1] + n0[2]*dgn[2]
+      + dn[0]*gn[0] + dn[1]*gn[1] + dn[2]*gn[2];
+    FOR(i) dgn[i] -= n0[i]*v;
+    // This is needed for fill_JG0_nt_ function and later, for fill_DJ_t_
 
     // test DJ/Dgn
     gn1[0]=gn[0]+dgn[0];
@@ -249,117 +254,75 @@ dgn[2] = 0;
     fill_JG0_nt_(J1a, J1b, n1, t0+dt, gn1, gt+dgt);
     fill_DJ_nt_(Da, Db, DZa, DZb, n0, t0, gn, gt);
 
-    // now J1 = J0 + sum(DJ_i*dUi)
+    // compare J1 - J0 with sum(DJ_i*dUi)
     // J1~J0~DJ~1,  dUi~D << 1
 
     FOR(i){
-      DIFFa[i] += dn[0]*Da[i][0]
+      DIFFa[i]  = dn[0]*Da[i][0]
                 + dn[1]*Da[i][1]
                 + dn[2]*Da[i][2]
                 + dt*Da[i][3]
                 + dgn[0]*DZa[i][0]
                 + dgn[1]*DZa[i][1]
                 + dgn[2]*DZa[i][2]
-                + dgt*DZa[i][3]
-                + J0a[i] - J1a[i];
-      DIFFb[i] += dn[0]*Db[i][0]
+                + dgt*DZa[i][3];
+      DIFFax[i] = J1a[i] - J0a[i];
+      DIFFb[i]  = dn[0]*Db[i][0]
                 + dn[1]*Db[i][1]
                 + dn[2]*Db[i][2]
                 + dt*Db[i][3]
                 + dgn[0]*DZb[i][0]
                 + dgn[1]*DZb[i][1]
                 + dgn[2]*DZb[i][2]
-                + dgt*DZb[i][3]
-                + J0b[i] - J1b[i];
+                + dgt*DZb[i][3];
+      DIFFbx[i] = J1b[i] - J0b[i];
     }
-    check3z("DJa", DIFFa, D*D, false);
-    check3z("DJb", DIFFb, D*D, true);
+    check3("DJa", DIFFa, DIFFax, D, false);
+    check3("DJb", DIFFb, DIFFbx, D, true);
+
 
     // same in th*n coordinates
-// Does not work now...
-dn[0] = 0;
-dn[1] = 0;
-dn[2] = 0;
-//dgn[0] = 0;
-//dgn[1] = 0;
-//dgn[2] = 0;
-dt  = 0;
-dgt = 0;
-
-    dtn[0] = n0[0]*dt + t0*dn[0];
-    dtn[1] = n0[1]*dt + t0*dn[1];
-    dtn[2] = n0[2]*dt + t0*dn[2];
-    dgtn[0] = gn[0]*dt + gt*dn[0] + n0[0]*dgt + t0*dgn[0];
-    dgtn[1] = gn[1]*dt + gt*dn[1] + n0[1]*dgt + t0*dgn[1];
-    dgtn[2] = gn[2]*dt + gt*dn[2] + n0[2]*dgt + t0*dgn[2];
-
-printf("%e %e %e %e\n", dgtn[0], dgtn[1], dgtn[2], t0);
-
-    gn1[0]=gn[0]+dgn[0];
-    gn1[1]=gn[1]+dgn[1];
-    gn1[2]=gn[2]+dgn[2];
-    n1[0]=n0[0]+dn[0];
-    n1[1]=n0[1]+dn[1];
-    n1[2]=n0[2]+dn[2];
-    fill_JG0_nt_(J0a, J0b, n0, t0, gn, gt);
-    fill_JG0_nt_(J1a, J1b, n1, t0+dt, gn1, gt+dgt);
+    FOR(i){
+      dtn[i] = n0[i]*dt + t0*dn[i];
+      dgtn[i] = gn[i]*dt + gt*dn[i] + n0[i]*dgt + t0*dgn[i];
+    }
 
     fill_DJ_t_(NDa, NDb, NDZa, NDZb, n0, t0, gn, gt);
     FOR(i){
-      DIFFa[i] += dtn[0]*NDa[i][0]
+      DIFFa[i]  = dtn[0]*NDa[i][0]
                 + dtn[1]*NDa[i][1]
                 + dtn[2]*NDa[i][2]
                 + dgtn[0]*NDZa[i][0]
                 + dgtn[1]*NDZa[i][1]
-                + dgtn[2]*NDZa[i][2]
-                + J0a[i] - J1a[i];
-      DIFFb[i] += dtn[0]*NDb[i][0]
+                + dgtn[2]*NDZa[i][2];
+      DIFFax[i] = J1a[i] - J0a[i];
+      DIFFb[i]  = dtn[0]*NDb[i][0]
                 + dtn[1]*NDb[i][1]
                 + dtn[2]*NDb[i][2]
                 + dgtn[0]*NDZb[i][0]
                 + dgtn[1]*NDZb[i][1]
-                + dgtn[2]*NDZb[i][2]
-                + J0b[i] - J1b[i];
+                + dgtn[2]*NDZb[i][2];
+      DIFFbx[i] = J1b[i] - J0b[i];
     }
-    check3z("NDJa", DIFFa, D*D, false);
-    check3z("NDJb", DIFFb, D*D, true);
+    check3("DJa(nt)", DIFFa, DIFFax, D, false);
+    check3("DJb(nt)", DIFFb, DIFFbx, D, true);
 
     // Same for Dmitriev's functions:
-// Does not work now...
-//dn[0] = 0;
-//dn[1] = 0;
-//dn[2] = 0;
-//dgn[0] = 0;
-//dgn[1] = 0;
-//dgn[2] = 0;
-//dt  = 0;
-//dgt = 0;
-    gn1[0]=gn[0]+dgn[0];
-    gn1[1]=gn[1]+dgn[1];
-    gn1[2]=gn[2]+dgn[2];
-    n1[0]=n0[0]+dn[0];
-    n1[1]=n0[1]+dn[1];
-    n1[2]=n0[2]+dn[2];
-    fill_JG0_nt_(J0a, J0b, n0, t0, gn, gt);
-    fill_JG0_nt_(J1a, J1b, n1, t0+dt, gn1, gt+dgt);
-
     fill_DJD_nt_(Da, DZa, n0, t0, gn, gt);
 
     FOR(i){
-      DIFFa[i] += dn[0]*Da[i][0]
+      DIFFa[i] = dn[0]*Da[i][0]
               + dn[1]*Da[i][1]
               + dn[2]*Da[i][2]
               + dt*Da[i][3]
               + dgn[0]*DZa[i][0]
               + dgn[1]*DZa[i][1]
               + dgn[2]*DZa[i][2]
-              + dgt*DZa[i][3]
-              + (J0a[i] - J1a[i])/2
-              + (J0b[i] - J1b[i]);
+              + dgt*DZa[i][3];
+      DIFFax[i] = (J1a[i] - J0a[i])/2
+                + (J1b[i] - J0b[i]);
     }
-//    check3z("DJD", DIFFa, D*D, true);
-
-
+    check3("DJD", DIFFa, DIFFax, D, true);
   }
 }
 }
