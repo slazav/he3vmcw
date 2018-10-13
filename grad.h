@@ -149,15 +149,21 @@ void fill_JGD_nt_(double J[DIM],
 /***********************************************************/
 /// Spin current derivative, D(J)/D(U), D(J)/D(U') where U = nx,ny,nz,th
 void fill_DJ_nt_(double DJDUa[DIM][4],  double DJDUb[DIM][4],
-                 double DJDUXa[DIM][4], double DJDUXb[DIM][4],
+                 double DJDUZa[DIM][4], double DJDUZb[DIM][4],
                  const double n[DIM], const double t,
                  const double gn[DIM], const double gt);
 
 /// Spin current derivative, D(J)/D(U), D(J)/D(U') where U = nx,ny,nz,th
 /// From Dmitriev's program
-void fill_DJD_nt_(double DJDU[DIM][4], double DJDUX[DIM][4],
+void fill_DJD_nt_(double DJDU[DIM][4], double DJDUZ[DIM][4],
                  const double n[DIM], const double t,
                  const double gn[DIM], const double gt);
+
+/// Spin current derivative, D(J)/D(U), D(J)/D(U') where U = tnx,tny,tnz
+void fill_DJ_t_(double DJDUa[DIM][DIM],  double DJDUb[DIM][DIM],
+                double DJDUZa[DIM][DIM], double DJDUZb[DIM][DIM],
+                const double n[DIM], const double t,
+                const double gn[DIM], const double gt);
 
 /***********************************************************/
 /// Calculate gradient torques Ta, Tb (just by definition)

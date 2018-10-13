@@ -193,7 +193,7 @@ void fill_JGD_nt_(double J[DIM],
 
 /// Spin current derivative, D(J)/D(U), D(J)/D(U') where U = nx,ny,nz,th
 void fill_DJ_nt_(double DJDUa[DIM][4],  double DJDUb[DIM][4],
-                 double DJDUXa[DIM][4], double DJDUXb[DIM][4],
+                 double DJDUZa[DIM][4], double DJDUZb[DIM][4],
                  const double n[DIM], const double t,
                  const double gn[DIM], const double gt){
 
@@ -264,43 +264,43 @@ void fill_DJ_nt_(double DJDUa[DIM][4],  double DJDUb[DIM][4],
    - (ct*ctm+st*st)*(1-nz2)*gn[2];
 
   // d(J)/d(gn)
-  DJDUXa[0][0] = -2*st;
-  DJDUXa[0][1] = +2*ctm*n[2];
-  DJDUXa[0][2] = -2*ctm*n[1];
+  DJDUZa[0][0] = -2*st;
+  DJDUZa[0][1] = +2*ctm*n[2];
+  DJDUZa[0][2] = -2*ctm*n[1];
 
-  DJDUXa[1][0] = -2*ctm*n[2];
-  DJDUXa[1][1] = -2*st;
-  DJDUXa[1][2] = +2*ctm*n[0];
+  DJDUZa[1][0] = -2*ctm*n[2];
+  DJDUZa[1][1] = -2*st;
+  DJDUZa[1][2] = +2*ctm*n[0];
 
-  DJDUXa[2][0] = +2*ctm*n[1];
-  DJDUXa[2][1] = -2*ctm*n[0];
-  DJDUXa[2][2] = -2*st;
+  DJDUZa[2][0] = +2*ctm*n[1];
+  DJDUZa[2][1] = -2*ctm*n[0];
+  DJDUZa[2][2] = -2*st;
 
-  DJDUXb[0][0] = -st*(ct+ctm*nz2);
-  DJDUXb[0][1] = +ctm*(ct+ctm*nz2)*n[2];
-  DJDUXb[0][2] = +ctm*(ct-ctm*nz2)*n[1] + 2*st*ctm*n[0]*n[2];
+  DJDUZb[0][0] = -st*(ct+ctm*nz2);
+  DJDUZb[0][1] = +ctm*(ct+ctm*nz2)*n[2];
+  DJDUZb[0][2] = +ctm*(ct-ctm*nz2)*n[1] + 2*st*ctm*n[0]*n[2];
 
-  DJDUXb[1][0] = -ctm*(ct+ctm*nz2)*n[2];
-  DJDUXb[1][1] = -st*(ct+ctm*nz2);
-  DJDUXb[1][2] = -ctm*(ct-ctm*nz2)*n[0] + 2*st*ctm*n[1]*n[2];
+  DJDUZb[1][0] = -ctm*(ct+ctm*nz2)*n[2];
+  DJDUZb[1][1] = -st*(ct+ctm*nz2);
+  DJDUZb[1][2] = -ctm*(ct-ctm*nz2)*n[0] + 2*st*ctm*n[1]*n[2];
 
-  DJDUXb[2][0] = +(st*st+ctm*ctm*nz2)*n[1];
-  DJDUXb[2][1] = -(st*st+ctm*ctm*nz2)*n[0];
-  DJDUXb[2][2] = -st*ctm*(1-nz2);
+  DJDUZb[2][0] = +(st*st+ctm*ctm*nz2)*n[1];
+  DJDUZb[2][1] = -(st*st+ctm*ctm*nz2)*n[0];
+  DJDUZb[2][2] = -st*ctm*(1-nz2);
 
   // d(J)/d(gt)
-  DJDUXa[0][3] = -2*n[0];
-  DJDUXa[1][3] = -2*n[1];
-  DJDUXa[2][3] = -2*n[2];
+  DJDUZa[0][3] = -2*n[0];
+  DJDUZa[1][3] = -2*n[1];
+  DJDUZa[2][3] = -2*n[2];
 
-  DJDUXb[0][3] = -(1-ctm*nz2)*n[0] + st*n[1]*n[2];
-  DJDUXb[1][3] = -(1-ctm*nz2)*n[1] - st*n[0]*n[2];
-  DJDUXb[2][3] = - ctm*(1 - nz2) * n[2];
+  DJDUZb[0][3] = -(1-ctm*nz2)*n[0] + st*n[1]*n[2];
+  DJDUZb[1][3] = -(1-ctm*nz2)*n[1] - st*n[0]*n[2];
+  DJDUZb[2][3] = - ctm*(1 - nz2) * n[2];
 }
 
 /// Spin current derivative, D(J)/D(U), D(J)/D(U') where U = nx,ny,nz,th
 /// From Dmitriev's program
-void fill_DJD_nt_(double DJDU[DIM][4], double DJDUX[DIM][4],
+void fill_DJD_nt_(double DJDU[DIM][4], double DJDUZ[DIM][4],
                  const double n[DIM], const double t,
                  const double gn[DIM], const double gt){
   double ct=cos(t), ctm=(1.0-ct), st=sin(t);
@@ -324,28 +324,28 @@ void fill_DJD_nt_(double DJDU[DIM][4], double DJDUX[DIM][4],
   DJDU[0][1] =  2.0*ctm*gn[2]+STF+C46*FTN5;
   DJDU[0][2] = -2.0*ctm*gn[1]+CTF*n[0]-C46*gt;
   DJDU[0][3] =  2.0*(ct*gn[0]+st*(n[1]*gn[2]-gn[1]*n[2]))+STF*n[0]*n[2]+n[1]*ct*FTN+C46*FTN7;
-  DJDUX[0][0] = 2.0*st+C46*FTNX4;
-  DJDUX[0][1] =-2.0*ctm*n[2]+C46*FTNX5;
-  DJDUX[0][2] = 2.0*ctm*n[1]-C46*st;
-  DJDUX[0][3] = 2.0*n[0]-C46*n[2];
+  DJDUZ[0][0] = 2.0*st+C46*FTNX4;
+  DJDUZ[0][1] =-2.0*ctm*n[2]+C46*FTNX5;
+  DJDUZ[0][2] = 2.0*ctm*n[1]-C46*st;
+  DJDUZ[0][3] = 2.0*n[0]-C46*n[2];
 
   DJDU[1][0] =  -2.0*ctm*gn[2]-STF+C56*FTN4;
   DJDU[1][1] =   2.0*gt+CTF*n[2]+C56*FTN5;
   DJDU[1][2] =   2.0*ctm*gn[0]+CTF*n[1]-C56*gt;
   DJDU[1][3] =   2.0*(ct*gn[1]-st*(n[0]*gn[2]-gn[0]*n[2]))+STF*n[1]*n[2]-n[0]*ct*FTN+C56*FTN7;
-  DJDUX[1][0] =  2.0*ctm*n[2]+C56*FTNX4;
-  DJDUX[1][1] =  2.0*st+C56*FTNX5;
-  DJDUX[1][2] = -2.0*ctm*n[0]-C56*st;
-  DJDUX[1][3] =  2.0*n[1]-C56*n[2];
+  DJDUZ[1][0] =  2.0*ctm*n[2]+C56*FTNX4;
+  DJDUZ[1][1] =  2.0*st+C56*FTNX5;
+  DJDUZ[1][2] = -2.0*ctm*n[0]-C56*st;
+  DJDUZ[1][3] =  2.0*n[1]-C56*n[2];
 
   DJDU[2][0] =   2.0*ctm*gn[1]+C66*FTN4;
   DJDU[2][1] =  -2.0*ctm*gn[0]+C66*FTN5;
   DJDU[2][2] =   2.0*n[2]*CTF+C266*gt;
   DJDU[2][3] =   2.0*(ct*gn[2]+st*DD45)+ STF*(nz2-1.0)+C66*FTN7;
-  DJDUX[2][0] = -2.0*ctm*n[1]+C66*FTNX4;
-  DJDUX[2][1] =  2.0*ctm*n[0]+C66*FTNX5;
-  DJDUX[2][2] =  C266*st;
-  DJDUX[2][3] =  C266*n[2];
+  DJDUZ[2][0] = -2.0*ctm*n[1]+C66*FTNX4;
+  DJDUZ[2][1] =  2.0*ctm*n[0]+C66*FTNX5;
+  DJDUZ[2][2] =  C266*st;
+  DJDUZ[2][3] =  C266*n[2];
 }
 
 /***********************************************************/
@@ -417,6 +417,47 @@ void fill_TG1_nt_(double Ta[DIM], double Tb[DIM],
        -  ct*ctm *ee[a][j][2] *n[2] * ggn[j]
        - ctm*ctm* en[a][j]*n[2]*n[2]*ggn[j];
      }
+}
+
+/// Spin current derivative, D(J)/D(U), D(J)/D(U') where U = tnx,tny,tnz
+void fill_DJ_t_(double DJDUa[DIM][DIM],  double DJDUb[DIM][DIM],
+                double DJDUZa[DIM][DIM], double DJDUZb[DIM][DIM],
+                const double n[DIM], const double t,
+                const double gn[DIM], const double gt){
+  int i,j,k;
+  double ct=cos(t), ctm=(1.0-ct), st=sin(t);
+  double nz2 = n[2]*n[2];
+  double Da[DIM][4], Db[DIM][4], DZa[DIM][4], DZb[DIM][4];
+  double dd[DIM][DIM];
+  fill_dd_(dd);
+
+  // calculate derivative in n,t coordinates
+  fill_DJ_nt_(Da,Db,DZa,DZb, n,t,gn,gt);
+  FOR(i){
+    // same conversion for 'a' and 'b' parts
+    for (k=0;k<2; k++){
+      // new derivatives (pointers)
+      double *NDx  = ((k==0)? DJDUa[i]:DJDUb[i]);
+      double *NDgx = ((k==0)? DJDUZa[i]:DJDUZb[i]);
+      // old derivatives
+      double Dnx  = (k==0)? Da[i][0]:Db[i][0];
+      double Dny  = (k==0)? Da[i][1]:Db[i][1];
+      double Dnz  = (k==0)? Da[i][2]:Db[i][2];
+      double Dt   = (k==0)? Da[i][3]:Db[i][3];
+      double Dgnx = (k==0)? DZa[i][0]:DZb[i][0];
+      double Dgny = (k==0)? DZa[i][1]:DZb[i][1];
+      double Dgnz = (k==0)? DZa[i][2]:DZb[i][2];
+      double Dgt  = (k==0)? DZa[i][3]:DZb[i][3];
+      FOR(j) {
+        NDx[j] = Dt*n[j] + Dgt*gn[j]
+         + Dnx/t - n[j]*(Dnx*n[0]+Dny*n[1]+Dnz*n[2])/t
+         + Dgnx*(gt/t*(n[j]*n[0]-dd[j][0])-n[j]*gn[0]-n[0]*gn[j])/t
+         + Dgny*(gt/t*(n[j]*n[1]-dd[j][1])-n[j]*gn[1]-n[1]*gn[j])/t
+         + Dgnz*(gt/t*(n[j]*n[2]-dd[j][2])-n[j]*gn[2]-n[2]*gn[j])/t;
+        NDgx[j] = Dgt*n[j] + Dgnx/t - n[j]*(Dgnx*n[0]+Dgny*n[1]+Dgnz*n[2])/t;
+      }
+    }
+  }
 }
 
 /***********************************************************/
