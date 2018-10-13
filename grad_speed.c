@@ -14,6 +14,9 @@ long get_time(){
 
 main(){
   int i,j;
+  int N = 100000;
+  long t1;
+
   double a0, b0, t0, n0[DIM], R0[DIM][DIM];
   double am, bm, tm, nm[DIM], Rm[DIM][DIM];
   double ap, bp, tp, np[DIM], Rp[DIM][DIM];
@@ -48,104 +51,96 @@ main(){
 
   // test G
   {
-    int i;
     double Ea, Eb;
-    int N = 100000;
-    long t1;
 
     t1 = get_time();
     for (i=0; i<N; i++) fill_EG0_nt_(&Ea, &Eb, n0, t0, gn, gt);
     t1 = get_time() - t1;
-    printf("E0: %e us\n", (double)t1/(double)N);
+    printf("E0: %7.3f us\n", (double)t1/(double)N);
 
     t1 = get_time();
     for (i=0; i<N; i++) fill_EG1_nt_(&Ea, &Eb, n0, t0, gn, gt);
     t1 = get_time() - t1;
-    printf("E1: %e us\n", (double)t1/(double)N);
+    printf("E1: %7.3f us\n", (double)t1/(double)N);
   }
 
 
   // test J
   {
-    int i;
-    int N = 100000;
-    long t1;
     double Ja[3], Jb[3];
 
     t1 = get_time();
     for (i=0; i<N; i++) fill_JG0_nt_(Ja, Jb, n0, t0, gn, gt);
     t1 = get_time() - t1;
-    printf("J0: %e us\n", (double)t1/(double)N);
+    printf("J0: %7.3f us\n", (double)t1/(double)N);
 
     t1 = get_time();
     for (i=0; i<N; i++) fill_JG1_nt_(Ja, Jb, n0, t0, gn, gt);
     t1 = get_time() - t1;
-    printf("J1: %e us\n", (double)t1/(double)N);
+    printf("J1: %7.3f us\n", (double)t1/(double)N);
 
     t1 = get_time();
     for (i=0; i<N; i++) fill_JG2_nt_(Ja, Jb, n0, t0, gn, gt);
     t1 = get_time() - t1;
-    printf("J2: %e us\n", (double)t1/(double)N);
+    printf("J2: %7.3f us\n", (double)t1/(double)N);
 
     t1 = get_time();
     for (i=0; i<N; i++) fill_JGD_nt_(Ja, n0, t0, gn, gt);
     t1 = get_time() - t1;
-    printf("JD: %e us\n", (double)t1/(double)N);
+    printf("JD: %7.3f us\n", (double)t1/(double)N);
 
   }
 
 
   // test T
   {
-    int i;
-    int N = 100000;
-    long t1;
     double Ta[3], Tb[3];
 
     t1 = get_time();
     for (i=0; i<N; i++) fill_TG0_nt_(Ta, Tb, n0, t0, gn, gt, ggn, ggt);
     t1 = get_time() - t1;
-    printf("T0: %e us\n", (double)t1/(double)N);
+    printf("T0: %7.3f us\n", (double)t1/(double)N);
 
     t1 = get_time();
     for (i=0; i<N; i++) fill_TG1_nt_(Ta, Tb, n0, t0, gn, gt, ggn, ggt);
     t1 = get_time() - t1;
-    printf("T1: %e us\n", (double)t1/(double)N);
+    printf("T1: %7.3f us\n", (double)t1/(double)N);
 
     t1 = get_time();
     for (i=0; i<N; i++) fill_TG2_nt_(Ta, Tb, n0, t0, gn, gt, ggn, ggt);
     t1 = get_time() - t1;
-    printf("T2: %e us\n", (double)t1/(double)N);
+    printf("T2: %7.3f us\n", (double)t1/(double)N);
 
     t1 = get_time();
     for (i=0; i<N; i++) fill_TGD_nt_(Ta, n0, t0, gn, gt, ggn, ggt);
     t1 = get_time() - t1;
-    printf("TD: %e us\n", (double)t1/(double)N);
+    printf("TD: %7.3f us\n", (double)t1/(double)N);
   }
 
-
-/*
-  // test T0 vs T1
+  // test DJ
   {
-    int i;
-    double T0a[3], T0b[3], T1a[3], T1b[3];
-    fill_TG0_nt_(T0a, T0b, n0, t0, gn, gt, ggn, ggt);
-    fill_TG1_nt_(T1a, T1b, n0, t0, gn, gt, ggn, ggt);
-    check3(T0a, T1a, E);
-    check3(T0b, T1b, E);
-    printf("test T0-T1: OK\n");
+    double Da[DIM][4], Db[DIM][4];
+    double DZa[DIM][4], DZb[DIM][4];
+    double Dta[DIM][3], Dtb[DIM][3];
+    double DZta[DIM][3], DZtb[DIM][3];
+
+    t1 = get_time();
+    for (i=0; i<N; i++) fill_DJ_nt_(Da, Db, DZa, DZb, n0, t0, gn, gt);
+    t1 = get_time() - t1;
+    printf("DJ:  %7.3f us\n", (double)t1/(double)N);
+
+    t1 = get_time();
+    for (i=0; i<N; i++) fill_DJ_t_(Dta, Dtb, DZta, DZtb, n0, t0, gn, gt);
+    t1 = get_time() - t1;
+    printf("DJT: %7.3f us\n", (double)t1/(double)N);
+
+    t1 = get_time();
+    for (i=0; i<N; i++) fill_DJD_nt_(Da, DZa, n0, t0, gn, gt);
+    t1 = get_time() - t1;
+    printf("DJD: %7.3f us\n", (double)t1/(double)N);
   }
 
-  // test T0 vs TD
-  {
-    int i;
-    double T0a[3], T0b[3], TD[3];
-    fill_TG0_nt_(T0a, T0b, n0, t0, gn, gt, ggn, ggt);
-    fill_TGD_nt_(TD, n0, t0, gn, gt, ggn, ggt);
-    FOR(i) check(T0a[i]/2 + T0b[i], TD[i], E, true);
-    printf("test T0-TD: OK\n");
-  }
-*/
+
 }
 
 }
