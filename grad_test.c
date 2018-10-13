@@ -5,23 +5,45 @@ extern "C" {
 #include <stdio.h>
 #include <assert.h>
 
+const char *xyz[3]={"x","y","z"};
+
+
 // check if absolute value is less then E
-void checkz(double V1, double E, bool verb=false){
-  assert(fabs(V1) < E);
+void checkz(const char *name, double V1, double E, bool nl){
+  printf(" [%s", name);
+  if (fabs(V1) > E){
+    printf("\nFAIL: V1=%e; E=%e\n", V1, E);
+    exit(1);
+  }
+  printf("]");
+  if (nl) printf("\n");
 }
 
 // check if relative difference between two (non-zero) values is less then E
-void check(double V1, double V2, double E, bool verb=false){
-//  if (verb) printf("%e - %e\n", V1, V2);
-  assert(fabs(V1-V2)/(fabs(V1)+fabs(V2)) < E);
+void check(const char *name, double V1, double V2, double E, bool nl){
+  printf(" [%s", name);
+  if (fabs(V1-V2)/(fabs(V1)+fabs(V2)) > E){
+    printf("\n FAIL: V1=%e; V2=%e, E=%e\n", V1, V2, E);
+    exit(1);
+  }
+  printf("]");
+  if (nl) printf("\n");
 }
 
-void check3(double V1[DIM], double V2[DIM], double E, bool verb=false){
+void check3z(const char *name, double V1[DIM], double E, bool nl){
   int i;
-  FOR(i){
-//    if (verb) printf("[%d]: ", i);
-    check(V1[i], V2[i], E, verb);
-  }
+  printf(" [%s: ", name);
+  FOR(i) checkz(xyz[i], V1[i], E, false);
+  printf("]");
+  if (nl) printf("\n");
+}
+
+void check3(const char *name, double V1[DIM], double V2[DIM], double E, bool nl){
+  int i;
+  printf(" [%s: ", name);
+  FOR(i) check(xyz[i], V1[i], V2[i], E, false);
+  printf("]");
+  if (nl) printf("\n");
 }
 
 
@@ -89,8 +111,7 @@ main(){
        r0 += pow(gR[a][j], 2);
      }
      r1 = sqrt(r1)/sqrt(r0);
-     checkz(r1, D);
-     printf("test gR:  %e\n", r1);
+     checkz("gR", r1, D, false);
   }
 
   // test 2: check formula for ggR
@@ -106,18 +127,17 @@ main(){
        r0 += pow(ggR[a][j], 2);
      }
      r1 = sqrt(r1)/sqrt(r0);
-     checkz(r1, D);
-     printf("test ggR: %e\n", r1);
+     checkz("ggR", r1, D, false);
   }
+  printf("\n");
 
   // test G0 vs G1
   {
     double E0a, E0b, E1a, E1b;
     fill_EG0_nt_(&E0a, &E0b, n0, t0, gn, gt);
     fill_EG1_nt_(&E1a, &E1b, n0, t0, gn, gt);
-    check(E0a, E1a, E);
-    check(E0b, E1b, E);
-    printf("test E0-E1: OK\n");
+    check("E0a vs E1a", E0a, E1a, E, false);
+    check("E0b vs E1b", E0b, E1b, E, true);
   }
 
   // test J0 vs J1
@@ -126,9 +146,8 @@ main(){
     double J0a[3], J0b[3], J1a[3], J1b[3];
     fill_JG0_nt_(J0a, J0b, n0, t0, gn, gt);
     fill_JG1_nt_(J1a, J1b, n0, t0, gn, gt);
-    check3(J0a, J1a, E);
-    check3(J0b, J1b, E);
-    printf("test J0-J1: OK\n");
+    check3("J0a vs J1a", J0a, J1a, E, false);
+    check3("J0b vs J1b", J0b, J1b, E, true);
   }
 
   // test J0 vs J2
@@ -137,9 +156,8 @@ main(){
     double J0a[3], J0b[3], J2a[3], J2b[3];
     fill_JG0_nt_(J0a, J0b, n0, t0, gn, gt);
     fill_JG2_nt_(J2a, J2b, n0, t0, gn, gt);
-    check3(J0a, J2a, E);
-    check3(J0b, J2b, E);
-    printf("test J0-J2: OK\n");
+    check3("J0a vs J2a", J0a, J2a, E, false);
+    check3("J0b vs J2b", J0b, J2b, E, true);
   }
 
   // test J0 vs JD
@@ -148,8 +166,9 @@ main(){
     double J0a[3], J0b[3], JD[3];
     fill_JG0_nt_(J0a, J0b, n0, t0, gn, gt);
     fill_JGD_nt_(JD, n0, t0, gn, gt);
-    FOR(i) check(J0a[i]/2 + J0b[i], JD[i], E);
-    printf("test J0-JD: OK\n");
+    printf("[J0 vs JD ");
+    FOR(i) check(xyz[i], J0a[i]/2 + J0b[i], JD[i], E, false);
+    printf("]\n");
   }
 
   // test T0 vs T1
@@ -158,9 +177,8 @@ main(){
     double T0a[3], T0b[3], T1a[3], T1b[3];
     fill_TG0_nt_(T0a, T0b, n0, t0, gn, gt, ggn, ggt);
     fill_TG1_nt_(T1a, T1b, n0, t0, gn, gt, ggn, ggt);
-    check3(T0a, T1a, E);
-    check3(T0b, T1b, E);
-    printf("test T0-T1: OK\n");
+    check3("T0a vs T1a", T0a, T1a, E, false);
+    check3("T0b vs T1b", T0b, T1b, E, true);
   }
 
   // test T0 vs T2
@@ -169,9 +187,8 @@ main(){
     double T0a[3], T0b[3], T2a[3], T2b[3];
     fill_TG0_nt_(T0a, T0b, n0, t0, gn, gt, ggn, ggt);
     fill_TG2_nt_(T2a, T2b, n0, t0, gn, gt, ggn, ggt);
-    check3(T0a, T2a, E);
-    check3(T0b, T2b, E);
-    printf("test T0-T2: OK\n");
+    check3("T0a vs T2a", T0a, T2a, E, false);
+    check3("T0b vs T2b", T0b, T2b, E, true);
   }
 
   // test T0 vs TD
@@ -180,8 +197,9 @@ main(){
     double T0a[3], T0b[3], TD[3];
     fill_TG0_nt_(T0a, T0b, n0, t0, gn, gt, ggn, ggt);
     fill_TGD_nt_(TD, n0, t0, gn, gt, ggn, ggt);
-    FOR(i) check(T0a[i]/2 + T0b[i], TD[i], E, true);
-    printf("test T0-TD: OK\n");
+    printf("[T0 vs TD: ");
+    FOR(i) check(xyz[i], T0a[i]/2 + T0b[i], TD[i], E, false);
+    printf("]\n");
   }
 
   // test spin current derivatives
@@ -215,30 +233,33 @@ main(){
     n1[2]=n0[2]+dn[2];
     fill_JG0_nt_(J0a, J0b, n0, t0, gn, gt);
     fill_JG0_nt_(J1a, J1b, n1, t0+dt, gn1, gt+dgt);
-
     fill_DJ_nt_(DJDUa, DJDUb, DJDUXa, DJDUXb, n0, t0, gn, gt);
+
+    // now J1 = J0 + sum(DJ_i*dUi)
+    // J1~J0~DJ~1,  dUi~D << 1
 
     FOR(i){
       J0a[i] += dn[0]*DJDUa[i][0]
               + dn[1]*DJDUa[i][1]
               + dn[2]*DJDUa[i][2]
-              + dt*DJDUa[i][3];
+              + dt*DJDUa[i][3]
               + dgn[0]*DJDUXa[i][0]
               + dgn[1]*DJDUXa[i][1]
               + dgn[2]*DJDUXa[i][2]
-              + dgt*DJDUXa[i][3];
+              + dgt*DJDUXa[i][3]
+              - J1a[i];
       J0b[i] += dn[0]*DJDUb[i][0]
               + dn[1]*DJDUb[i][1]
               + dn[2]*DJDUb[i][2]
-              + dt*DJDUb[i][3];
+              + dt*DJDUb[i][3]
               + dgn[0]*DJDUXb[i][0]
               + dgn[1]*DJDUXb[i][1]
               + dgn[2]*DJDUXb[i][2]
-              + dgt*DJDUXb[i][3];
+              + dgt*DJDUXb[i][3]
+              - J1b[i];
     }
-    check3(J0a, J1a, D);
-    check3(J0b, J1b, D);
-    printf("test DJ/DU, DJ/DUX: OK\n");
+    check3z("DJa", J0a, D*D, false);
+    check3z("DJb", J0b, D*D, true);
   }
 }
 }

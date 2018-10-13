@@ -200,6 +200,7 @@ void fill_DJ_nt_(double DJDUa[DIM][4],  double DJDUb[DIM][4],
   double ct=cos(t), ctm=(1.0-ct), st=sin(t);
   double nz2 = n[2]*n[2];
 
+  // d(J)/d(n)
   DJDUa[0][0] = -2*gt;
   DJDUa[0][1] = -2*ctm*gn[2];
   DJDUa[0][2] = +2*ctm*gn[1];
@@ -211,11 +212,6 @@ void fill_DJ_nt_(double DJDUa[DIM][4],  double DJDUb[DIM][4],
   DJDUa[2][0] = -2*ctm*gn[1];
   DJDUa[2][1] = +2*ctm*gn[0];
   DJDUa[2][2] = -2*gt;
-
-  // d(J)/d(n)
-  DJDUa[0][3] = -2*(n[0]*gt + st*gn[0] + ctm *(n[1]*gn[2] - n[2]*gn[1]));
-  DJDUa[1][3] = -2*(n[1]*gt + st*gn[1] + ctm *(n[2]*gn[0] - n[0]*gn[2]));
-  DJDUa[2][3] = -2*(n[2]*gt + st*gn[2] + ctm *(n[0]*gn[1] - n[1]*gn[0]));
 
   DJDUb[0][0] = - (1-ctm*nz2)*gt + 2*st*ctm*n[2]*gn[2];
   DJDUb[0][1] = + st*n[2]*gt + ctm*(ct-ctm*nz2)*gn[2];
@@ -237,41 +233,35 @@ void fill_DJ_nt_(double DJDUa[DIM][4],  double DJDUb[DIM][4],
 
   DJDUb[2][0] = - (st*st + ctm*ctm *nz2)*gn[1];
   DJDUb[2][1] = + (st*st + ctm*ctm *nz2)*gn[0];
-  DJDUb[2][2] =
-   - ctm*(1 - 3*n[2]*n[2])*gt
-   + 2.0*ctm*ctm*n[2]*n[1]*gn[0]
-   - 2.0*ctm*ctm*n[2]*n[0]*gn[1]
-   + 2.0*st*ctm*n[2]*gn[2];
+  DJDUb[2][2] = ctm*(
+   - (1 - 3*n[2]*n[2])*gt
+   + 2.0*ctm*n[1]*n[2]*gn[0]
+   - 2.0*ctm*n[0]*n[2]*gn[1]
+   + 2.0*st*n[2]*gn[2]
+  );
 
-  // d(J)/d(t) -- todo
+  // d(J)/d(t)
+  DJDUa[0][3] = -2*(ct*gn[0] + st*(n[1]*gn[2] - n[2]*gn[1]));
+  DJDUa[1][3] = -2*(ct*gn[1] + st*(n[2]*gn[0] - n[0]*gn[2]));
+  DJDUa[2][3] = -2*(ct*gn[2] + st*(n[0]*gn[1] - n[1]*gn[0]));
+
   DJDUb[0][3] =
-     st*nz2*n[0]*gt
-   + ct*n[1]*n[2]*gt
-   - ct*(ct + ctm*nz2) *gn[0]
-   + st*(ct + ctm*nz2) *n[2]*gn[1]
-   + st*(ct - ctm*nz2) *n[1]*gn[2]
-   + 2*ct*ctm*n[0]*n[2]*gn[2]
-   +  st*st*(1-nz2) *gn[0]
-   - ctm*st*(1-nz2) *n[2]*gn[1]
-   - ctm*st*(1+nz2) *n[1]*gn[2]
-   + 2*st*st*n[0]*n[2]*gn[2];
+     (st*nz2*n[0] + ct*n[1]*n[2])*gt
+   - (ct*(ct+ctm*nz2)-st*st*(1-nz2))  *gn[0]
+   + (st*(ct+ctm*nz2)-ctm*st*(1-nz2)) *n[2]*gn[1]
+   + (st*(ct-ctm*nz2)-ctm*st*(1+nz2)) *n[1]*gn[2]
+   + 2.0*(ct*ctm + st*st)  *n[0]*n[2]*gn[2];
   DJDUb[1][3] =
-     st*nz2*n[1]*gt
-   - ct*n[0]*n[2]*gt
-   - st*(ct+ctm*nz2) *n[2]*gn[0]
-   - ct*(ct+ctm*nz2) *gn[1]
-   - st*(ct-ctm*nz2) *n[0]*gn[2]
-   + 2.0*ct*ctm*n[1]*n[2]*gn[2]
-   + ctm*st*(1-nz2) *n[2]*gn[0]
-   + st*st*(1-nz2) *gn[1]
-   + ctm*st*(1+nz2) *n[0]*gn[2]
-   + 2.0*st*st*n[1]*n[2]*gn[2];
+     (st*nz2*n[1] - ct*n[0]*n[2])*gt
+   - (st*(ct+ctm*nz2)-ctm*st*(1-nz2)) *n[2]*gn[0]
+   - (ct*(ct+ctm*nz2)-st*st*(1-nz2))  *gn[1]
+   - (st*(ct-ctm*nz2)-ctm*st*(1+nz2)) *n[0]*gn[2]
+   + 2.0*(ct*ctm+st*st) *n[1]*n[2]*gn[2];
   DJDUb[2][3] =
    - st*(1 - nz2) * n[2]*gt
    + 2.0*st*(ct+ctm*nz2) *n[1]*gn[0]
    - 2.0*st*(ct+ctm*nz2) *n[0]*gn[1]
-   - ct*ctm*(1-nz2)*gn[2]
-   - st*st*(1-nz2)*gn[2];
+   - (ct*ctm+st*st)*(1-nz2)*gn[2];
 
   // d(J)/d(gn)
   DJDUXa[0][0] = -2*st;
