@@ -177,7 +177,7 @@ void fill_JG2_nt_(double Ja[DIM], double Jb[DIM],
    - st*ctm*(1-nz2)*gn[2];
 }
 
-/// Calculate spin current J = Ja/2 + Jb (as in Dmitriev's program)
+/// Calculate spin current J = Ja/2 + Jb (from Dmitriev's program)
 void fill_JGD_nt_(double J[DIM],
                  const double n[DIM], const double t,
                  const double gn[DIM], const double gt) {
@@ -298,6 +298,55 @@ void fill_DJ_nt_(double DJDUa[DIM][4],  double DJDUb[DIM][4],
   DJDUXb[2][3] = - ctm*(1 - nz2) * n[2];
 }
 
+/// Spin current derivative, D(J)/D(U), D(J)/D(U') where U = nx,ny,nz,th
+/// From Dmitriev's program
+void fill_DJD_nt_(double DJDU[DIM][4], double DJDUX[DIM][4],
+                 const double n[DIM], const double t,
+                 const double gn[DIM], const double gt){
+  double ct=cos(t), ctm=(1.0-ct), st=sin(t);
+  double nz2 = n[2]*n[2];
+
+  double DD45=n[0]*gn[1]-gn[0]*n[1];
+  double FTN=ctm*DD45-st*gn[2]-gt*n[2];
+  double CTF=ctm*FTN;
+  double STF=st*FTN;
+  double FTN4=ctm*gn[1];
+  double FTN5=-ctm*gn[0];
+  double FTN7=st*DD45-ct*gn[2];
+  double FTNX4=-ctm*n[1];
+  double FTNX5=ctm*n[0];
+  double C46=ctm*n[0]*n[2]+n[1]*st;
+  double C56=ctm*n[1]*n[2]-n[0]*st;
+  double C66=ctm*n[2]*n[2]+ct;
+  double C266=2.0-C66;
+
+  DJDU[0][0] =  2.0*gt+CTF*n[2]+C46*FTN4;
+  DJDU[0][1] =  2.0*ctm*gn[2]+STF+C46*FTN5;
+  DJDU[0][2] = -2.0*ctm*gn[1]+CTF*n[0]-C46*gt;
+  DJDU[0][3] =  2.0*(ct*gn[0]+st*(n[1]*gn[2]-gn[1]*n[2]))+STF*n[0]*n[2]+n[1]*ct*FTN+C46*FTN7;
+  DJDUX[0][0] = 2.0*st+C46*FTNX4;
+  DJDUX[0][1] =-2.0*ctm*n[2]+C46*FTNX5;
+  DJDUX[0][2] = 2.0*ctm*n[1]-C46*st;
+  DJDUX[0][3] = 2.0*n[0]-C46*n[2];
+
+  DJDU[1][0] =  -2.0*ctm*gn[2]-STF+C56*FTN4;
+  DJDU[1][1] =   2.0*gt+CTF*n[2]+C56*FTN5;
+  DJDU[1][2] =   2.0*ctm*gn[0]+CTF*n[1]-C56*gt;
+  DJDU[1][3] =   2.0*(ct*gn[1]-st*(n[0]*gn[2]-gn[0]*n[2]))+STF*n[1]*n[2]-n[0]*ct*FTN+C56*FTN7;
+  DJDUX[1][0] =  2.0*ctm*n[2]+C56*FTNX4;
+  DJDUX[1][1] =  2.0*st+C56*FTNX5;
+  DJDUX[1][2] = -2.0*ctm*n[0]-C56*st;
+  DJDUX[1][3] =  2.0*n[1]-C56*n[2];
+
+  DJDU[2][0] =   2.0*ctm*gn[1]+C66*FTN4;
+  DJDU[2][1] =  -2.0*ctm*gn[0]+C66*FTN5;
+  DJDU[2][2] =   2.0*n[2]*CTF+C266*gt;
+  DJDU[2][3] =   2.0*(ct*gn[2]+st*DD45)+ STF*(nz2-1.0)+C66*FTN7;
+  DJDUX[2][0] = -2.0*ctm*n[1]+C66*FTNX4;
+  DJDUX[2][1] =  2.0*ctm*n[0]+C66*FTNX5;
+  DJDUX[2][2] =  C266*st;
+  DJDUX[2][3] =  C266*n[2];
+}
 
 /***********************************************************/
 // Calculate gradient torques Ta, Tb (just by definition)
@@ -430,7 +479,7 @@ void fill_TG2_nt_(double Ta[DIM], double Tb[DIM],
 
 
 
-// Calculate gradient torque TD = Ta/2+Tb (as in Dmitriev's program)
+// Calculate gradient torque TD = Ta/2+Tb (from Dmitriev's program)
 void fill_TGD_nt_(double T[DIM],
                  const double n[DIM], const double t,
                  const double gn[DIM], const double gt,

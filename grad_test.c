@@ -209,6 +209,7 @@ main(){
     double dn[DIM], dgn[DIM], dt, dgt;
     double n1[DIM], gn1[DIM];
     double J0a[DIM], J0b[DIM], J1a[DIM], J1b[DIM];
+    double DIFFa[DIM], DIFFb[DIM];
     double DJDUa[DIM][4], DJDUb[DIM][4];
     double DJDUXa[DIM][4], DJDUXb[DIM][4];
     double v;
@@ -239,7 +240,7 @@ main(){
     // J1~J0~DJ~1,  dUi~D << 1
 
     FOR(i){
-      J0a[i] += dn[0]*DJDUa[i][0]
+      DIFFa[i] += dn[0]*DJDUa[i][0]
               + dn[1]*DJDUa[i][1]
               + dn[2]*DJDUa[i][2]
               + dt*DJDUa[i][3]
@@ -247,8 +248,8 @@ main(){
               + dgn[1]*DJDUXa[i][1]
               + dgn[2]*DJDUXa[i][2]
               + dgt*DJDUXa[i][3]
-              - J1a[i];
-      J0b[i] += dn[0]*DJDUb[i][0]
+              + J0a[i] - J1a[i];
+      DIFFb[i] += dn[0]*DJDUb[i][0]
               + dn[1]*DJDUb[i][1]
               + dn[2]*DJDUb[i][2]
               + dt*DJDUb[i][3]
@@ -256,10 +257,47 @@ main(){
               + dgn[1]*DJDUXb[i][1]
               + dgn[2]*DJDUXb[i][2]
               + dgt*DJDUXb[i][3]
-              - J1b[i];
+              + J0b[i] - J1b[i];
     }
-    check3z("DJa", J0a, D*D, false);
-    check3z("DJb", J0b, D*D, true);
+    check3z("DJa", DIFFa, D*D, false);
+    check3z("DJb", DIFFb, D*D, true);
+
+    // Same for Dmitriev's functions:
+// Does not work now...
+//dn[0] = 0;
+//dn[1] = 0;
+//dn[2] = 0;
+//dgn[0] = 0;
+//dgn[1] = 0;
+//dgn[2] = 0;
+//dt  = 0;
+//dgt = 0;
+    gn1[0]=gn[0]+dgn[0];
+    gn1[1]=gn[1]+dgn[1];
+    gn1[2]=gn[2]+dgn[2];
+    n1[0]=n0[0]+dn[0];
+    n1[1]=n0[1]+dn[1];
+    n1[2]=n0[2]+dn[2];
+    fill_JG0_nt_(J0a, J0b, n0, t0, gn, gt);
+    fill_JG0_nt_(J1a, J1b, n1, t0+dt, gn1, gt+dgt);
+
+    fill_DJD_nt_(DJDUa, DJDUXa, n0, t0, gn, gt);
+
+    FOR(i){
+      DIFFa[i] += dn[0]*DJDUa[i][0]
+              + dn[1]*DJDUa[i][1]
+              + dn[2]*DJDUa[i][2]
+              + dt*DJDUa[i][3]
+              + dgn[0]*DJDUXa[i][0]
+              + dgn[1]*DJDUXa[i][1]
+              + dgn[2]*DJDUXa[i][2]
+              + dgt*DJDUXa[i][3]
+              + (J0a[i] - J1a[i])/2
+              + (J0b[i] - J1b[i]);
+    }
+//    check3z("DJD", DIFFa, D*D, true);
+
+
   }
 }
 }
