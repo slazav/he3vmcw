@@ -12,7 +12,7 @@ SOLVER = pde_dp
 HE3LIB = 1
 
 
-TARGETS=vmcw grad_test grad_speed TESTS
+TARGETS=grad_tests vmcw
 
 LDLIBS= -lgfortran -lm
 FFLAGS=-I/usr/include -fno-range-check
@@ -34,6 +34,7 @@ endif
 all: $(TARGETS)
 clean:
 	rm -f $(TARGETS) *.o pdecol/*.o
+	make -C grad clean
 
 # Fortran objects
 FOBJ=pdecol/$(SOLVER).o vmcw_func.o
@@ -46,13 +47,7 @@ $(COBJ): %.o: %.cpp
 $(FOBJ): %.o: %.f
 vmcw.o: pdecol/pdecol_solver.h pnm_writer.h
 
+vmcw: $(FOBJ) $(COBJ) grad/grad.o
 
-# grad functions and tests
-grad.c grad_test.c: grad.h
-grad_test: grad_test.o grad.o
-grad_speed: grad_speed.o grad.o
-
-vmcw: $(FOBJ) $(COBJ) grad.o
-
-TESTS: grad_test
-	./grad_test
+grad_tests:
+	make -C grad
