@@ -81,9 +81,9 @@ main(){
   fill_vec_ab_(nm, am,bm);
   fill_vec_ab_(np, ap,bp);
 
-  fill_R_nt_(R0, n0,t0);
-  fill_R_nt_(Rm, nm,tm);
-  fill_R_nt_(Rp, np,tp);
+  fill_R_nt_(R0, n0,&t0);
+  fill_R_nt_(Rm, nm,&tm);
+  fill_R_nt_(Rp, np,&tp);
 
   // Make first and second-order derivatives of n, th, R
   // For small D this should be accurate:
@@ -103,7 +103,7 @@ main(){
      int a,j;
      double r0,r1;
      double gR1[DIM][DIM];
-     fill_gR_nt_(gR1, n0,t0, gn, gt);
+     fill_gR_nt_(gR1, n0, &t0, gn, &gt);
 
      // calculate difference with gR:
      FOR(a) FOR(j){
@@ -119,7 +119,7 @@ main(){
      int a,j;
      double r0,r1;
      double ggR1[DIM][DIM];
-     fill_ggR_nt_(ggR1, n0,t0, gn, gt, ggn, ggt);
+     fill_ggR_nt_(ggR1, n0, &t0, gn, &gt, ggn, &ggt);
 
      // calculate difference with gR:
      FOR(a) FOR(j){
@@ -134,8 +134,8 @@ main(){
   // test G0 vs G1
   {
     double E0a, E0b, E1a, E1b;
-    fill_EG0_nt_(&E0a, &E0b, n0, t0, gn, gt);
-    fill_EG1_nt_(&E1a, &E1b, n0, t0, gn, gt);
+    fill_EG0_nt_(&E0a, &E0b, n0, &t0, gn, &gt);
+    fill_EG1_nt_(&E1a, &E1b, n0, &t0, gn, &gt);
     check("E0a vs E1a", E0a, E1a, E, false);
     check("E0b vs E1b", E0b, E1b, E, true);
   }
@@ -144,8 +144,8 @@ main(){
   {
     int i;
     double J0a[3], J0b[3], J1a[3], J1b[3];
-    fill_JG0_nt_(J0a, J0b, n0, t0, gn, gt);
-    fill_JG1_nt_(J1a, J1b, n0, t0, gn, gt);
+    fill_JG0_nt_(J0a, J0b, n0, &t0, gn, &gt);
+    fill_JG1_nt_(J1a, J1b, n0, &t0, gn, &gt);
     check3("J0a vs J1a", J0a, J1a, E, false);
     check3("J0b vs J1b", J0b, J1b, E, true);
   }
@@ -154,8 +154,8 @@ main(){
   {
     int i;
     double J0a[3], J0b[3], J2a[3], J2b[3];
-    fill_JG0_nt_(J0a, J0b, n0, t0, gn, gt);
-    fill_JG2_nt_(J2a, J2b, n0, t0, gn, gt);
+    fill_JG0_nt_(J0a, J0b, n0, &t0, gn, &gt);
+    fill_JG2_nt_(J2a, J2b, n0, &t0, gn, &gt);
     check3("J0a vs J2a", J0a, J2a, E, false);
     check3("J0b vs J2b", J0b, J2b, E, true);
   }
@@ -164,8 +164,8 @@ main(){
   {
     int i;
     double J0a[3], J0b[3], JD[3];
-    fill_JG0_nt_(J0a, J0b, n0, t0, gn, gt);
-    fill_JGD_nt_(JD, n0, t0, gn, gt);
+    fill_JG0_nt_(J0a, J0b, n0, &t0, gn, &gt);
+    fill_JGD_nt_(JD, n0, &t0, gn, &gt);
     printf("[J0 vs JD ");
     FOR(i) check(xyz[i], J0a[i]/2 + J0b[i], JD[i], E, false);
     printf("]\n");
@@ -175,8 +175,8 @@ main(){
   {
     int i;
     double T0a[3], T0b[3], T1a[3], T1b[3];
-    fill_TG0_nt_(T0a, T0b, n0, t0, gn, gt, ggn, ggt);
-    fill_TG1_nt_(T1a, T1b, n0, t0, gn, gt, ggn, ggt);
+    fill_TG0_nt_(T0a, T0b, n0, &t0, gn, &gt, ggn, &ggt);
+    fill_TG1_nt_(T1a, T1b, n0, &t0, gn, &gt, ggn, &ggt);
     check3("T0a vs T1a", T0a, T1a, E, false);
     check3("T0b vs T1b", T0b, T1b, E, true);
   }
@@ -185,8 +185,8 @@ main(){
   {
     int i;
     double T0a[3], T0b[3], T2a[3], T2b[3];
-    fill_TG0_nt_(T0a, T0b, n0, t0, gn, gt, ggn, ggt);
-    fill_TG2_nt_(T2a, T2b, n0, t0, gn, gt, ggn, ggt);
+    fill_TG0_nt_(T0a, T0b, n0, &t0, gn, &gt, ggn, &ggt);
+    fill_TG2_nt_(T2a, T2b, n0, &t0, gn, &gt, ggn, &ggt);
     check3("T0a vs T2a", T0a, T2a, E, false);
     check3("T0b vs T2b", T0b, T2b, E, true);
   }
@@ -195,8 +195,8 @@ main(){
   {
     int i;
     double T0a[3], T0b[3], TD[3];
-    fill_TG0_nt_(T0a, T0b, n0, t0, gn, gt, ggn, ggt);
-    fill_TGD_nt_(TD, n0, t0, gn, gt, ggn, ggt);
+    fill_TG0_nt_(T0a, T0b, n0, &t0, gn, &gt, ggn, &ggt);
+    fill_TGD_nt_(TD, n0, &t0, gn, &gt, ggn, &ggt);
     printf("[T0 vs TD: ");
     FOR(i) check(xyz[i], T0a[i]/2 + T0b[i], TD[i], E, false);
     printf("]\n");
@@ -207,7 +207,7 @@ main(){
   // that J(n+dn) = J(n) + dJ/dn dn
   {
     double dn[DIM], dgn[DIM], dt, dgt;
-    double n1[DIM], gn1[DIM];
+    double n1[DIM], gn1[DIM], t1, gt1;
     double J0a[DIM], J0b[DIM], J1a[DIM], J1b[DIM];
     double DIFFa[DIM], DIFFb[DIM];
     double DIFFax[DIM], DIFFbx[DIM];
@@ -250,9 +250,12 @@ main(){
     n1[0]=n0[0]+dn[0];
     n1[1]=n0[1]+dn[1];
     n1[2]=n0[2]+dn[2];
-    fill_JG0_nt_(J0a, J0b, n0, t0, gn, gt);
-    fill_JG0_nt_(J1a, J1b, n1, t0+dt, gn1, gt+dgt);
-    fill_DJ_nt_(Da, Db, DZa, DZb, n0, t0, gn, gt);
+    t1 = t0 + dt;
+    gt1 = gt + dgt;
+
+    fill_JG0_nt_(J0a, J0b, n0, &t0, gn, &gt);
+    fill_JG0_nt_(J1a, J1b, n1, &t1, gn1, &gt1);
+    fill_DJ_nt_(Da, Db, DZa, DZb, n0, &t0, gn, &gt);
 
     // compare J1 - J0 with sum(DJ_i*dUi)
     // J1~J0~DJ~1,  dUi~D << 1
@@ -287,7 +290,7 @@ main(){
       dgtn[i] = gn[i]*dt + gt*dn[i] + n0[i]*dgt + t0*dgn[i];
     }
 
-    fill_DJ_t_(NDa, NDb, NDZa, NDZb, n0, t0, gn, gt);
+    fill_DJ_t_(NDa, NDb, NDZa, NDZb, n0, &t0, gn, &gt);
     FOR(i){
       DIFFa[i]  = dtn[0]*NDa[i][0]
                 + dtn[1]*NDa[i][1]
@@ -308,7 +311,7 @@ main(){
     check3("DJb(nt)", DIFFb, DIFFbx, D, true);
 
     // Same for Dmitriev's functions:
-    fill_DJD_nt_(Da, DZa, n0, t0, gn, gt);
+    fill_DJD_nt_(Da, DZa, n0, &t0, gn, &gt);
 
     FOR(i){
       DIFFa[i] = dn[0]*Da[i][0]

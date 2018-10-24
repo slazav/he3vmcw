@@ -101,95 +101,95 @@ inline void fill_vec_urnd_(double v[DIM]){
 
 /***********************************************************/
 /// Fill a rotation matrix using rotation axis (n) and rotation angle (theta)
-void fill_R_nt_(double R[DIM][DIM], const double n[DIM], const double th);
+void fill_R_nt_(double R[DIM][DIM], const double n[DIM], const double *th);
 
 /// calculate rotation matrix gradient in n and theta coordinates
 void fill_gR_nt_(double gR[DIM][DIM],
-                     const double n[DIM], const double t,
-                     const double gn[DIM], const double gt);
+                     const double n[DIM], const double *t,
+                     const double gn[DIM], const double *gt);
 
 // calculate rotation matrix double gradient in n and theta coordinates
 void fill_ggR_nt_(double ggR[DIM][DIM],
-                     const double n[DIM], const double t,
-                     const double gn[DIM], const double gt,
-                     const double ggn[DIM], const double ggt);
+                     const double n[DIM], const double *t,
+                     const double gn[DIM], const double *gt,
+                     const double ggn[DIM], const double *ggt);
 
 /***********************************************************/
 /// Calculate gradient energies Ea, Eb (just by definition)
 void fill_EG0_nt_(double *Ea, double *Eb,
-                 const double n[DIM], const double t,
-                 const double gn[DIM], const double gt);
+                 const double n[DIM], const double *t,
+                 const double gn[DIM], const double *gt);
 
 /// Calculate gradient energies Ea, Eb (v1, for n,th)
 void fill_EG1_nt_(double *Ea, double *Eb,
-                 const double n[DIM], const double t,
-                 const double gn[DIM], const double gt);
+                 const double n[DIM], const double *t,
+                 const double gn[DIM], const double *gt);
 
 /***********************************************************/
 /// Calculate spin currents Ja, Jb (just by definition)
 void fill_JG0_nt_(double Ja[DIM], double Jb[DIM],
-                 const double n[DIM], const double t,
-                 const double gn[DIM], const double gt);
+                 const double n[DIM], const double *t,
+                 const double gn[DIM], const double *gt);
 
 /// Calculate spin currents Ja, Jb (v1 - for n,th)
 void fill_JG1_nt_(double Ja[DIM], double Jb[DIM],
-                 const double n[DIM], const double t,
-                 const double gn[DIM], const double gt);
+                 const double n[DIM], const double *t,
+                 const double gn[DIM], const double *gt);
 
 /// Calculate spin currents Ja, Jb (v2 - in coordinates)
 void fill_JG2_nt_(double Ja[DIM], double Jb[DIM],
-                 const double n[DIM], const double t,
-                 const double gn[DIM], const double gt);
+                 const double n[DIM], const double *t,
+                 const double gn[DIM], const double *gt);
 
 /// Calculate spin current J = Ja/2 + Jb (from Dmitriev's program)
 void fill_JGD_nt_(double J[DIM],
-                 const double n[DIM], const double t,
-                 const double gn[DIM], const double gt);
+                 const double n[DIM], const double *t,
+                 const double gn[DIM], const double *gt);
 
 /***********************************************************/
 /// Spin current derivative, D(J)/D(U), D(J)/D(U') where U = nx,ny,nz,th
 void fill_DJ_nt_(double DJDUa[DIM][4],  double DJDUb[DIM][4],
                  double DJDUZa[DIM][4], double DJDUZb[DIM][4],
-                 const double n[DIM], const double t,
-                 const double gn[DIM], const double gt);
+                 const double n[DIM], const double *t,
+                 const double gn[DIM], const double *gt);
 
 /// Spin current derivative, D(J)/D(U), D(J)/D(U') where U = nx,ny,nz,th
 /// From Dmitriev's program
 void fill_DJD_nt_(double DJDU[DIM][4], double DJDUZ[DIM][4],
-                 const double n[DIM], const double t,
-                 const double gn[DIM], const double gt);
+                 const double n[DIM], const double *t,
+                 const double gn[DIM], const double *gt);
 
 /// Spin current derivative, D(J)/D(U), D(J)/D(U') where U = tnx,tny,tnz
 void fill_DJ_t_(double DJDUa[DIM][DIM],  double DJDUb[DIM][DIM],
                 double DJDUZa[DIM][DIM], double DJDUZb[DIM][DIM],
-                const double n[DIM], const double t,
-                const double gn[DIM], const double gt);
+                const double n[DIM], const double *t,
+                const double gn[DIM], const double *gt);
 
 /***********************************************************/
 /// Calculate gradient torques Ta, Tb (just by definition)
 /// T = -\nabla J
 void fill_TG0_nt_(double Ta[DIM], double Tb[DIM],
-                 const double n[DIM], const double t,
-                 const double gn[DIM], const double gt,
-                 const double ggn[DIM], const double ggt);
+                 const double n[DIM], const double *t,
+                 const double gn[DIM], const double *gt,
+                 const double ggn[DIM], const double *ggt);
 
 // Calculate gradient torques Ta, Tb (v1, in n and th)
 void fill_TG1_nt_(double Ta[DIM], double Tb[DIM],
-                 const double n[DIM], const double t,
-                 const double gn[DIM], const double gt,
-                 const double ggn[DIM], const double ggt);
+                 const double n[DIM], const double *t,
+                 const double gn[DIM], const double *gt,
+                 const double ggn[DIM], const double *ggt);
 
 // Calculate gradient torques Ta, Tb (v2, in conponents)
 void fill_TG2_nt_(double Ta[DIM], double Tb[DIM],
-                 const double n[DIM], const double t,
-                 const double gn[DIM], const double gt,
-                 const double ggn[DIM], const double ggt);
+                 const double n[DIM], const double *t,
+                 const double gn[DIM], const double *gt,
+                 const double ggn[DIM], const double *ggt);
 
 // Calculate gradient torque TD = Ta/2+Tb (from Dmitriev's program)
 void fill_TGD_nt_(double T[DIM],
-                 const double n[DIM], const double t,
-                 const double gn[DIM], const double gt,
-                 const double ggn[DIM], const double ggt);
+                 const double n[DIM], const double *t,
+                 const double gn[DIM], const double *gt,
+                 const double ggn[DIM], const double *ggt);
 
 
 }// extern
