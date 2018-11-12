@@ -70,7 +70,7 @@ pnm_writer_t::write(const std::vector<double> & zsol,
     // if it is the first line
     if (H==0){
       ss.seekp(0);
-      W = NPTS*2+1;
+      W = NPTS*3+2;
       ss << "P6\n" << W << " ";
       width_pos = ss.tellp();
       ss << "                  \n255\n";
@@ -83,6 +83,8 @@ pnm_writer_t::write(const std::vector<double> & zsol,
     }
 
     double smx=0, smy=0, smz=0, sz = 0;
+
+    // M direction panel
     for (int i=0; i<NPTS; i++){
 
       double mx,my,mz;
@@ -104,6 +106,7 @@ pnm_writer_t::write(const std::vector<double> & zsol,
     }
     ss << ck << ck << ck;
 
+    // N direction panel
     for (int i=0; i<NPTS; i++){
       double nx = usol[i*NPDE+3];
       double ny = usol[i*NPDE+4];
@@ -113,12 +116,34 @@ pnm_writer_t::write(const std::vector<double> & zsol,
          << ((char)((col>>8)&0xFF))
          << ((char)(col&0xFF));
     }
+    ss << ck << ck << ck;
+
+    // Th panel
+    for (int i=0; i<NPTS; i++){
+      double th;
+      if (NPDE == 7) {
+        th = usol[i*NPDE+6];
+      }
+      else {
+        double nx = usol[i*NPDE+3];
+        double ny = usol[i*NPDE+4];
+        double nz = usol[i*NPDE+5];
+        th = sqrt(nx*nx+ny*ny+nz*nz);
+      }
+      int col = vec_to_cal(cos(th),sin(th),1);
+      ss << ((char)((col>>16)&0xFF))
+         << ((char)((col>>8)&0xFF))
+         << ((char)(col&0xFF));
+    }
+
     H++;
     ss.seekp(width_pos);
     ss << H;
     return;
   }
 
+
+  // TODO
   if (type==WRITER_TXT){
 
     // print header
