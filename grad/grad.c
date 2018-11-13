@@ -354,6 +354,7 @@ void fill_djd_nt_(double DJDU[DIM][4], double DJDUZ[DIM][4],
     DJDU[i][j] = -DJDU[i][j];
     DJDUZ[i][j] = -DJDUZ[i][j];
   }
+
 }
 
 /***********************************************************/
@@ -565,5 +566,30 @@ void fill_tgd_nt_(double T[DIM],
         (ctm*n[2]*n[2]+ct)*DFTN+(st*(*gt)*n[2]*n[2]+
         ctm*2.0*n[2]*gn[2]-st*(*gt))*FTN;
 }
+
+
+/***********************************************************/
+/// Calculate components of L=S*R (just by definition)
+void fill_l0_nt_(double L[DIM], const double S[DIM], const double n[DIM], const double *t){
+  int a,j;
+  double R[DIM][DIM];
+  fill_r_nt_(R,n,t);
+  fill_vec_zero_(L);
+
+  FOR(a) FOR(j) L[j] += R[a][j]*S[a];
+
+}
+
+/// Calculate gradient energies Ea, Eb (v1, for n,th)
+void fill_l1_nt_(double L[DIM], const double S[DIM], const double n[DIM], const double *t){
+  int a,j;
+  double nxS[DIM];
+  double ct=cos(*t), ctm=(1.0-ct), st=sin(*t);
+  double nS = n[0]*S[0]+n[1]*S[1]+n[2]*S[2];
+  fill_vxv_(nxS, n, S);
+
+  FOR(j) L[j] = ct*S[j] + ctm*n[j]*nS - st*nxS[j];
+}
+
 
 } // extern
