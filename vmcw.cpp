@@ -10,8 +10,8 @@
 #include "pdecol/pdecol_solver.h"
 #include "pnm_writer.h"
 
-/* Number of equations. Can not be changed. */
-const int npde = 6;
+/* Number of equations. 6 or 7. */
+const int npde = 7;
 
 /* How many derivatives to calculate. Can not be changed. */
 const int nder = 3;
@@ -126,7 +126,7 @@ struct pars_t {
   // non-uniform mesh step: cell_len/(NPTS-1) / (1+xmesh_k*aer_step(x)')
   // 0 means that mesh is uniform
   // 1 means that mesh is twice mere dense if aerogel step derivatve is 1
-  double xmesh_k = 0.2;
+  double xmesh_k = 1;
 
   // non-uniform mesh accuracy
   double xmesh_acc = 1e-10;
@@ -214,6 +214,38 @@ save_mesh(const std::vector<double> &x,
   }
 }
 
+// Adaptive mesh
+void
+set_adaptive_mesh(std::vector<double> & x){
+  if (!pp.solver) return;
+  if (x.size() < 2) return;
+
+  // start with homogenious mesh with dx intervals
+  int N = x.size();
+  double dx = pp.cell_len/(N-1);
+  x[0] = -pp.cell_len/2.0;
+  for (int k=0; k<100; k++){
+    for (int i=0; i<N-1; i++){
+
+      std::vector<double> xsol(1, x[i]);
+      std::vector<double> usol = pp.solver->values(xsol, nder);
+      double w=0; // weight
+      for (int j=0; j<npde; j++){
+        w+= 1;
+        w+= pow( pp.solver->get_value(usol, xsol.size(), 0, j, 1), 2);
+      }
+      w = sqrt(w);
+
+      x[i+1] = x[i] + dx/(1.0+pp.xmesh_k*fabs(w));
+    }
+    // scale the whole mesh to fit cell_len
+    double d = pp.cell_len - (x[N-1]-x[0]);
+    dx+=d/(N+1);
+    if (fabs(d)<pp.xmesh_acc) break;
+  }
+}
+
+
 /******************************************************************/
 // Set parameters for Leggett equations using main parameter structure.
 // This functions are called from F and BNDRY
@@ -242,10 +274,10 @@ extern "C" {
     }
   }
 
-  void set_bndry_pars_(double *t, double *x, double *W0,
+  void set_bndry_pars_(double *t, double *x, double *Wz,
                  double *Cpar, double *Diff, int *IBN){
 
-    *W0 = 2*M_PI*pp.f0;
+    *Wz = 2*M_PI*pp.f0 + pp.gyro*(pp.H0 + pp.HG*(*x) + pp.HQ*(*x)*(*x) + pp.HT*(*t));
     *Cpar = pp.CP0 + pp.CPT*(*t);
     *Diff = pp.DF0 + pp.DFT*(*t);
 
@@ -263,13 +295,23 @@ extern "C" {
 /// UINIT function called from pdecol
 extern "C" {
   void uinit_(double *x, double u[], int *n){
+
     // default
     u[0] = 0.0; // Mx
     u[1] = 0.0; // My
     u[2] = 1.0; // Mz
-    u[3] = 0.0; // nx*th
-    u[4] = 0.0; // ny*th
-    u[5] = acos(-0.25); // nz*th
+    if (npde == 7) {
+      u[3] = 0.0; // nx
+      u[4] = 0.0; // ny
+      u[5] = 1.0; // nz
+      u[6] = acos(-0.25); // th
+    }
+    else {
+      u[3] = 0.0; // nx*th
+      u[4] = 0.0; // ny*th
+      u[5] = acos(-0.25); // nz*th
+    }
+
 
     double w; // width
     double p; // -1..1
@@ -418,43 +460,59 @@ class Err {
 // make uniform initial conditions in init_data
 void
 init_data_uniform(const double mx, const double my, const double mz,
-                  const double ntx, const double nty, const double ntz,
+                  const double nx, const double ny, const double nz,
                   const double th = acos(-0.25)) {
   pp.init_data.resize(7);
   pp.init_data[0]=0;
   pp.init_data[1]=mx;
   pp.init_data[2]=my;
   pp.init_data[3]=mz;
-  pp.init_data[4]=ntx;
-  pp.init_data[5]=nty;
-  pp.init_data[6]=ntz;
+  if (npde == 7) {
+    pp.init_data[4]=nx;
+    pp.init_data[5]=ny;
+    pp.init_data[6]=nz;
+    pp.init_data[7]=th;
+  }
+  else {
+    pp.init_data[4]=nx*th;
+    pp.init_data[5]=ny*th;
+    pp.init_data[6]=nz*th;
+  }
 }
 
 // make initial conditions with a simple soliton in init_data
-// if width is negative, swap left and right
 // width >0 does not work yet (vectors do not rotate!)
 void
 init_data_soliton(double w, // soliton width
                   double mx1, double mx2, // mx on the left and write side
                   double my1, double my2, // my on the left and write side
                   double mz1, double mz2, // mz on the left and write side
-                  double ntx1, double ntx2, // nx*th on the left and write side
-                  double nty1, double nty2, // ny*th on the left and write side
-                  double ntz1, double ntz2  // nz*th on the left and write side
+                  double nx1, double nx2, // nx on the left and write side
+                  double ny1, double ny2, // ny on the left and write side
+                  double nz1, double nz2, // nz on the left and write side
+                  double th1, double th2  // th on the left and write side
                  ) {
   if (w<0){
     w=-w;
-    std::swap(mx1,mx2); std::swap(my1,my2);  std::swap(mz1,mz2); 
-    std::swap(ntx1,ntx2); std::swap(nty1,nty2);  std::swap(ntz1,ntz2); 
+    std::swap(mx1,mx2); std::swap(my1,my2); std::swap(mz1,mz2);
+    std::swap(nx1,nx2); std::swap(ny1,ny2); std::swap(nz1,nz2); std::swap(th1,th2);
   }
   pp.init_data.resize(14);
-  pp.init_data[0]=-w/2; pp.init_data[ 7]=+w/2;
-  pp.init_data[1]=mx1;  pp.init_data[ 8]=mx2;
-  pp.init_data[2]=my1;  pp.init_data[ 9]=my2;
-  pp.init_data[3]=mz1;  pp.init_data[10]=mz2;
-  pp.init_data[4]=ntx1; pp.init_data[11]=ntx2;
-  pp.init_data[5]=nty1; pp.init_data[12]=nty2;
-  pp.init_data[6]=ntz1; pp.init_data[13]=ntz2;
+  pp.init_data[0]=-w/2; pp.init_data[npde+1+0]=+w/2;
+  pp.init_data[1]=mx1;  pp.init_data[npde+1+1]=mx2;
+  pp.init_data[2]=my1;  pp.init_data[npde+1+2]=my2;
+  pp.init_data[3]=mz1;  pp.init_data[npde+1+3]=mz2;
+  if (npde==7){
+    pp.init_data[4]=nx1; pp.init_data[npde+1+4]=nx2;
+    pp.init_data[5]=ny1; pp.init_data[npde+1+5]=ny2;
+    pp.init_data[6]=nz1; pp.init_data[npde+1+6]=nz2;
+    pp.init_data[7]=th1; pp.init_data[npde+1+7]=th2;
+  }
+  else {
+    pp.init_data[4]=nx1*th1; pp.init_data[npde+1+4]=nx2*th2;
+    pp.init_data[5]=ny1*th1; pp.init_data[npde+1+5]=ny2*th2;
+    pp.init_data[6]=nz1*th1; pp.init_data[npde+1+6]=nz2*th2;
+  }
 }
 
 // set HPD initial condition (RF-field, freq shift, Leggett-Takagi relaxation is used).
@@ -491,22 +549,30 @@ init_data_hpd(int sn=1, int st=1){
     double wx = ny*sin(th);
     double wy = b/h*nz*nz*wt;
 
-    pp.init_data[8*i+0] = x[i];
-    pp.init_data[8*i+1] = wx + h;
-    pp.init_data[8*i+2] = wy;
-    pp.init_data[8*i+3] = wz - d;
-    pp.init_data[8*i+4] = nx*th;
-    pp.init_data[8*i+5] = ny*th;
-    pp.init_data[8*i+6] = nz*th;
-//std::cout <<  x[i]
-//  << "  " << wx + h << " " << wy << " " << wz - d
-//  << "  " << nx << " " << ny << " " << nz  << " "  << th
-//  << "   " << d << " " << h << " " <<  b << " " << wt << "\n";
+    pp.init_data[(npde+1)*i+0] = x[i];
+    pp.init_data[(npde+1)*i+1] = wx + h;
+    pp.init_data[(npde+1)*i+2] = wy;
+    pp.init_data[(npde+1)*i+3] = wz - d;
+    if (npde == 7){
+      pp.init_data[(npde+1)*i+4] = nx;
+      pp.init_data[(npde+1)*i+5] = ny;
+      pp.init_data[(npde+1)*i+6] = nz;
+      pp.init_data[(npde+1)*i+7] = th;
+    }
+    else {
+      pp.init_data[(npde+1)*i+4] = nx*th;
+      pp.init_data[(npde+1)*i+5] = ny*th;
+      pp.init_data[(npde+1)*i+6] = nz*th;
+    }
   }
 }
 
 
-// save current profile to init_data
+// Save current profile to init_data.
+// With this function one can do things like this:
+// - with a running solver change npts
+// - save functions to init_data
+// - start new solver with new npts and old data as initial conditions
 void
 init_data_save(pdecol_solver *solver) {
 
@@ -761,7 +827,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         check_nargs(narg, 0, 1);
         int nz = narg>0 ? get_arg<int>(args[0]) : 1;
         nz = nz>=0? 1:-1;
-        init_data_uniform(0,0,1, 0,0,acos(-0.25));
+        init_data_uniform(0,0,1, 0,0,1, acos(-0.25));
         continue;
       }
 
@@ -771,7 +837,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         int ny = narg>0 ? get_arg<int>(args[0]) : 1;
         ny = ny>=0? 1:-1;
 //        double th = acos(-0.25);
-//        init_data_uniform(ny*sin(th),0,cos(th), 0,ny,0);
+//        init_data_uniform(ny*sin(th),0,cos(th), 0,ny,0, th);
         init_data_hpd(ny);
         continue;
       }
@@ -781,7 +847,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         double th = M_PI+1.298;
         double mx=0.923,  my=-0.305, mz=-sqrt(1-mx*mx-my*my);
         double nx=-0.482, ny=-0.859, nz=-sqrt(1-nx*nx-ny*ny);
-        init_data_uniform(mx,my,mz,nx*th,ny*th,nz*th);
+        init_data_uniform(mx,my,mz,nx,ny,nz,th);
         continue;
       }
 
@@ -791,7 +857,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         double w = get_one_arg<double>(args);
         double th = acos(-0.25);
         init_data_soliton(w, 0,0, 0,0, 1,1,
-                             0,0, 0,0, -th,th);
+                             0,0, 0,0, 1,1, -th,th);
         continue;
       }
 
@@ -800,7 +866,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         double w = get_one_arg<double>(args);
         double th = acos(-0.25);
         init_data_soliton(w, 0,0, 0,0, 1,1,
-                             0,0, 0,0, -th,th);
+                             0,0, 0,0, 1,1, -th,th);
         continue;
       }
 
@@ -810,17 +876,17 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         check_nargs(narg, 1, 2);
         std::string type = args[0];
         if (type == "NPD"){
-          init_data_uniform(0,0,1, 0,0,th0);
+          init_data_uniform(0,0,1, 0,0,1, th0);
           break;
         }
         if (type == "NPD-"){
-          init_data_uniform(0,0,1, 0,0,-th0);
+          init_data_uniform(0,0,1, 0,0,1, -th0);
           break;
         }
         if (type == "th_soliton"){
           double w = (narg<2)? 0.01 : get_arg<double>(args[1]);
           init_data_soliton(w, 0,0, 0,0, 1,1,
-                               0,0, 0,0, th0, 2*M_PI-th0);
+                               0,0, 0,0, 1,1, th0, 2*M_PI-th0);
           break;
         }
 
@@ -843,16 +909,19 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
           double mx = pp.init_data[i*(npde+1) + 1];
           double my = pp.init_data[i*(npde+1) + 2];
           double mz = pp.init_data[i*(npde+1) + 3];
-          double ntx = pp.init_data[i*(npde+1) + 4];
-          double nty = pp.init_data[i*(npde+1) + 5];
-          double ntz = pp.init_data[i*(npde+1) + 6];
-
           double mm = sqrt(mx*mx + my*my + mz*mz);
           double am = atan2(my,mx);
           double bm = acos(mz/mm);
-          double th = sqrt(ntx*ntx + nty*nty + ntz*ntz);
-          double an = atan2(nty,ntx);
-          double bn = acos(ntz/th);
+
+          double nx,ny,nz,th;
+          nx = pp.init_data[i*(npde+1) + 4];
+          ny = pp.init_data[i*(npde+1) + 5];
+          nz = pp.init_data[i*(npde+1) + 6];
+          th = sqrt(nx*nx + ny*ny + nz*nz);
+          nx/=th; ny/=th; nz/=th;
+          double an = atan2(ny,nx);
+          double bn = acos(nz);
+          if (npde==7) th = pp.init_data[i*(npde+1) + 7];
 
           // trivial
           if (type == "0") break;
@@ -1017,9 +1086,9 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
           }
 
 
-          ntx = th*sin(bn)*cos(an);
-          nty = th*sin(bn)*sin(an);
-          ntz = th*cos(bn);
+          nx = sin(bn)*cos(an);
+          ny = sin(bn)*sin(an);
+          nz = cos(bn);
 
           mx = mm*sin(bm)*cos(am);
           my = mm*sin(bm)*sin(am);
@@ -1029,12 +1098,56 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
           pp.init_data[i*(npde+1) + 1] = mx;
           pp.init_data[i*(npde+1) + 2] = my;
           pp.init_data[i*(npde+1) + 3] = mz;
-          pp.init_data[i*(npde+1) + 4] = ntx;
-          pp.init_data[i*(npde+1) + 5] = nty;
-          pp.init_data[i*(npde+1) + 6] = ntz;
+          if (npde==7) {
+            pp.init_data[i*(npde+1) + 4] = nx;
+            pp.init_data[i*(npde+1) + 5] = ny;
+            pp.init_data[i*(npde+1) + 6] = nz;
+            pp.init_data[i*(npde+1) + 7] = th;
+          }
+          else {
+            pp.init_data[i*(npde+1) + 4] = nx*th;
+            pp.init_data[i*(npde+1) + 5] = ny*th;
+            pp.init_data[i*(npde+1) + 6] = nz*th;
+          }
        }
         pp.solver->restart();
         continue;
+      }
+
+      if (cmd == "adaptive_mesh") {
+        if (!pp.solver) throw Err() << "solver is not running";
+        check_nargs(narg, 0);
+
+        // destroy all writers
+        pp.pnm_writers.clear();
+
+        // initialize new mesh and fill init_data
+        std::vector<double> xbrpt(pp.npts);
+        set_adaptive_mesh(xbrpt);
+//        set_mesh(xbrpt);
+
+        std::vector<double> usol = pp.solver->values(xbrpt, 0); // no derivatives!
+        pp.init_data = std::vector<double>(xbrpt.size()*(npde+1));
+        //print values
+        for (int i=0; i< xbrpt.size(); i++){
+          pp.init_data[i*(npde+1)] = xbrpt[i]/pp.solver->get_xlen();
+          for (int n = 0; n<npde; n++)
+            pp.init_data[i*(npde+1)+n+1] = pp.solver->get_value(usol, xbrpt.size(), i, n, 0);
+        }
+
+
+//        pp.solver = new pdecol_solver(pp.tcurr, pp.mindt, pp.acc, xbrpt, npde);
+//        if (!pp.solver) throw Err() << "can't create solver";
+
+        pp.solver->restart();
+
+        // save the mesh
+        std::ostringstream ss;
+        ss << pp.pref << ".mesh" << pp.cnt_mesh << ".dat";
+        save_mesh(xbrpt, ss.str());
+        pp.cnt_mesh++;
+        continue;
+
       }
 
       /*******************************************************/
@@ -1275,7 +1388,8 @@ try{
     // do the next step
     if (pp.solver) {
       pp.tcurr += pp.tstep;
-      pp.solver->step(pp.tcurr, (pp.tcurr>=pp.tend));
+//      pp.solver->step(pp.tcurr, (pp.tcurr>=pp.tend));
+      pp.solver->step(pp.tcurr, false);
 
       // build mesh using current value for npts
       std::vector<double> xsol(pp.npts);
