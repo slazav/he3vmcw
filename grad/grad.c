@@ -580,7 +580,7 @@ void fill_l0_nt_(double L[DIM], const double S[DIM], const double n[DIM], const 
 
 }
 
-/// Calculate gradient energies Ea, Eb (v1, for n,th)
+/// Calculate components of L=S*R
 void fill_l1_nt_(double L[DIM], const double S[DIM], const double n[DIM], const double *t){
   int a,j;
   double nxS[DIM];
@@ -589,6 +589,61 @@ void fill_l1_nt_(double L[DIM], const double S[DIM], const double n[DIM], const 
   fill_vxv_(nxS, n, S);
 
   FOR(j) L[j] = ct*S[j] + ctm*n[j]*nS - st*nxS[j];
+}
+
+
+/// Calculate derivatives dL/dS,dL/dN,dL/dTh
+void fill_dl_nt_(double DL[DIM][7], const double S[DIM], const double n[DIM], const double *t){
+  int a,j;
+  double nxS[DIM];
+  double ct=cos(*t), ctm=(1.0-ct), st=sin(*t);
+  double nS = n[0]*S[0]+n[1]*S[1]+n[2]*S[2];
+  double dd[DIM][DIM];
+  double eS[DIM][DIM];
+  double en[DIM][DIM];
+  fill_dd_(dd);
+  fill_en_(eS, S);
+  fill_en_(en, n);
+  fill_vxv_(nxS, n, S);
+
+  // dL_j/dS_a = R[a][j]
+  FOR(a) FOR(j) DL[j][a] = ct*dd[a][j] + (1.-ct)*n[a]*n[j] - st*en[a][j];
+
+  // dL_j/dn_a
+  FOR(a) FOR(j) DL[j][a+3] = ctm*(S[a]*n[j] + nS*dd[j][a]) - st*eS[j][a];
+
+  // dL_j/dth
+  FOR(j) DL[j][6] = st*(n[j]*nS - S[j]) - ct*nxS[j];
+}
+
+/// Calculate derivatives dL/dS,dL/dNTh
+void fill_dl_t_(double DL[DIM][6], const double S[DIM], const double n[DIM], const double *t){
+  int a,j;
+  double nxS[DIM];
+  double ct=cos(*t), ctm=(1.0-ct), st=sin(*t);
+  double nS = n[0]*S[0]+n[1]*S[1]+n[2]*S[2];
+  double dd[DIM][DIM];
+  double eS[DIM][DIM];
+  double en[DIM][DIM];
+  fill_dd_(dd);
+  fill_en_(eS, S);
+  fill_en_(en, n);
+  fill_vxv_(nxS, n, S);
+
+  // dL_j/dS_a = R[a][j]
+  FOR(a) FOR(j) DL[j][a] = ct*dd[a][j] + (1.-ct)*n[a]*n[j] - st*en[a][j];
+
+  // dL_j/dnth_a = dL_j/dn_b * dn_b/dnth_a + dL_j/dth * dth/dnth_a
+  //             = dL_j/dn_b * (d[a][b] - n[a]*n[b])/th + dL_j/dth * n[a]
+  FOR(a) FOR(j) DL[j][a+3] =
+      (ctm*(S[a]*n[j] + nS*dd[j][a] - 2.0*nS*n[j]*n[a]) - st*eS[j][a])/(*t)
+     + st*(n[j]*nS - S[j])*n[a] + st*nxS[j]*n[a]/(*t);
+
+
+  FOR(a) FOR(j) DL[j][a+3] =
+      ctm/(*t)*(S[a]*n[j] + nS*dd[j][a] - 2.0*nS*n[j]*n[a])
+     - st/(*t)*(eS[j][a] - nxS[j]*n[a])
+     + (st*(n[j]*nS - S[j]) - ct*nxS[j])*n[a];
 }
 
 

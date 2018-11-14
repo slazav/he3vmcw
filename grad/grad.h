@@ -195,8 +195,14 @@ void fill_tgd_nt_(double T[DIM],
 /// Calculate components of L=S*R (just by definition)
 void fill_l0_nt_(double L[DIM], const double S[DIM], const double n[DIM], const double *t);
 
-/// Calculate gradient energies Ea, Eb (v1, for n,th)
+/// Calculate components of L=S*R (just by definition)
 void fill_l1_nt_(double L[DIM], const double S[DIM], const double n[DIM], const double *t);
+
+/// Calculate derivatives dL/dS,dL/dN,dL/dTh
+void fill_dl_nt_(double DL[DIM][7], const double S[DIM], const double n[DIM], const double *t);
+
+/// Calculate derivatives dL/dS,dL/dNTh
+void fill_dl_t_(double DL[DIM][6], const double S[DIM], const double n[DIM], const double *t);
 
 /***********************************************************/
 

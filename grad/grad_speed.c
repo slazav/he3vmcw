@@ -20,6 +20,7 @@ main(){
   double a0, b0, t0, n0[DIM], R0[DIM][DIM];
   double am, bm, tm, nm[DIM], Rm[DIM][DIM];
   double ap, bp, tp, np[DIM], Rp[DIM][DIM];
+  double as, bs, s0[DIM];
 
   double gn[DIM], gt, gR[DIM][DIM], ga, gb;
   double ggn[DIM], ggt, ggR[DIM][DIM];
@@ -47,6 +48,11 @@ main(){
   fill_vec_ab_(n0, a0,b0);
   fill_vec_ab_(nm, am,bm);
   fill_vec_ab_(np, ap,bp);
+
+
+  as = 2*M_PI*drand48();
+  bs = M_PI*drand48();
+  fill_vec_ab_(s0, as,bs);
 
 
   // test G
@@ -132,12 +138,44 @@ main(){
     t1 = get_time();
     for (i=0; i<N; i++) fill_dj_t_(Dta, Dtb, DZta, DZtb, n0, &t0, gn, &gt);
     t1 = get_time() - t1;
-    printf("DJT: %7.3f us\n", (double)t1/(double)N);
+    printf("DJ(nt): %7.3f us\n", (double)t1/(double)N);
 
     t1 = get_time();
     for (i=0; i<N; i++) fill_djd_nt_(Da, DZa, n0, &t0, gn, &gt);
     t1 = get_time() - t1;
     printf("DJD: %7.3f us\n", (double)t1/(double)N);
+  }
+
+  // test L
+  {
+    double L[DIM];
+
+    t1 = get_time();
+    for (i=0; i<N; i++) fill_l0_nt_(L, s0, n0, &t0);
+    t1 = get_time() - t1;
+    printf("L0:  %7.3f us\n", (double)t1/(double)N);
+
+    t1 = get_time();
+    for (i=0; i<N; i++) fill_l1_nt_(L, s0, n0, &t0);
+    t1 = get_time() - t1;
+    printf("L1:  %7.3f us\n", (double)t1/(double)N);
+
+  }
+
+  // test DL
+  {
+    double DL6[DIM][6], DL7[DIM][7];
+
+    t1 = get_time();
+    for (i=0; i<N; i++) fill_dl_nt_(DL7, s0, n0, &t0);
+    t1 = get_time() - t1;
+    printf("DL:  %7.3f us\n", (double)t1/(double)N);
+
+    t1 = get_time();
+    for (i=0; i<N; i++) fill_dl_t_(DL6, s0, n0, &t0);
+    t1 = get_time() - t1;
+    printf("DL(nt):  %7.3f us\n", (double)t1/(double)N);
+
   }
 
 

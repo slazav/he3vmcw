@@ -327,5 +327,103 @@ main(){
     }
     check3("DJD", DIFFa, DIFFax, D, true);
   }
+
+  // check L
+  {
+     int i;
+     double an,bn,am,bm,th;
+     double S[DIM], n[DIM];
+     double L0[DIM];
+     double L1[DIM];
+
+     th = M_PI*(2*drand48()-1);
+     an = 2*M_PI*drand48();
+     bn = M_PI*drand48();
+     am = 2*M_PI*drand48();
+     bm = M_PI*drand48();
+
+     fill_vec_ab_(n, an,bn);
+     fill_vec_ab_(S, am,bm);
+
+     fill_l0_nt_(L0, S, n, &th);
+     fill_l1_nt_(L1, S, n, &th);
+
+     check3("L0 vs L1", L0, L1, E, true);
+  }
+
+  // check dL/dS, dn, dth
+  {
+    double an,bn,am,bm;
+    double n0[DIM], S0[DIM], t0;
+    double n1[DIM], S1[DIM], t1;
+    double dn[DIM], dS[DIM], dt, v;
+    double dtn[DIM];
+    double L0[DIM], L1[DIM];
+    double DL7[DIM][7];
+    double DL6[DIM][6];
+    double DIFF[DIM], DIFF1[DIM];
+
+    D=1e-6; // D^2 should be large enough to be visible in J~1
+
+    t0 = M_PI*(2*drand48()-1);
+    an = 2*M_PI*drand48();
+    bn = M_PI*drand48();
+    am = 2*M_PI*drand48();
+    bm = M_PI*drand48();
+    fill_vec_ab_(n0, an,bn);
+    fill_vec_ab_(S0, am,bm);
+
+    fill_vec_rnd_(dn, -D, D);
+    fill_vec_rnd_(dS, -D, D);
+    dt  = (2*drand48()-1)*D;
+
+    // dn*n=0
+    v = n0[0]*dn[0] + n0[1]*dn[1] + n0[2]*dn[2];
+    FOR(i) dn[i] -= n0[i]*v;
+
+    // test DJ/Dgn
+    FOR(i) {
+      n1[i]=n0[i]+dn[i];
+      S1[i]=S0[i]+dS[i];
+    }
+    t1 = t0 + dt;
+
+    fill_l0_nt_(L0, S0, n0, &t0);
+    fill_l0_nt_(L1, S1, n1, &t1);
+
+    fill_dl_nt_(DL7, S0, n0, &t0);
+
+    // compare L1 - L0 with sum(DL_i*dUi)
+    // L1~L0~DL~1,  dUi~D << 1
+
+    FOR(i){
+      DIFF[i] = dS[0]*DL7[i][0]
+              + dS[1]*DL7[i][1]
+              + dS[2]*DL7[i][2]
+              + dn[0]*DL7[i][3]
+              + dn[1]*DL7[i][4]
+              + dn[2]*DL7[i][5]
+              + dt*DL7[i][6];
+      DIFF1[i] = L1[i] - L0[i];
+    }
+    // for some reason 2*D should be used instead of D
+    check3("DL", DIFF, DIFF1, 2*D, true);
+
+    // same in th*n coordinates
+    FOR(i) dtn[i] = n0[i]*dt + t0*dn[i];
+
+    fill_dl_t_(DL6, S0, n0, &t0);
+    FOR(i){
+      DIFF[i] = dS[0]*DL6[i][0]
+              + dS[1]*DL6[i][1]
+              + dS[2]*DL6[i][2]
+              + dtn[0]*DL6[i][3]
+              + dtn[1]*DL6[i][4]
+              + dtn[2]*DL6[i][5];
+      DIFF1[i] = L1[i] - L0[i];
+    }
+    check3("DL(nt)", DIFF, DIFF1, 2*D, true);
+
+  }
 }
 }
