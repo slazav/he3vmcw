@@ -105,6 +105,12 @@ struct pars_t {
   // Spin diffusion, initial value [cm^2/s] and sweep rate [(cm^2/s)/s]
   double DF0=0.1, DFT=0.0;
 
+  /*****************************/
+  // sweep parameter offset, rate, name
+  double sweep_par_o=0, sweep_par_r=0;
+  std::string sweep_par_n;
+
+  /*****************************/
   // cell length, cm
   double cell_len = 0.4;
 
@@ -627,11 +633,16 @@ get_one_arg(const std::vector<std::string> & args){
 // Modify P0, PT, change global variable tend.
 template <typename T>
 void
-cmd_sweep(const std::vector<std::string> & args, T *P0, T *PT, T factor=1){
+cmd_sweep(const char *name, const std::vector<std::string> & args, T *P0, T *PT, T factor=1){
   check_nargs(args.size(), 2);
   double VD = get_arg<double>(args[0]); // destination
   double R = get_arg<double>(args[1]);  // rate
   double VO = *P0/factor;                // old value
+
+  pp.sweep_par_o = VO;
+  pp.sweep_par_r = R;
+  pp.sweep_par_n = name;
+
   int steps = abs(rint((VD-VO)/R/pp.tstep));
   if (steps==0) throw Err() << "zero steps for sweep";
   *PT = (VD-VO)/(steps*pp.tstep) * factor;
@@ -772,6 +783,9 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       // Do calculations for some time.
       if (cmd == "wait") {
         if (!pp.solver) throw Err() << "solver is not running";
+        pp.sweep_par_o = 0.0;
+        pp.sweep_par_r = 1.0;
+        pp.sweep_par_n = 'T';
         pp.tend = pp.tcurr + get_one_arg<double>(args);
         continue;
       }
@@ -1237,7 +1251,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
 
       // Sweep uniform field: destination [G], rate [G/s].
       if (cmd == "sweep_field") {
-        cmd_sweep(args, &pp.H0, &pp.HT); continue; }
+        cmd_sweep("B(G)", args, &pp.H0, &pp.HT); continue; }
 
       // Set uniform field in frequency shift units [Hz from NMR freq].
       if (cmd == "set_field_hz") {
@@ -1249,7 +1263,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
 
       // Sweep uniform field: destination [Hz], rate [Hz/s].
       if (cmd == "sweep_field_hz") {
-        cmd_sweep(args, &pp.H0, &pp.HT, 2*M_PI/pp.gyro); continue; }
+        cmd_sweep("B(Hz)", args, &pp.H0, &pp.HT, 2*M_PI/pp.gyro); continue; }
 
       // Set uniform field in Larmor position units [cm].
       // Gradient term is used to convert field to cm. Quadratic term is not used.
@@ -1269,7 +1283,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       if (cmd == "sweep_field_cm") {
         if (pp.HG == 0.0) throw Err() << "can't set Larmor position if "
                                       "field gradient is zero";
-        cmd_sweep(args, &pp.H0, &pp.HT, -pp.HG); continue; }
+        cmd_sweep("B(cm)", args, &pp.H0, &pp.HT, -pp.HG); continue; }
 
       // Set/step/sweep RF field [G].
       if (cmd == "set_rf_field") {
@@ -1277,7 +1291,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       if (cmd == "step_rf_field") {
         pp.HR0 += get_one_arg<double>(args); continue; }
       if (cmd == "sweep_rf_field") {
-        cmd_sweep(args, &pp.HR0, &pp.HRT); continue; }
+        cmd_sweep("Brf(G)", args, &pp.HR0, &pp.HRT); continue; }
 
       // RF-field profile, gradient term [1/cm], quadratic term [1/cm^2].
       if (cmd == "set_rf_prof") {
@@ -1295,31 +1309,31 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       if (cmd == "set_t1") {
         pp.T10 = get_one_arg<double>(args); continue; }
       if (cmd == "sweep_t1") {
-        cmd_sweep(args, &pp.T10, &pp.T1T); continue; }
+        cmd_sweep("T1(s)", args, &pp.T10, &pp.T1T); continue; }
 
       // Set/sweep Leggett-Takagi relaxation time tau_f [s]
       if (cmd == "set_tf") {
         pp.TF0 = get_one_arg<double>(args); continue; }
       if (cmd == "sweep_tf") {
-        cmd_sweep(args, &pp.TF0, &pp.TFT); continue; }
+        cmd_sweep("TF(s)", args, &pp.TF0, &pp.TFT); continue; }
 
       // Set/sweep spin diffusion [cm^2/s]
       if (cmd == "set_diff") {
         pp.DF0 = get_one_arg<double>(args); continue; }
       if (cmd == "sweep_diff") {
-        cmd_sweep(args, &pp.DF0, &pp.DFT); continue; }
+        cmd_sweep("DIFF(cm2/s)", args, &pp.DF0, &pp.DFT); continue; }
 
       // Set and sweep spin-wave velocity c_parallel [cm/s]
       if (cmd == "set_cpar") {
         pp.CP0 = get_one_arg<double>(args); continue; }
       if (cmd == "sweep_cpar") {
-        cmd_sweep(args, &pp.CP0, &pp.CPT); continue; }
+        cmd_sweep("Cpar, cm/s", args, &pp.CP0, &pp.CPT); continue; }
 
       // Set and sweep Leggett frequency [Hz]
       if (cmd == "set_leggett_freq") {
         pp.LF0 = get_one_arg<double>(args); continue; }
       if (cmd == "sweep_leggett_freq") {
-        cmd_sweep(args, &pp.LF0, &pp.LFT); continue; }
+        cmd_sweep("fB(Hz)", args, &pp.LF0, &pp.LFT); continue; }
 
       /*******************************************************/
 
@@ -1389,6 +1403,7 @@ try{
     if (pp.solver) {
       pp.tcurr += pp.tstep;
 //      pp.solver->step(pp.tcurr, (pp.tcurr>=pp.tend));
+      std::cerr << pp.sweep_par_n << ":" << pp.sweep_par_o + pp.sweep_par_r*pp.tcurr << " ";
       pp.solver->step(pp.tcurr, false);
 
       // build mesh using current value for npts
