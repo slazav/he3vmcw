@@ -250,6 +250,7 @@ pdecol_solver::load_state(const std::string & fname){
   int version;
   ff.read((char *)&version, sizeof(version));
 
+  int NPDE0 = NPDE;
   switch (version){
     case 1:
     case 2:
@@ -264,6 +265,8 @@ pdecol_solver::load_state(const std::string & fname){
       READ_DATA(t);
       READ_DATA(t0);
       READ_DATA(mindt);
+
+      if (NPDE!=NPDE0) throw Err() << "can't load state with NPDE=" << NPDE;
 
       int s;
       READ_DATA(s);
