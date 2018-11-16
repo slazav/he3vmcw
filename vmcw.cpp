@@ -11,7 +11,7 @@
 #include "pnm_writer.h"
 
 /* Number of equations. 6 or 7. */
-const int npde = 7;
+const int npde = 6;
 
 /* How many derivatives to calculate. Can not be changed. */
 const int nder = 3;
@@ -156,6 +156,17 @@ struct pars_t {
 
 } pp;
 
+/******************************************************************/
+// Error class for exceptions
+class Err {
+  std::ostringstream s;
+  public:
+    Err(){}
+    Err(const Err & o) { s << o.s.str(); }
+    template <typename T>
+    Err & operator<<(const T & o){ s << o; return *this; }
+    std::string str()  const { return s.str(); }
+};
 
 /******************************************************************/
 // Aerogel profile.
@@ -184,16 +195,28 @@ aer_step(double x, int d){
   return 0.0;
 }
 
-// Set the mesh
-void
-set_mesh(std::vector<double> & x){
-  if (x.size() < 2) return;
+/******************************************************************/
+
+// Create uniform mesh
+std::vector<double>
+set_uniform_mesh(const int N){
+  if (N < 2) throw Err() << "Too few points for making mesh: " << N;
+  std::vector<double> x;
+  double x0 = -pp.cell_len/2.0;
+  double dx = pp.cell_len/(N-1);
+  for (int i=0; i<N; i++) x[i] = x0 + i*dx;
+  return x;
+}
+
+// Create "aerogel" mesh
+std::vector<double>
+set_aerogel_mesh(const int N){
+  if (N < 2) throw Err() << "Too few points for making mesh: " << N;
+  std::vector<double> x;
 
   // start with homogenious mesh with dx intervals
-  int N = x.size();
   double dx = pp.cell_len/(N-1);
   x[0] = -pp.cell_len/2.0;
-//std::cerr << ">>> " << x[0] << "\n";
   for (int k=0; k<100; k++){
     for (int i=0; i<N-1; i++){
       x[i+1] = x[i] + dx/(1.0+pp.xmesh_k*fabs(aer_step(x[i],1)));
@@ -203,31 +226,19 @@ set_mesh(std::vector<double> & x){
     dx+=d/(N+1);
     if (fabs(d)<pp.xmesh_acc) break;
   }
+  return x;
 }
 
-// Save the mesh to file
-void
-save_mesh(const std::vector<double> &x,
-          const std::string & fname){
-  std::ofstream ff(fname.c_str());
-  ff << "# N X AER AER'\n"
-     << std::scientific << std::setprecision(6);
-  for (int i=0; i<x.size(); i++){
-    double xx = x[i];
-    double a0 = aer_step(xx,0);
-    double a1 = aer_step(xx,1);
-    ff << i << " " << xx << " " << a0 << " " << a1 << "\n";
-  }
-}
-
-// Adaptive mesh
-void
-set_adaptive_mesh(std::vector<double> & x){
-  if (!pp.solver) return;
-  if (x.size() < 2) return;
+// Create adaptive mesh (running solver should exist)
+std::vector<double>
+set_adaptive_mesh(const int N){
+  if (!pp.solver)
+     throw Err() << "Running solver is needed for making adaptive mesh";
+  if (N < 2)
+     throw Err() << "Too few points for making mesh: " << N;
+  std::vector<double> x;
 
   // start with homogenious mesh with dx intervals
-  int N = x.size();
   double dx = pp.cell_len/(N-1);
   x[0] = -pp.cell_len/2.0;
   for (int k=0; k<100; k++){
@@ -249,7 +260,20 @@ set_adaptive_mesh(std::vector<double> & x){
     dx+=d/(N+1);
     if (fabs(d)<pp.xmesh_acc) break;
   }
+  return x;
 }
+
+// Save the mesh to file
+void
+save_mesh(const std::vector<double> &x,
+          const std::string & fname){
+  std::ofstream ff(fname.c_str());
+  ff << "# N X\n"
+     << std::scientific << std::setprecision(6);
+  for (int i=0; i<x.size(); i++)
+    ff << i << " " << x[i] << "\n";
+}
+
 
 
 /******************************************************************/
@@ -375,9 +399,11 @@ void set_he3tp(double ttc, double p){
 void
 write_profile(pdecol_solver *solver, const std::string & fname) {
 
+  if (!pp.solver)
+     throw Err() << "Running solver is needed for writing profile";
+
   // build mesh using current value for npts
-  std::vector<double> xsol(pp.npts);
-  set_mesh(xsol);
+  std::vector<double> xsol = set_uniform_mesh(pp.npts);
   std::vector<double> usol = pp.solver->values(xsol, nder);
 
   std::ofstream ss(fname.c_str());
@@ -448,17 +474,6 @@ write_pars(std::ostream & s){
     << "\n";
 }
 
-/******************************************************************/
-// Error class for exceptions
-class Err {
-  std::ostringstream s;
-  public:
-    Err(){}
-    Err(const Err & o) { s << o.s.str(); }
-    template <typename T>
-    Err & operator<<(const T & o){ s << o; return *this; }
-    std::string str()  const { return s.str(); }
-};
 
 /******************************************************************/
 // Some init_data-related functions.
@@ -532,8 +547,8 @@ init_data_hpd(int sn=1, int st=1){
   st = (st>0)? +1:-1;
 
   // create mesh (same as in solver, but it is not important)
-  std::vector<double> x(pp.npts);
-  set_mesh(x);
+  std::vector<double> x = set_uniform_mesh(pp.npts);
+
   pp.init_data.resize(pp.npts*8);
   for (int i=0; i<x.size(); i++){
     // get local parameters
@@ -583,8 +598,7 @@ void
 init_data_save(pdecol_solver *solver) {
 
   // build mesh using current value for npts
-  std::vector<double> xsol(pp.npts);
-  set_mesh(xsol);
+  std::vector<double> xsol = set_uniform_mesh(pp.npts);
   std::vector<double> usol = solver->values(xsol, 0); // no derivatives!
 
   pp.init_data = std::vector<double>(xsol.size()*(npde+1));
@@ -719,8 +733,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
 
         // initialize new solver
         pp.tend=pp.tcurr=0;
-        std::vector<double> xbrpt(pp.npts);
-        set_mesh(xbrpt);
+        std::vector<double> xbrpt = set_uniform_mesh(pp.npts);
         pp.solver = new pdecol_solver(pp.tcurr, pp.mindt, pp.acc, xbrpt, npde);
         if (!pp.solver) throw Err() << "can't create solver";
 
@@ -1136,9 +1149,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         pp.pnm_writers.clear();
 
         // initialize new mesh and fill init_data
-        std::vector<double> xbrpt(pp.npts);
-        set_adaptive_mesh(xbrpt);
-//        set_mesh(xbrpt);
+        std::vector<double> xbrpt = set_adaptive_mesh(pp.npts);
 
         std::vector<double> usol = pp.solver->values(xbrpt, 0); // no derivatives!
         pp.init_data = std::vector<double>(xbrpt.size()*(npde+1));
@@ -1407,8 +1418,7 @@ try{
       pp.solver->step(pp.tcurr, false);
 
       // build mesh using current value for npts
-      std::vector<double> xsol(pp.npts);
-      set_mesh(xsol);
+      std::vector<double> xsol = set_uniform_mesh(pp.npts);
       std::vector<double> usol = pp.solver->values(xsol, nder);
 
       // write results
