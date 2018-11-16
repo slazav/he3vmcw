@@ -409,15 +409,16 @@ void set_he3tp(double ttc, double p){
 /******************************************************************/
 // Writing data
 
-// write profile
+// Write profile to <fname>
+// use solver mesh if N==0, or build a uniform one with N points (N>2)
 void
-write_profile(pdecol_solver *solver, const std::string & fname) {
+write_profile(pdecol_solver *solver, const std::string & fname, const int N) {
 
   if (!pp.solver)
      throw Err() << "Running solver is needed for writing profile";
 
   // build mesh using current value for npts
-  std::vector<double> xsol = set_uniform_mesh(pp.npts);
+  std::vector<double> xsol = N==0? pp.solver->get_xmesh():set_uniform_mesh(N);
   std::vector<double> usol = pp.solver->values(xsol, nder);
 
   std::ofstream ss(fname.c_str());
@@ -560,7 +561,7 @@ init_data_hpd(int sn=1, int st=1){
   sn = (sn>0)? +1:-1;
   st = (st>0)? +1:-1;
 
-  // create mesh (same as in solver, but it is not important)
+  // create mesh (uniform, but it is not important)
   std::vector<double> x = set_uniform_mesh(pp.npts);
 
   pp.init_data.resize(pp.npts*8);
@@ -611,7 +612,7 @@ init_data_hpd(int sn=1, int st=1){
 void
 init_data_save(pdecol_solver *solver) {
 
-  // build mesh using current value for npts
+  // build mesh using new value for npts
   std::vector<double> xsol = set_uniform_mesh(pp.npts);
   std::vector<double> usol = solver->values(xsol, 0); // no derivatives!
 
@@ -1198,7 +1199,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         if (!pp.solver) throw Err() << "solver is not running";
 
         std::string name;
-        if (narg>0) {
+        if (narg>0 || args[0] == "-") {
           name = args[0];
         }
         else{
@@ -1206,7 +1207,8 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
           ss << pp.pref << ".prof" << pp.cnt_prof << ".dat";
           name = ss.str();
         }
-        write_profile(pp.solver, name);
+        int N = (narg>1) ? atoi(args[1].c_str()) : 0;
+        write_profile(pp.solver, name, N);
         pp.cnt_prof++;
         continue;
       }
@@ -1431,7 +1433,7 @@ try{
       std::cerr << pp.sweep_par_n << ":" << pp.sweep_par_o + pp.sweep_par_r*pp.tcurr << " ";
       pp.solver->step(pp.tcurr, false);
 
-      // build mesh using current value for npts
+      // build uniform mesh using current value for npts
       std::vector<double> xsol = set_uniform_mesh(pp.npts);
       std::vector<double> usol = pp.solver->values(xsol, nder);
 
