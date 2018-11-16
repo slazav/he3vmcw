@@ -100,9 +100,12 @@ TODO: make a high-level command for that?
 
 #### Data output:
 
-* `write_profile [<file>]` -- Write function profiles to the file.
-8 columns: coordinate, mx,my,mz, nx,ny,nz, theta. Default filename is
-`<prefix>.prof<n>.dat`. If solver is not running then only prints a warning.
+* `write_profile [<file>] [<N>]` -- Write function profiles to the file.
+Meaning of columns depends on `NPDE` setting. For `NPDE=7` it is `x,
+mx,my,mz, nx,ny,nz, th, mx',my'...` If filename is not set or set to '-'
+then a default filename `<prefix>.prof<n>.dat` is used. If `N` is not set
+or `0`, then use solver's mesh. If `N>2`, build a uniform mesh with `N`
+points. If solver is not running then only prints a warning.
 
 * `pnm_start [<file>]` -- Start writing a pnm-file with vectors n and M
 orientation. If solver is not started do nothing and print a warning
