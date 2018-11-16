@@ -409,8 +409,9 @@ void set_he3tp(double ttc, double p){
 /******************************************************************/
 // Writing data
 
-// Write profile to <fname>
-// use solver mesh if N==0, or build a uniform one with N points (N>2)
+// Write profile to <fname>.
+// Use solver mesh if N==0, or build a uniform one with N points (N>2)
+// Now it saves everything in the same way for npde 6 or 7.
 void
 write_profile(pdecol_solver *solver, const std::string & fname, const int N) {
 
@@ -448,12 +449,17 @@ write_profile(pdecol_solver *solver, const std::string & fname, const int N) {
 
 // write integral magnetization
 void
-write_magn(std::ostream & s,
-           const std::vector<double> zsol,
-           const std::vector<double> usol){
+write_magn(std::ostream & s){
+
+  if (!pp.solver)
+     throw Err() << "Running solver is needed for writing magnetization";
+
+  // build mesh using current value for npts
+  std::vector<double> xsol = pp.solver->get_xmesh();
+  std::vector<double> usol = pp.solver->values(xsol, nder);
 
   double smx=0, smy=0, smz=0, sz = 0;
-  for (int i=0; i<zsol.size()-1; i++){
+  for (int i=0; i<xsol.size()-1; i++){
     double mx1 = usol[i*npde+0];
     double my1 = usol[i*npde+1];
     double mz1 = usol[i*npde+2];
@@ -461,7 +467,7 @@ write_magn(std::ostream & s,
     double mx2 = usol[(i+1)*npde+0];
     double my2 = usol[(i+1)*npde+1];
     double mz2 = usol[(i+1)*npde+2];
-    double dz = zsol[i+1]-zsol[i];
+    double dz = xsol[i+1]-xsol[i];
     smx += dz*(mx1+mx2)/2;
     smy += dz*(my1+my2)/2;
     smz += dz*(mz1+mz2)/2;
@@ -1438,7 +1444,7 @@ try{
       std::vector<double> usol = pp.solver->values(xsol, nder);
 
       // write results
-      write_magn(out_m, xsol, usol);
+      write_magn(out_m);
       pp.pnm_writers.write(xsol, usol);
       write_pars(out_l);
     }
