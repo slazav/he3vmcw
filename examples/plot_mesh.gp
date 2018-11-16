@@ -5,8 +5,8 @@ set style data lines
 set nokey
 
 
-pref="hpd"
-num="0"
+pref="deform/hpd_th1a"
+num="3"
 
 plot [] \
   pref.".mesh".num.".dat" using 2:1 with linespoints pt 7 ps 0.8,\

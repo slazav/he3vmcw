@@ -28,7 +28,6 @@ pnm_hline
 wait 2e-6
 write_profile
 
-
 wait 15e-6
 write_profile
 

@@ -114,6 +114,8 @@ struct pars_t {
   // cell length, cm
   double cell_len = 0.4;
 
+
+/*
   // Parameters for non-uniform ("aerogel") layout.
   // - not tested for a long time
   // - dDiff/dx is not taken into account
@@ -128,6 +130,7 @@ struct pars_t {
 
   // Aerogel transition width (in cell length units).
   double aer_trw = 6e-3;
+*/
 
   // non-uniform mesh step: cell_len/(NPTS-1) / (1+xmesh_k*aer_step(x)')
   // 0 means that mesh is uniform
@@ -179,6 +182,7 @@ class Err {
 //   aer_len  -- aerogel length / cell length (use <=0 for no aerogel)
 //   aer_cnt  -- center of aerogel area / cell length
 //   aer_trw  -- transition width / cell length
+/*
 double
 aer_step(double x, int d){
 
@@ -194,6 +198,7 @@ aer_step(double x, int d){
   }
   return 0.0;
 }
+*/
 
 /******************************************************************/
 
@@ -208,7 +213,9 @@ set_uniform_mesh(const int N){
   return x;
 }
 
+/*
 // Create "aerogel" mesh
+// Not used now.
 std::vector<double>
 set_aerogel_mesh(const int N){
   if (N < 2) throw Err() << "Too few points for making mesh: " << N;
@@ -228,6 +235,7 @@ set_aerogel_mesh(const int N){
   }
   return x;
 }
+*/
 
 // Create adaptive mesh (running solver should exist)
 std::vector<double>
@@ -290,11 +298,13 @@ extern "C" {
     *Wr = pp.gyro*(pp.HR0 + pp.HRT*(*t)) * (1.0 + (*x)*pp.HRGP + (*x)*(*x)*pp.HRQP);
 
     *WB = ( pp.LF0 + pp.LFT*(*t))*2*M_PI;
-    *Cpar = pp.CP0 + pp.CPT*(*t); *dCpar = 0;
+    *Cpar = pp.CP0 + pp.CPT*(*t);
     *Diff = pp.DF0 + pp.DFT*(*t);
     *Tf   = pp.TF0 + pp.TFT*(*t);
     *T1   = pp.T10 + pp.T1T*(*t);
+    *dCpar = 0;
 
+    /*
     // spatial modulation
     if (pp.aer_len>0.0){
       *Cpar *= 1.0 - 0.5*aer_step(*x,0);
@@ -302,6 +312,7 @@ extern "C" {
       *Diff *= 1.0 - 0.835 * aer_step(*x,0);
       *Tf   *= 1.0 - 0.5 * aer_step(*x,0);
     }
+    */
   }
 
   void set_bndry_pars_(double *t, double *x, double *Wz,
@@ -311,11 +322,14 @@ extern "C" {
     *Cpar = pp.CP0 + pp.CPT*(*t);
     *Diff = pp.DF0 + pp.DFT*(*t);
 
+    /*
     // spatial modulation
     if (pp.aer_len>0.0){
       *Cpar *= 1.0 - 0.5*aer_step(*x,0);
       *Diff *= 1.0 - 0.835 * aer_step(*x,0);
     }
+    */
+
     // type of boundary condition
     *IBN = (*x<0)? pp.bctype_l:pp.bctype_r;
   }
@@ -835,9 +849,9 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       if (cmd == "cell_len")  { pp.cell_len = get_one_arg<double>(args); continue;}
 
       if (cmd == "mesh_k")    { pp.xmesh_k  = get_one_arg<double>(args); continue;}
-      if (cmd == "aer_len")   { pp.aer_len = get_one_arg<double>(args); continue;}
-      if (cmd == "aer_cnt")   { pp.aer_cnt = get_one_arg<double>(args); continue;}
-      if (cmd == "aer_trw")   { pp.aer_trw = get_one_arg<double>(args); continue;}
+      //if (cmd == "aer_len")   { pp.aer_len = get_one_arg<double>(args); continue;}
+      //if (cmd == "aer_cnt")   { pp.aer_cnt = get_one_arg<double>(args); continue;}
+      //if (cmd == "aer_trw")   { pp.aer_trw = get_one_arg<double>(args); continue;}
 
       /*******************************************************/
       // boubdary and initial conditions

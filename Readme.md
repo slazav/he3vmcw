@@ -13,8 +13,7 @@ for some default output files.
 #### Solver:
 
 * `start` -- (Re)start the solver. Coordinate mesh is saved into
-  `<prefix>.mesh` file (4 columns: point number, coordinate value, "aerogel
-  density", "aerogel density" derivative).
+  `<prefix>.mesh` file (2 columns: point number, coordinate value)
 
 * `stop` -- Stop the solver.
 
@@ -51,11 +50,10 @@ from the value which was used to start the current solver).
 * `cell_len <value, cm>` -- Change cell length. Do not change while
 the solver is running.
 
-* `mesh_k`, `aer_len`, `aer_cnt`, `aer_trw` -- Non-uniform mesh density,
-"aerogel" length, "aerogel" center, "aerogel" transition width. Do not
-change while the solver is running. Used in non-uniform "aerogel"
-calculation, not tested for a long time. For normal calculations
-`aer_len` should be less or equal then zero.
+* `adaptive_mesh` -- Set a non-uniform mesh using solution from a running
+solver, restart the solver using the new mesh.
+
+* `mesh_k` -- Non-uniform mesh density (0 means flat).
 
 #### Initial and boundary conditions:
 
