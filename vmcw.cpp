@@ -206,7 +206,7 @@ aer_step(double x, int d){
 std::vector<double>
 set_uniform_mesh(const int N){
   if (N < 2) throw Err() << "Too few points for making mesh: " << N;
-  std::vector<double> x;
+  std::vector<double> x(N);
   double x0 = -pp.cell_len/2.0;
   double dx = pp.cell_len/(N-1);
   for (int i=0; i<N; i++) x[i] = x0 + i*dx;
@@ -219,7 +219,7 @@ set_uniform_mesh(const int N){
 std::vector<double>
 set_aerogel_mesh(const int N){
   if (N < 2) throw Err() << "Too few points for making mesh: " << N;
-  std::vector<double> x;
+  std::vector<double> x(N);
 
   // start with homogenious mesh with dx intervals
   double dx = pp.cell_len/(N-1);
@@ -244,7 +244,7 @@ set_adaptive_mesh(const int N){
      throw Err() << "Running solver is needed for making adaptive mesh";
   if (N < 2)
      throw Err() << "Too few points for making mesh: " << N;
-  std::vector<double> x;
+  std::vector<double> x(N);
 
   // start with homogenious mesh with dx intervals
   double dx = pp.cell_len/(N-1);
@@ -617,6 +617,9 @@ init_data_hpd(int sn=1, int st=1){
 // - start new solver with new npts and old data as initial conditions
 void
 init_data_save(pdecol_solver *solver) {
+
+  if (!solver)
+     throw Err() << "Running solver is needed for writing magnetization";
 
   // build mesh using new value for npts
   std::vector<double> xsol = set_uniform_mesh(pp.npts);
@@ -1205,7 +1208,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         if (!pp.solver) throw Err() << "solver is not running";
 
         std::string name;
-        if (narg>0 || args[0] == "-") {
+        if (narg>0 && args[0] != "-") {
           name = args[0];
         }
         else{
