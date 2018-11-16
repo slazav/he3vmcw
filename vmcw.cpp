@@ -244,29 +244,41 @@ set_adaptive_mesh(const int N){
      throw Err() << "Running solver is needed for making adaptive mesh";
   if (N < 2)
      throw Err() << "Too few points for making mesh: " << N;
+
+
+  //  start with a uniform mesh
   std::vector<double> x(N);
-
-  // start with homogenious mesh with dx intervals
+  double x0 = -pp.cell_len/2.0;
   double dx = pp.cell_len/(N-1);
-  x[0] = -pp.cell_len/2.0;
-  for (int k=0; k<100; k++){
-    for (int i=0; i<N-1; i++){
+  for (int i=0; i<N; i++) x[i] = x0 + i*dx;
 
-      std::vector<double> xsol(1, x[i]);
-      std::vector<double> usol = pp.solver->values(xsol, nder);
-      double w=0; // weight
+  int maxk=100;
+  for (int k=0; k<maxk; k++){
+    // get function derivatives int the  mesh points
+    std::vector<double> usol = pp.solver->values(x, nder);
+    // Calculate point weights: w(i) = 1./(1 + k <U[i]'>)
+    // and total weight. Use only 1..N-1 points
+    std::vector<double> w(N);
+    double sum = 0;
+    for (int i=1; i<N; i++){
+      w[i]=0;
       for (int j=0; j<npde; j++){
-        w+= 1;
-        w+= pow( pp.solver->get_value(usol, xsol.size(), 0, j, 1), 2);
+        w[i] += pow( pp.solver->get_value(usol, N, i, j, 1), 2);
       }
-      w = sqrt(w);
-
-      x[i+1] = x[i] + dx/(1.0+pp.xmesh_k*fabs(w));
+      w[i] = 1./(1 + pp.xmesh_k*sqrt(w[i]));
+      sum+=w[i];
     }
-    // scale the whole mesh to fit cell_len
-    double d = pp.cell_len - (x[N-1]-x[0]);
-    dx+=d/(N+1);
-    if (fabs(d)<pp.xmesh_acc) break;
+
+    // Modify the mesh by changing dx -> dx*sum/w.
+    // Find max point shift
+    x[0] = x0;
+    double sh=0;
+    for (int i=1; i<N; i++){
+      double x1 = x[i-1] + dx * w[i-1]/sum * (N-1);
+      if (sh < abs(x[i] - x1)) sh = abs(x[i] - x1);
+      x[i] = x1;
+    }
+    if (sh<pp.xmesh_acc) break;
   }
   return x;
 }
