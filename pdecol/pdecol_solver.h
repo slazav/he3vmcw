@@ -42,7 +42,7 @@ class pdecol_solver {
   // TODO: some more exotic calculations can be done (INDEX=2,3)
   // Set exect=true to go to the time t exactly (should be done before
   // changing something in functions).
-  int step(double t, bool exact=false);
+  void step(double t, bool exact=false);
 
   void restart();
 

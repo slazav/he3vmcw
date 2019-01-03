@@ -144,7 +144,7 @@ void
 pdecol_solver::reset_time() {t0=t=gear1_.T = 0;}
 
 // step
-int
+void
 pdecol_solver::step(double t_, bool exact) {
   if (exact) INDEX=2;
   t=t_;
