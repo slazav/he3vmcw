@@ -1189,6 +1189,9 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
 
       }
 
+      if (cmd == "art_th_sol"){
+        pp.th_flag = get_one_arg<int>(args); continue;}
+
       /*******************************************************/
       // write profile
 
