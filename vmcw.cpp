@@ -80,6 +80,9 @@ struct pars_t {
   int bctype_l = 2;
   int bctype_r = 2;
 
+  // theta-soliton flag
+  int th_flag = 0;
+
   // Data for initial conditions.
   // Array with n*(npde+1) values. n is arbitrarary number,
   // values contain z coordinate and npde function components.
@@ -303,7 +306,7 @@ extern "C" {
   void set_bulk_pars_(double *t, double *x,
                  double *Wr, double *Wz, double *W0,
                  double *WB, double *Cpar, double *dCpar,
-                 double *Diff, double *Tf, double *T1){
+                 double *Diff, double *Tf, double *T1, int *th_flag){
 
     *W0 = 2*M_PI*pp.f0;
     *Wz = *W0 + pp.gyro*(pp.H0 + pp.HG*(*x) + pp.HQ*(*x)*(*x) + pp.HT*(*t));
@@ -315,6 +318,7 @@ extern "C" {
     *Tf   = pp.TF0 + pp.TFT*(*t);
     *T1   = pp.T10 + pp.T1T*(*t);
     *dCpar = 0;
+    *th_flag = pp.th_flag;
 
     /*
     // spatial modulation
@@ -328,11 +332,12 @@ extern "C" {
   }
 
   void set_bndry_pars_(double *t, double *x, double *Wz,
-                 double *Cpar, double *Diff, int *IBN){
+                 double *Cpar, double *Diff, int *IBN, int *th_flag){
 
     *Wz = 2*M_PI*pp.f0 + pp.gyro*(pp.H0 + pp.HG*(*x) + pp.HQ*(*x)*(*x) + pp.HT*(*t));
     *Cpar = pp.CP0 + pp.CPT*(*t);
     *Diff = pp.DF0 + pp.DFT*(*t);
+    *th_flag = pp.th_flag;
 
     /*
     // spatial modulation
@@ -575,6 +580,7 @@ void
 init_data_hpd(int sn=1, int st=1){
 
   double Wr, Wz, W0, WB, Cpar, dCpar, Diff, Tf, T1;
+  int th_fl;
 
   sn = (sn>0)? +1:-1;
   st = (st>0)? +1:-1;
@@ -585,7 +591,7 @@ init_data_hpd(int sn=1, int st=1){
   pp.init_data.resize(pp.npts*8);
   for (int i=0; i<x.size(); i++){
     // get local parameters
-    set_bulk_pars_(&pp.tcurr, &(x[i]), &Wr, &Wz, &W0,&WB, &Cpar, &dCpar, &Diff, &Tf, &T1);
+    set_bulk_pars_(&pp.tcurr, &(x[i]), &Wr, &Wz, &W0,&WB, &Cpar, &dCpar, &Diff, &Tf, &T1, &th_fl);
 
     double h = Wr/W0;
     double d = -(Wz-W0)/W0;
@@ -963,6 +969,8 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         std::string type = args[0];
         init_data_save(pp.solver); // save current profile to the init data
 
+        pp.th_flag = 0; // reset theta flag
+
         int N = pp.init_data.size()/(npde+1);
         // Be careful with first and last point!
         // Initial conditions should be compatable with boundary conditions.
@@ -1034,7 +1042,9 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
             if (x/w>=-0.5 && x/w<0.5) bm = 0;
           }
 
-          // theta soliton: HPD -> NPD- NPD+ -> HPD
+
+          // theta soliton: HPD -> NPD- -> NPD+ -> HPD
+          // Same, but with sharp theta step
           if (type == "th_soliton1") {
             double w = (narg<2)? 0.01 : get_arg<double>(args[1]);
             if (x/w>=-1 && x/w<0){
@@ -1055,7 +1065,8 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
             }
           }
 
-          // theta soliton: HPD -> NPD- -> 0 NPD- -> HPD
+          // theta soliton: HPD -> NPD- -> 0 -> NPD- -> HPD
+          // Sharp theta step.
           if (type == "th_soliton2") {
             double w = (narg<2)? 0.01 : get_arg<double>(args[1]);
             if (x/w>=-1 && x/w<0){
@@ -1076,75 +1087,42 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
             }
           }
 
-
-          // theta soliton
+          // theta soliton: HPD -> NPD- -> NPD+ -> HPD
+          // Artificial core
           if (type == "th_soliton1a") {
+            pp.th_flag = 1;
             double w = (narg<2)? 0.01 : get_arg<double>(args[1]);
-            if (x/w>=-1.5 && x/w<-0.5){
-              double k = x/w+1.5; // 0..1
+            if (x/w>=-1 && x/w<0){
+              double k = x/w+1; // 0..1
               bn = bn*(1-k) + M_PI*k;
               bm = bm*(1-k);
             }
-            if (x/w>=-0.5 && x/w<0){
-              double k = (x/w+0.5)*2; // 0..1
-              an = -an;
-              bn = M_PI*(1-k) + (M_PI-0.1)*k;
-              th = th*(1-k) + (2*M_PI-th)*k;
-            }
-            if (x/w>=0 && x/w<+0.5){
-              double k = x/w*2; // 0..1
-              an = -an;
-              bn = (M_PI-0.1)*(1-k) + M_PI*k;
-              bn = M_PI;
-              th = (2*M_PI-th)*(1-k) + th*k;
-            }
-            if (x/w>=+0.5 && x/w<+1.5){
-              double k = x/w-0.5; // 0..1
-              bn = M_PI*(1-k) + k*bn;
+            if (x/w>=0 && x/w<1){
+              double k = (x/w); // 0..1
+              bn = M_PI*(1-k) + bn*k;
               bm = bm*k;
             }
-            if (x/w>=-0.5 && x/w<0.5) bm = 0;
+            if (x/w>=0) an += M_PI;
           }
 
-          // theta half-HDP soliton
-          if (type == "th_hsoliton1") {
+          // theta soliton: HPD -> NPD- -> 0 -> NPD- -> HPD
+          // Artificial core
+          if (type == "th_soliton2a") {
+            pp.th_flag = 1;
             double w = (narg<2)? 0.01 : get_arg<double>(args[1]);
-            if (x/w<-0.5){
-              bn = M_PI;
-              th = 2*M_PI-th;
-              bm = 0;
+            if (x/w>=-1 && x/w<0){
+              double k = x/w+1; // 0..1
+              bn = bn*(1-k) + M_PI*k;
+              bm = bm*(1-k);
             }
-            if (x/w>=-0.5 && x/w<0.5){
-              double k = (x/w+0.5); // 0..1
-              bn = M_PI;
-              th = (2*M_PI-th)*(1-k) + th*k;
-              bm = 0;
-            }
-            if (x/w>=+0.5 && x/w<+1.5){
-              double k = x/w-0.5; // 0..1
-              bn = M_PI*(1-k) + k*bn;
+            if (x/w>=0 && x/w<1){
+              double k = (x/w); // 0..1
+              an = an+M_PI;
+              bn = M_PI*(1-k) + bn*k;
               bm = bm*k;
             }
-          }
-
-          // theta half-HDP soliton
-          if (type == "th_hsoliton2") {
-            double w = (narg<2)? 0.01 : get_arg<double>(args[1]);
-            if (x/w<-0.5){
-              bn = 0;
-              th = 2*M_PI-th;
-              bm = 0;
-            }
-            if (x/w>=-0.5 && x/w<0.5){
-              double k = (x/w+0.5); // 0..1
-              bn = 0;
-              th = (2*M_PI-th)*(1-k) + th*k;
-              bm = 0;
-            }
-            if (x/w>=+0.5 && x/w<+1.5){
-              double k = x/w-0.5; // 0..1
-              bn = k*bn;
-              bm = bm*k;
+            if (x/w>=1){
+              an = an+M_PI;
             }
           }
 

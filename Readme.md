@@ -84,6 +84,10 @@ function values, make some modification, and restart the solver. Types:
     in the middle of the cell, with width `<w>`.
   * `deform th_soliton <w>` - add a theta soliton in the middle
     of the cell, with width `<w>`.
+  * `deform th_soliton1 <w>` - th-soliton type 1 with sharp theta change
+  * `deform th_soliton2 <w>` - th-soliton type 2 with sharp theta change
+  * `deform th_soliton1a <w>` - th-soliton type 1 with artificial theta change (works only with BC=3)
+  * `deform th_soliton2a <w>` - th-soliton type 2 with artificial theta change (works only with BC=3)
 
 After the deformation the solver uses same parameters as before,
 pnm_writer is not restarted.
