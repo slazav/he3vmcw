@@ -47,7 +47,7 @@ void check3(const char *name, double V1[DIM], double V2[DIM], double E, bool nl)
 }
 
 
-
+int
 main(){
   int i,j;
   double a0, b0, t0, n0[DIM], R0[DIM][DIM];

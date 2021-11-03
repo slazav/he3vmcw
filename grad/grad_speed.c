@@ -12,6 +12,7 @@ long get_time(){
   return ((long)tv.tv_sec)*1000000 + (long)tv.tv_usec;
 }
 
+int
 main(){
   int i,j;
   int N = 100000;
