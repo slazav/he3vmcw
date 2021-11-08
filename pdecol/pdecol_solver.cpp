@@ -84,6 +84,8 @@ extern "C"{
 
   void values_(double *XSOL, double *USOL,
                double *SCTCH, int *NDIM1, int *NDIM2, int *NPTS, int *NDERV, double *WORK);
+
+  void findeq_(double *T, double *WORK, int *IWORK, int *MSG_LVL);
 }
 /********************************************************************/
 // wrapper class methods
@@ -166,6 +168,11 @@ pdecol_solver::step(double t_, bool exact) {
   }
 }
 
+void
+pdecol_solver::find_eq() {
+ int msg_lvl = 1;
+ findeq_(&t0, WORK.data(), IWORK.data(), &msg_lvl);
+}
 
 // values
 void

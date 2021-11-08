@@ -44,6 +44,10 @@ class pdecol_solver {
   // changing something in functions).
   void step(double t, bool exact=false);
 
+  /// Find eqilibrium solution at current time (experimental!)
+  // Solve equaion F(T,X,U,UX,UXX,FV,NPDE) = 0
+  void find_eq();
+
   void restart();
 
   void reset_time();

@@ -37,7 +37,7 @@ clean:
 	make -C grad clean
 
 # Fortran objects
-FOBJ=pdecol/$(SOLVER).o vmcw_func.o
+FOBJ=pdecol/$(SOLVER).o vmcw_func.o pdecol/tn.o pdecol/find_eq.o pdecol/blas.o
 
 # C++ object files
 COBJ=vmcw.o pdecol/pdecol_solver.o pnm_writer.o
