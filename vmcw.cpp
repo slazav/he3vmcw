@@ -585,13 +585,12 @@ init_data_hpd(int sn=1, int st=1){
   sn = (sn>0)? +1:-1;
   st = (st>0)? +1:-1;
 
-  // create mesh (uniform, but it is not important)
-  std::vector<double> x = set_uniform_mesh(pp.npts);
-
   pp.init_data.resize(pp.npts*(npde+1));
-  for (int i=0; i<x.size(); i++){
+  for (int i=0; i<pp.npts; i++){
+    double x  = i/(pp.npts+1.0) - 0.5;
+    double xl = x*pp.cell_len;
     // get local parameters
-    set_bulk_pars_(&pp.tcurr, &(x[i]), &Wr, &Wz, &W0,&WB, &Cpar, &dCpar, &Diff, &Tf, &T1, &th_fl);
+    set_bulk_pars_(&pp.tcurr, &xl, &Wr, &Wz, &W0,&WB, &Cpar, &dCpar, &Diff, &Tf, &T1, &th_fl);
 
     double h = Wr/W0;
     double d = -(Wz-W0)/W0;
@@ -609,7 +608,7 @@ init_data_hpd(int sn=1, int st=1){
     double wx = ny*sin(th);
     double wy = b/h*nz*nz*wt;
 
-    pp.init_data[(npde+1)*i+0] = x[i];
+    pp.init_data[(npde+1)*i+0] = x;
     pp.init_data[(npde+1)*i+1] = wx + h;
     pp.init_data[(npde+1)*i+2] = wy;
     pp.init_data[(npde+1)*i+3] = wz - d;
