@@ -904,7 +904,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         check_nargs(narg, 0, 1);
         int nz = narg>0 ? get_arg<int>(args[0]) : 1;
         nz = nz>=0? 1:-1;
-        init_data_uniform(0,0,1, 0,0,1, acos(-0.25));
+        init_data_uniform(0,0,1, 0,0,nz, acos(-0.25));
         continue;
       }
 
