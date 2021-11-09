@@ -1418,9 +1418,10 @@ try{
   }
 
   // find prefix (command file name without extension)
-  const char * pos = rindex(argv[1], '.');
-  pp.pref = pos ? std::string(argv[1], pos-argv[1]) : argv[1];
-
+  const char * pos1 = rindex(argv[1], '/');
+  const char * pos2 = rindex(argv[1], '.');
+  if (!pos1) pos1 = argv[1];
+  pp.pref = pos2 && pos2>pos1+1 ? std::string(argv[1], pos2-argv[1]) : argv[1];
 
   std::ofstream out_m((pp.pref + ".magn.dat").c_str()); // log total magnetization
   out_m << "# Integral magnetization log: T, LP, Mx, Mx, Mz\n";
