@@ -521,7 +521,7 @@ void
 init_data_uniform(const double mx, const double my, const double mz,
                   const double nx, const double ny, const double nz,
                   const double th = acos(-0.25)) {
-  pp.init_data.resize(7);
+  pp.init_data.resize(npde+1);
   pp.init_data[0]=0;
   pp.init_data[1]=mx;
   pp.init_data[2]=my;
@@ -556,7 +556,7 @@ init_data_soliton(double w, // soliton width
     std::swap(mx1,mx2); std::swap(my1,my2); std::swap(mz1,mz2);
     std::swap(nx1,nx2); std::swap(ny1,ny2); std::swap(nz1,nz2); std::swap(th1,th2);
   }
-  pp.init_data.resize(14);
+  pp.init_data.resize(2*(npde+1));
   pp.init_data[0]=-w/2; pp.init_data[npde+1+0]=+w/2;
   pp.init_data[1]=mx1;  pp.init_data[npde+1+1]=mx2;
   pp.init_data[2]=my1;  pp.init_data[npde+1+2]=my2;
@@ -588,7 +588,7 @@ init_data_hpd(int sn=1, int st=1){
   // create mesh (uniform, but it is not important)
   std::vector<double> x = set_uniform_mesh(pp.npts);
 
-  pp.init_data.resize(pp.npts*8);
+  pp.init_data.resize(pp.npts*(npde+1));
   for (int i=0; i<x.size(); i++){
     // get local parameters
     set_bulk_pars_(&pp.tcurr, &(x[i]), &Wr, &Wz, &W0,&WB, &Cpar, &dCpar, &Diff, &Tf, &T1, &th_fl);
