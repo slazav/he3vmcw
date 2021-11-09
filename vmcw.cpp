@@ -909,23 +909,23 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         continue;
       }
 
-      // set uniform "hpd" i.c. with ny=-1 or ny=+1 (default)
+      // Set uniform "hpd" i.c. with ny=-1 or ny=+1 (default).
+      // He3 parameters, cell size and field profile should be set before.
       if (cmd == "set_icond_hpd") {
         check_nargs(narg, 0, 1);
         int ny = narg>0 ? get_arg<int>(args[0]) : 1;
         ny = ny>=0? 1:-1;
-//        double th = acos(-0.25);
-//        init_data_uniform(ny*sin(th),0,cos(th), 0,ny,0, th);
         init_data_hpd(ny);
         continue;
       }
 
-      if (cmd == "set_icond_hpd2") {
-        check_nargs(narg, 0);
-        double th = M_PI+1.298;
-        double mx=0.923,  my=-0.305, mz=-sqrt(1-mx*mx-my*my);
-        double nx=-0.482, ny=-0.859, nz=-sqrt(1-nx*nx-ny*ny);
-        init_data_uniform(mx,my,mz,nx,ny,nz,th);
+      // Simple HPD initial condition
+      if (cmd == "set_icond_hpd_simple") {
+        check_nargs(narg, 0, 1);
+        int ny = narg>0 ? get_arg<int>(args[0]) : 1;
+        ny = ny>=0? 1:-1;
+        double th = acos(-0.25);
+        init_data_uniform(ny*sin(th),0,cos(th), 0,ny,0, th);
         continue;
       }
 
