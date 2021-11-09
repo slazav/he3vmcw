@@ -827,6 +827,15 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         continue;
       }
 
+      // find equilibrium
+      if (cmd == "find_eq") {
+        check_nargs(narg, 0);
+        if (!pp.solver) throw Err() << "solver is not running";
+        pp.solver->find_eq();
+        continue;
+      }
+
+
       if (cmd == "reset_time") {
         check_nargs(narg, 0);
         if (!pp.solver) throw Err() << "solver is not running";

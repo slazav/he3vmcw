@@ -8,15 +8,20 @@ C      V.ZAVJALOV, 2021
 
 C       Use pointers in a comon block to pass
 C       T, WORK, IWORK into FINDEQ_MINFUNC
-        REAL*8,TARGET :: WORK(:), T
+        REAL*8,TARGET :: WORK(KORD+NPDE*(4+9*NPDE)
+     *             +(KORD+(NINT-1)*(KORD-NCC))*
+     *             (3*KORD+2+NPDE*(3*(KORD-1)*NPDE+MAXDER+4)))
+        REAL*8,TARGET :: T
         REAL*8, POINTER :: WORKP(:), TP
-        INTEGER,TARGET :: IWORK(:)
+        INTEGER,TARGET :: IWORK(NCPTS*(NPDE+1))
         INTEGER,POINTER :: IWORKP(:)
         COMMON /FINDEQ_CMN/ TP, WORKP, IWORKP
 
 C       Parameters of PDECOL solver
         COMMON /SIZES/ NINT,KORD,NCC,NPDE,NCPTS,NEQN,IQUAD
         INTEGER NINT,KORD,NCC,NPDE,NCPTS,NEQN,IQUAD
+        COMMON /OPTION/ NOGAUS,MAXDER
+        INTEGER NOGAUS,MAXDER
 
         REAL*8  C(NEQN),F,G(NEQN)
         INTEGER ERROR,MSG_LVL
@@ -97,9 +102,10 @@ C       Work arrays and indices
 
 !====================================================================
 C  CALCULATE F=sum(GFUN(Ci)^2) and Gi = dF/dCi.
-C  FOR PDECOL SOLVER
-      SUBROUTINE FINDEQ_MINFUNC(C,F,G)
+C  FOR PDECOL SOLVER. N = NEQN
+      SUBROUTINE FINDEQ_MINFUNC(N,C,F,G)
         IMPLICIT NONE
+        INTEGER N
         REAL*8 C(NEQN), F, G(NEQN)
 
 C       Parameters of PDECOL solver
@@ -114,23 +120,23 @@ C       Parameters of PDECOL solver
 
 C       Work arrays and indices
         INTEGER,POINTER :: IWORK(:)
-        REAL*8,POINTER :: WORK(:)
+        REAL*8,POINTER :: WORK(:), T
+        COMMON /FINDEQ_CMN/ T, WORK, IWORK
         COMMON /ISTART/ IW1,IW2,IW3,IW4,IW5,IW6,IW7,IW8,IW9,IW10,
      *                  IW11,IW12,IW13,IW14,IW15,IW16,IW17,IW18
         INTEGER IW1,IW2,IW3,IW4,IW5,IW6,IW7,IW8,IW9,IW10,
      *          IW11,IW12,IW13,IW14,IW15,IW16,IW17,IW18
-        REAL*8, POINTER :: T
-        COMMON /FINDEQ_CMN/ T, WORK, IWORK
 
         REAL*8 R,RINV,CJ
-        REAL*8 FF1(NPDE), FF2(NPDE)
-        INTEGER N,I,J
+        REAL*8 FF1(NEQN), FF2(NEQN)
+        INTEGER I,J
 
         CALL GFUN (T, C, FF1, NPDE, NCPTS, WORK(IW1), WORK,
      *             WORK(IW14), WORK(IW15), WORK(IW16),
      *             WORK(IW3), WORK(IW9), IWORK)
+
         F = 0D0
-        DO I=1,NPDE
+        DO I=1,NEQN
           F = F + FF1(I)*FF1(I)
         ENDDO
         DO J=1,NEQN
@@ -143,7 +149,7 @@ C       Work arrays and indices
      *               WORK(IW14), WORK(IW15), WORK(IW16),
      *               WORK(IW3), WORK(IW9), IWORK)
           G(J) = 0D0
-          DO I=1,NPDE
+          DO I=1,NEQN
             G(J) = G(J) + 2D0*FF1(I)*(FF2(I)-FF1(I)) * RINV
           ENDDO
           C(J) = CJ

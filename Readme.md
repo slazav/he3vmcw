@@ -26,6 +26,8 @@ a warning message.
 
 * `load_state <file>` -- Load the solver state from a file.
 
+* `find_eq` -- Find equilibrium distribution of all functions.
+
 * `wait <time, s>` -- Do calculations for some time period.
 
 * `reset_time` -- Reset time to 0. This command is useful
@@ -179,5 +181,6 @@ term is zero do nothing and print a warning message.
 * `sweep_leggett_freq <value, Hz> <rate, Hz/s>` -- Sweep Leggett frequency [Hz]
 
 * `set_ttc_press <T/Tc> <pressure, bar>` -- Set He3 parameters for a
-given temperature and pressure. Program should be built with `he3lib` support.
+given temperature and pressure (Leggett frequency, spin-wave velocity, spin diffusion, Leggett-takagi relaxation).
+Program should be built with `he3lib` support.
 
