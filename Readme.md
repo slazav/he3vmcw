@@ -176,9 +176,9 @@ term is zero do nothing and print a warning message.
 
 #### He3 properties:
 
-* `set_t1 <value, s>`   -- Set relaxation time t_1 [s]
+* `set_t1 <value, s>`   -- Set relaxation time t_1 [s], or 0 for no relaxation
 * `sweep_t1 <value, s> <rate, s/s>` -- Sweep relaxation time t_1 [s]
-* `set_tf <value, s>`   -- Set Leggett-Takagi relaxation time tau_f [s]
+* `set_tf <value, s>`   -- Set Leggett-Takagi relaxation time tau_f [s], or 0 for no relaxation
 * `sweep_tf <value, s> <rate, s/s>` -- Sweep Leggett-Takagi relaxation time tau_f [s]
 * `set_diff <value, cm^2/s>` -- Set spin diffusion [cm^2/s]
 * `sweep_diff <value, cm^2/s> <rate, (cm^2/s)/s>` -- Sweep spin diffusion [cm^2/s]

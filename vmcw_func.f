@@ -151,7 +151,10 @@ C             but spin diffusion should be uniform
 C       Leggett equations
         FV(1)=   (Wz-W0)*UMy          + AUT*UN(1) - DJ(1)
         FV(2)= - (Wz-W0)*UMx + Wr*UMz + AUT*UN(2) - DJ(2)
-        FV(3)=               - Wr*UMy + AUT*UN(3) - DJ(3) - UMzm/T1
+        FV(3)=               - Wr*UMy + AUT*UN(3) - DJ(3)
+
+C       T1 relaxation
+        if (T1.ne.0D0) FV(3) = FV(3) - UMzm/T1
 
         if (NPDE.EQ.7) then
 C         if cos(th) is near 1 print a warning
@@ -182,7 +185,11 @@ C         avoid divergency in cos(th)=1
           endif
 
 C         d(n*th) = th*dn + n*dth
-          dTh = Wz*B + UT/Tf
+          dTh = Wz*B
+
+C         Leggett-Takagi relaxation:
+          if (Tf.ne.0D0) dTh = dTh + UT/Tf
+
           FV(4) = -W0*UN(2)*Uth - 0.5D0*Wz*
      *       ((UMzm*UN(2)-UMym*UN(3))*Uth + CTGT*(B*UN(1)-UMxm))
      *       + dTh*UN(1)
