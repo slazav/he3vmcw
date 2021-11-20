@@ -85,7 +85,7 @@ extern "C"{
   void values_(double *XSOL, double *USOL,
                double *SCTCH, int *NDIM1, int *NDIM2, int *NPTS, int *NDERV, double *WORK);
 
-  void findeq_(double *T, double *WORK, int *IWORK, int *MSG_LVL);
+  void findeq_(double *T, double *X, double *UVAL, int *NPTS, int *MSG_LVL, int *err);
 }
 /********************************************************************/
 // wrapper class methods
@@ -168,10 +168,28 @@ pdecol_solver::step(double t_, bool exact) {
   }
 }
 
-void
-pdecol_solver::find_eq() {
- int msg_lvl = 1;
- findeq_(&t0, WORK.data(), IWORK.data(), &msg_lvl);
+std::vector<double>
+pdecol_solver::find_eq(std::vector<double> & X) {
+  int msg_lvl = 1;
+  int n = X.size(), err;
+  auto U = values(X,0);
+  auto U1 = U;
+  findeq_(&t0, X.data(), U.data(), &n, &msg_lvl, &err);
+  switch (err) {
+    case -1: throw Err() << "find_eq/tn: error in input parameters";
+    case +2: throw Err() << "find_eq/tn: more then MAXFUN evaluations";
+    case +3: std::cerr << "find_eq/tn: line search failed to find lower point\n"; break;
+    case 101: throw Err() << "find_eq: too few points";
+  }
+
+  for (size_t i1 = 0; i1<X.size(); ++i1){
+  std::cout << i1;
+    for (size_t i2 = 0; i2 < NPDE; ++i2)
+      std::cout << "   " << U1[i2 + i1*NPDE] << " " << U[i2 + i1*NPDE];
+    std::cout << "\n";
+  }
+
+  return U;
 }
 
 // values

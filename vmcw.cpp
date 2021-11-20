@@ -826,7 +826,15 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
     if (cmd == "find_eq") {
       check_nargs(narg, 0);
       if (!pp.solver) throw Err() << "solver is not running";
-      pp.solver->find_eq();
+      std::vector<double> xsol = set_uniform_mesh(pp.npts);
+      auto usol = pp.solver->find_eq(xsol);
+      pp.init_data = std::vector<double>(xsol.size()*(npde+1));
+      for (int i=0; i< xsol.size(); i++){
+        pp.init_data[i*(npde+1)] = xsol[i]/pp.solver->get_xlen();
+        for (int n = 0; n<npde; n++)
+          pp.init_data[i*(npde+1)+n+1] = usol[i*npde + n];
+      }
+      pp.solver->restart();
       continue;
     }
 

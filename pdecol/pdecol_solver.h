@@ -44,9 +44,9 @@ class pdecol_solver {
   // changing something in functions).
   void step(double t, bool exact=false);
 
-  /// Find eqilibrium solution at current time (experimental!)
+  /// Find eqilibrium solution at current time
   // Solve equaion F(T,X,U,UX,UXX,FV,NPDE) = 0
-  void find_eq();
+  std::vector<double> find_eq(std::vector<double> & X);
 
   void restart();
 
