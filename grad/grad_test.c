@@ -111,7 +111,7 @@ main(){
        r0 += pow(gR[a][j], 2);
      }
      r1 = sqrt(r1)/sqrt(r0);
-     checkz("gR", r1, D, false);
+     checkz("gR", r1, 2*D, false);
   }
 
   // test 2: check formula for ggR
