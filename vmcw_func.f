@@ -3,13 +3,16 @@
 ! input:
 !   T - time
 !   X - x-coord
-!   U(6)   - Mx My Mz Nx*Th Ny*Th Nz*Th
-!   Ux(6)  - dU/dx
-!   Uxx(6) - d2U/dx2
-!   NPDE=6
+!   U(NPDE)
+!      NPDE=6: (M_x,M_y,M_z)/chi/H0, (n_x,n_y,n_z)*theta
+!      NPDE=7: (M_x,M_y,M_z)/chi/H0, n_x,n_y,n_z, theta
+!   Ux(NPDE)  - dU/dx
+!   Uxx(NPDE) - d2U/dx2
+!   NPDE=6 or 7
 ! output
-!   Fv(6)  - dU/dt
+!   Fv(NPDE)  - dU/dt
 ! Parameters are set using set_pars function.
+!
 
 C-- F ---------- EVALUATION OF F ------------------------------------
       subroutine F(T,X,U,UX,UXX,FV,NPDE)
@@ -40,7 +43,7 @@ C-- F ---------- EVALUATION OF F ------------------------------------
         UMx = U(1)
         UMy = U(2)
         UMz = U(3)
-        UMxm = UMx-Wr/Wz
+        UMxm = UMx-Wr/Wz  ! M/\chi Hz - H/Hz
         UMym = UMy
         UMzm = UMz-1.0D0
 !        GMx = UX(1)
