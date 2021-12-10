@@ -58,7 +58,6 @@ C       just a correction of n length (and theta will come from U(7))
         UN(2) = U(5)/Uth
         UN(3) = U(6)/Uth
 
-
         if (NPDE.EQ.7) then
           Uth = U(7)
           GN(1) = UX(4)
@@ -89,6 +88,7 @@ C         NOTE: this works only with BC=1!
 !          ENDIF
 
         else
+
 C         TODO: move to grad.c
 C         U(4,5,6) = n*th
 C         th = |U|
@@ -100,8 +100,9 @@ C         dn  = dU/|U| - U d|U|/|U|^2
           GN(2) = UX(5)/Uth - U(5)*Gth/Uth**2
           GN(3) = UX(6)/Uth - U(6)*Gth/Uth**2
 
-C         d2|U| = (dU*dU)/|U| + (U*d2U)/|U| - (U*dU)^2/|U|^3
-          GGth = (UX(4)**2+UX(5)**2+U(6)**2
+C         d2Th = (dU*dU)/|U| + (U*d2U)/|U| - (U*dU)d|U|/|U|^2 =
+C               = ( dU*dU + U*d2U - d|U|^2)/|U|
+          GGth = (UX(4)**2+UX(5)**2+UX(6)**2
      *           +U(4)*UXX(4)+U(5)*UXX(5)+U(6)*UXX(6)
      *         - Gth**2)/Uth
 
@@ -179,7 +180,7 @@ C         if cos(th) is near 1 print a warning
 
 C         avoid divergency in cos(th)=1
           if (dabs(1D0-CT).gt.1D-3) then
-            CTGT=ST/(1.0D0-CT)*Uth      ! T*ctg(T/2) = sin(T)/(1-cos(T))
+            CTGT=ST/(1.0D0-CT)*Uth      ! T*ctg(T/2) = sin(T)/(1-cos(T))*T
           else
             CTGT=2D0-Uth**2/6D0
           endif
