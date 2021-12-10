@@ -1059,24 +1059,33 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         // Same, but with sharp theta step
         if (type == "th_soliton1") {
           double w = (narg<2)? 0.01 : get_arg<double>(args[1]);
+          double wB = (pp.LF0 + pp.LFT*pp.tcurr)*2*M_PI;
+          double Cpar = pp.CP0 + pp.CPT*pp.tcurr;
+          // xiD = 13/24 K1/gD = 65/64 c_par^2/wB^2
+          // here I use approximation K1 = K/4
+          double xiD = sqrt(65.0/64.0) * Cpar/wB;
+          double X = x*pp.cell_len; // cm
+
+          // exact solution of theta-soliton:
+          th = M_PI + 2.0*atan(
+            (1.0+cos(th))/sin(th) * tanh(sqrt(65.0/64.0)*X/2.0/xiD));
+
+          // n-vector - just a linear changes to nz=0
           if (x/w>=-1 && x/w<0){
             double k = x/w+1; // 0..1
             bn = bn*(1-k) + M_PI*k;
             bm = bm*(1-k);
-            th = th*(1-k) + M_PI*k;
           }
           if (x/w>=0 && x/w<1){
             double k = (x/w); // 0..1
             an += M_PI;
             bn = M_PI*(1-k) + bn*k;
             bm = bm*k;
-            //th = 2*M_PI-th;
-            th = (1-k)*M_PI + (2*M_PI-th)*k;
           }
           if (x/w>=1){
             an += M_PI;
-            th = 2*M_PI-th;
           }
+
         }
 
         // theta soliton: HPD -> NPD- -> 0 -> NPD- -> HPD
