@@ -63,6 +63,9 @@ struct pars_t {
   //  HG - gradient, dH/dz [G/cm],
   //  HQ - quadratic term, d^2H/dz^2 [G/cm^2].
   double H0=0.0,  HT = 0.0,  HG = 0.1,  HQ = 0.0;
+  double get_Wz(const double x, const double t) const {
+    return 2*M_PI*f0 + gyro*(H0 + HG*x + HQ*x*x + HT*t); }
+  double get_Wz(const double x) const { return get_Wz(x, tcurr); }
 
   // Radio-frequncy field.
   // Total field is: HR = (HR0 + HRT*t) * (1 + x/xRG + (x/xRQ)^2).
@@ -72,6 +75,9 @@ struct pars_t {
   //  HRGP - gradient profile [1/cm],
   //  HRQP - quadratic profile [1/cm^2].
   double HR0=1e-3, HRT=0.0, HRGP=0.0, HRQP=0.0;
+  double get_Wr(const double x, const double t) const {
+    return gyro*(HR0 + HRT*t) * (1.0 + x*HRGP + x*x*HRQP); }
+  double get_Wr(const double x) const { return get_Wr(x, tcurr);}
 
   /*****************************/
 
@@ -95,18 +101,39 @@ struct pars_t {
 
   // t1 relaxation time, initial value [s] and sweep rate [s/s]
   double T10=1.0, T1T=0.0;
+  double get_T1(const double t) const {return T10 + T1T*t;}
+  double get_T1() const {return get_T1(tcurr);}
 
   // Leggett-Takagi relaxation time tau_f, initial value [s] and sweep rate [s/s]
   double TF0=1e-5, TFT=0.0;
+  double get_TF(const double t) const {return TF0 + TFT*t;}
+  double get_TF() const {return get_TF(tcurr);}
 
   // Spin-wave velocity, c_par, initial value [cm/s] and sweep rate [(cm/s)/s]
   double CP0=500.0, CPT=0.0;
+  double get_CP(const double t) const {return CP0 + CPT*tcurr;}
+  double get_CP() const {return get_CP(tcurr);}
 
   // Leggett frequency Omega_B, initial value [Hz] and sweep rate [Hz/s]
   double LF0=1e5, LFT=0.0;
+  double get_LF(const double t) const {return LF0 + LFT*tcurr;}
+  double get_LF() const {return get_LF(tcurr);}
 
   // Spin diffusion, initial value [cm^2/s] and sweep rate [(cm^2/s)/s]
   double DF0=0.1, DFT=0.0;
+  double get_DF(const double t) const {return DF0 + DFT*tcurr;}
+  double get_DF() const {return get_DF(tcurr);}
+
+  // Reset sweeps (done before executing every new command)
+  void reset_sweeps() {
+    H0  = H0  + tcurr*HT;  HT=0.0;
+    HR0 = HR0 + tcurr*HRT; HRT=0.0;
+    TF0 = get_TF(); TFT=0.0;
+    T10 = get_T1(); T1T=0.0;
+    LF0 = get_LF(); LFT=0.0;
+    CP0 = get_CP(); CPT=0.0;
+    DF0 = get_DF(); DFT=0.0;
+  }
 
   /*****************************/
   // sweep parameter offset, rate, name
@@ -309,14 +336,14 @@ extern "C" {
                  double *Diff, double *Tf, double *T1, int *th_flag){
 
     *W0 = 2*M_PI*pp.f0;
-    *Wz = *W0 + pp.gyro*(pp.H0 + pp.HG*(*x) + pp.HQ*(*x)*(*x) + pp.HT*(*t));
-    *Wr = pp.gyro*(pp.HR0 + pp.HRT*(*t)) * (1.0 + (*x)*pp.HRGP + (*x)*(*x)*pp.HRQP);
+    *Wz = pp.get_Wz(*x,*t);
+    *Wr = pp.get_Wr(*x,*t);
 
-    *WB = ( pp.LF0 + pp.LFT*(*t))*2*M_PI;
-    *Cpar = pp.CP0 + pp.CPT*(*t);
-    *Diff = pp.DF0 + pp.DFT*(*t);
-    *Tf   = pp.TF0 + pp.TFT*(*t);
-    *T1   = pp.T10 + pp.T1T*(*t);
+    *WB   = pp.get_LF(*t)*2*M_PI;
+    *Cpar = pp.get_CP(*t);
+    *Diff = pp.get_DF(*t);
+    *Tf   = pp.get_TF(*t);
+    *T1   = pp.get_T1(*t);
     *dCpar = 0;
     *th_flag = pp.th_flag;
 
@@ -334,9 +361,9 @@ extern "C" {
   void set_bndry_pars_(double *t, double *x, double *Wz,
                  double *Cpar, double *Diff, int *IBN, int *th_flag){
 
-    *Wz = 2*M_PI*pp.f0 + pp.gyro*(pp.H0 + pp.HG*(*x) + pp.HQ*(*x)*(*x) + pp.HT*(*t));
-    *Cpar = pp.CP0 + pp.CPT*(*t);
-    *Diff = pp.DF0 + pp.DFT*(*t);
+    *Wz = pp.get_Wz(*x,*t);
+    *Cpar = pp.get_CP(*t);
+    *Diff = pp.get_DF(*t);
     *th_flag = pp.th_flag;
 
     /*
@@ -504,11 +531,11 @@ write_pars(std::ostream & s){
   s << " T=" << pp.tcurr*1000 << " ms, "
     << "H0=" << pp.H0+pp.HT*pp.tcurr << " G, "
     << "HR=" << 1e3*(pp.HR0+pp.HRT*pp.tcurr) << " mOe, "
-    << "LF=" << 1e-3*(pp.LF0+pp.LFT*pp.tcurr) << " kHz, "
-    << "CP=" <<  (pp.CP0+pp.CPT*pp.tcurr) << " cm/s, "
-    << "DF=" << (pp.DF0+pp.DFT*pp.tcurr) << " cm^2/s, "
-    << "TF=" << 1e6*(pp.TF0+pp.TFT*pp.tcurr) << " mks, "
-    << "T1=" <<  (pp.T10+pp.T1T*pp.tcurr) << " cm/s, "
+    << "LF=" << 1e-3*pp.get_LF() << " kHz, "
+    << "CP=" << pp.get_CP() << " cm/s, "
+    << "DF=" << pp.get_DF() << " cm^2/s, "
+    << "TF=" << 1e6*pp.get_TF() << " mks, "
+    << "T1=" << pp.get_T1() << " s, "
     << "\n";
 }
 
@@ -710,14 +737,7 @@ cmd_sweep(const char *name, const std::vector<std::string> & args, T *P0, T *PT,
 /// Return 1 if file is finished, 0 if more calculations are needed.
 int
 read_cmd(std::istream &in_c, std::ostream & out_c){
-  // reset sweeps
-  pp.H0  = pp.H0  + pp.tcurr*pp.HT;  pp.HT=0.0;
-  pp.HR0 = pp.HR0 + pp.tcurr*pp.HRT; pp.HRT=0.0;
-  pp.TF0 = pp.TF0 + pp.tcurr*pp.TFT; pp.TFT=0.0;
-  pp.T10 = pp.T10 + pp.tcurr*pp.T1T; pp.T1T=0.0;
-  pp.LF0 = pp.LF0 + pp.tcurr*pp.LFT; pp.LFT=0.0;
-  pp.CP0 = pp.CP0 + pp.tcurr*pp.CPT; pp.CPT=0.0;
-  pp.DF0 = pp.DF0 + pp.tcurr*pp.DFT; pp.DFT=0.0;
+  pp.reset_sweeps();
 
   // Read input string line by line
   // Stop reading is some command increase tend, then
@@ -1059,8 +1079,8 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         // Same, but with sharp theta step
         if (type == "th_soliton1") {
           double w = (narg<2)? 0.01 : get_arg<double>(args[1]);
-          double wB = (pp.LF0 + pp.LFT*pp.tcurr)*2*M_PI;
-          double Cpar = pp.CP0 + pp.CPT*pp.tcurr;
+          double wB   = pp.get_LF()*2*M_PI;
+          double Cpar = pp.get_CP();
           // xiD = 13/24 K1/gD = 65/64 c_par^2/wB^2
           // here I use approximation K1 = K/4
           double xiD = sqrt(65.0/64.0) * Cpar/wB;
