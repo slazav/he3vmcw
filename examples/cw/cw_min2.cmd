@@ -1,3 +1,8 @@
+#!../../vmcw
+
+# CW NMR in field minimum. Coherent precession appeares
+# in the center, it has its own frequency, different from pumping.
+
 acc2 16
 npts 512
 tstep 5e-4
@@ -20,7 +25,3 @@ pnm_start
 
 sweep_field_hz -200 1000
 
-#save_state hpd
-#wait 0.05
-#hpd_deform
-#wait 0.05
