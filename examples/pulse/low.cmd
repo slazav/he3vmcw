@@ -1,3 +1,5 @@
+#!../../vmcw
+
 npts 257
 mindt 1e-20
 tstep 5e-4

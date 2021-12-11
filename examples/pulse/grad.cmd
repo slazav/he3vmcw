@@ -1,3 +1,5 @@
+#!../../vmcw
+
 # Pulsed NMR in field gradient
 
 npts 257

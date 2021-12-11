@@ -1,3 +1,5 @@
+#! ../../vmcw
+
 set_rf_field   2e-3    # RF-field
 set_field_cm    0.2    # larmor position
 set_field_grad  0.05    # field gradient, G/cm

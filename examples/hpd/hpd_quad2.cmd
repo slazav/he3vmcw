@@ -1,3 +1,5 @@
+#!../../vmcw
+
 # HPD in the field minimum
 
 set_rf_field   3e-3    # RF-field

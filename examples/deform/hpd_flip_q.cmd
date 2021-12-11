@@ -1,3 +1,5 @@
+#! ../../vmcw
+
 # Start from flipped HPD
 
 set_rf_field   2e-3    # RF-field

@@ -1,3 +1,5 @@
+#!../../vmcw
+
 npts 400
 cell_len 0.9
 

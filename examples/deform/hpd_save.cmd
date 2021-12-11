@@ -1,3 +1,5 @@
+#! ../../vmcw
+
 # save s simple HPD state with flat/grad/quad field profile
 
 set_rf_field   2e-3    # RF-field

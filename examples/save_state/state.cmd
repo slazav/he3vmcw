@@ -1,3 +1,4 @@
+#!../../vmcw
 # save/restore state test
 
 set_rf_field   2e-3    # RF-field

@@ -1,3 +1,5 @@
+#! ../../vmcw
+
 bcond_type 2
 
 set_rf_field  20e-3    # RF-field

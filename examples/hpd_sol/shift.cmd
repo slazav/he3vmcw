@@ -1,3 +1,5 @@
+#!../../vmcw
+
 # load soliton from sol.state
 
 set_rf_field   1.4e-3    # RF-field

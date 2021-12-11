@@ -1,3 +1,5 @@
+#!../../vmcw
+
 # Short RF pulse (20ms) in a large gradient.
 # Two n-solitons appear.
 # Same as solitons1.txt, but gradient is larger and RF pumping is smaller

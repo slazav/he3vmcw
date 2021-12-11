@@ -1,3 +1,5 @@
+#!../../vmcw
+
 # Create HPD by sweeping magnetic field with a gradient,
 # then switch off the excitation and sobserve decay of HPD.
 

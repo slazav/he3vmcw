@@ -1,3 +1,4 @@
+#!../../vmcw
 
 set_rf_field   2e-3    # RF-field
 set_field_cm   -0.3    # larmor position

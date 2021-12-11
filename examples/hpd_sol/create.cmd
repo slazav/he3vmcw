@@ -1,3 +1,5 @@
+#!../../vmcw
+
 # Create a soliton inside HPD
 
 set_rf_field   1.4e-3    # RF-field
