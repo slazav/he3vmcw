@@ -653,8 +653,9 @@ init_data_hpd(int sn=1, int st=1){
   }
 }
 
-// set NPD initial condition (RF-field, freq shift, Leggett-Takagi relaxation is used).
+// set NPD initial condition (RF-field, freq shift).
 // sn=+1/-1 and st=+1/-1 are ny and theta sign.
+// Spin diff is not used, could be problems near resonance.
 void
 init_data_npd(int sn=1, int st=1){
 
