@@ -131,6 +131,7 @@ pdecol_solver::pdecol_solver(
   iounit_.LOUT = 0;
 
   INDEX=1;  // type of call (first call)
+  running=false;
 }
 
 // restart running solver
@@ -140,6 +141,7 @@ pdecol_solver::restart() {
   IWORK[0] = WORK.size();
   IWORK[1] = IWORK.size();
   INDEX=1;
+  running=false;
 }
 
 void
@@ -166,6 +168,7 @@ pdecol_solver::step(double t_, bool exact) {
   if (verbose) {
     std::cerr << " DT: " << get_dtused() << " NQ: " << get_nqused() << "\n";
   }
+  running=true;
 }
 
 std::vector<double>
@@ -197,6 +200,7 @@ void
 pdecol_solver::values(std::vector<double> & xsol,
                       std::vector<double> & usol, int NDERV){
 
+  if (!running) throw Err() << "can't get values, a time step is needed";
   int NPTS = xsol.size();
 
   // array for values
