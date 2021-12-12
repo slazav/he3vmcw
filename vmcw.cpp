@@ -602,7 +602,7 @@ init_data_soliton(double w, // soliton width
 }
 
 // set HPD initial condition (RF-field, freq shift, Leggett-Takagi relaxation is used).
-// sn=+1/-1 and st=+1/-1 are ny and theta size.
+// sn=+1/-1 and st=+1/-1 are ny and theta sign.
 void
 init_data_hpd(int sn=1, int st=1){
 
@@ -623,7 +623,7 @@ init_data_hpd(int sn=1, int st=1){
     double d = -(Wz-W0)/W0;
     double b = (WB/W0)*(WB/W0);
     double wt = Tf * W0;
-    if (d<0) throw Err() << "init_data_hpd: d<0";
+//    if (d<0) throw Err() << "init_data_hpd: d<0";
 
     double th = (st>0? 1:-1) * acos(-0.25 - 15.0/16 * d/b - sn*h/sqrt(15.0));
 
@@ -653,6 +653,58 @@ init_data_hpd(int sn=1, int st=1){
   }
 }
 
+// set NPD initial condition (RF-field, freq shift, Leggett-Takagi relaxation is used).
+// sn=+1/-1 and st=+1/-1 are ny and theta sign.
+void
+init_data_npd(int sn=1, int st=1){
+
+  double Wr, Wz, W0, WB, Cpar, dCpar, Diff, Tf, T1;
+  int th_fl;
+
+  sn = (sn>0)? +1:-1;
+  st = (st>0)? +1:-1;
+
+  pp.init_data.resize(pp.npts*(npde+1));
+  for (int i=0; i<pp.npts; i++){
+    double x  = i/(pp.npts+1.0) - 0.5;
+    double xl = x*pp.cell_len;
+    // get local parameters
+    set_bulk_pars_(&pp.tcurr, &xl, &Wr, &Wz, &W0,&WB, &Cpar, &dCpar, &Diff, &Tf, &T1, &th_fl);
+
+    double th = (st>0? 1:-1) * acos(-0.25);
+    double wx = -Wr/sqrt(pow(Wr,2) + pow(Wz-W0,2));
+    double wz = -(Wz-W0)/sqrt(pow(Wr,2) + pow(Wz-W0,2));
+    if (wz<0) {wz=-wz; wx=-wx;}
+
+    double nz = (sn>0? 1:-1) * sqrt((wz+0.25)/1.25);
+    double nx = nz*wx /(wz + 1.0);
+    double ny = sqrt(3.0/5.0)*wx /(wz + 1.0);
+
+    // safety:
+    double nn = sqrt(nx*nx+ny*ny+nz*nz);
+    nx = nx/nn; ny=ny/nn; nz=nz/nn;
+
+    std::cerr << "W> " << wx << " " << wz <<"\n";
+    std::cerr << "N> " << nx << " " << nz <<"\n";
+
+    // s/W0 = w - z + Wz/W0 z + Wr/W0 x
+    pp.init_data[(npde+1)*i+0] = x;
+    pp.init_data[(npde+1)*i+1] = wx + Wr/W0;
+    pp.init_data[(npde+1)*i+2] = 0;
+    pp.init_data[(npde+1)*i+3] = wz + (Wz-W0)/W0;
+    if (npde == 7){
+      pp.init_data[(npde+1)*i+4] = nx;
+      pp.init_data[(npde+1)*i+5] = ny;
+      pp.init_data[(npde+1)*i+6] = nz;
+      pp.init_data[(npde+1)*i+7] = th;
+    }
+    else {
+      pp.init_data[(npde+1)*i+4] = nx*th;
+      pp.init_data[(npde+1)*i+5] = ny*th;
+      pp.init_data[(npde+1)*i+6] = nz*th;
+    }
+  }
+}
 
 // Save current profile to init_data.
 // With this function one can do things like this:
@@ -923,22 +975,29 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
     if (cmd == "bcond_type_r"){
       pp.bctype_r = get_one_arg<int>(args); continue;}
 
-    // set uniform i.c. with nz=-1 or nz=+1 (default)
-    if (cmd == "set_icond_uniform") {
-      check_nargs(narg, 0, 1);
-      int nz = narg>0 ? get_arg<int>(args[0]) : 1;
-      nz = nz>=0? 1:-1;
-      init_data_uniform(0,0,1, 0,0,nz, acos(-0.25));
-      continue;
-    }
 
-    // Set uniform "hpd" i.c. with ny=-1 or ny=+1 (default).
+    // Set "hpd" i.c. with ny=-1 or ny=+1 (default).
     // He3 parameters, cell size and field profile should be set before.
+    // At each point equilibrium value is set (assuming system is uniform locally).
+    // Spin currents are ignored, field profile, Leggett frequency and
+    // Leggett-takagi relaxation are used.
     if (cmd == "set_icond_hpd") {
       check_nargs(narg, 0, 1);
       int ny = narg>0 ? get_arg<int>(args[0]) : 1;
       ny = ny>=0? 1:-1;
       init_data_hpd(ny);
+      continue;
+    }
+
+    // Set "npd" i.c. with ny=-1 or ny=+1 (default).
+    // He3 parameters, cell size and field profile should be set before.
+    // At each point equilibrium value is set (assuming system is uniform locally).
+    // Spin currents are ignored, field profile and Leggett frequency are used.
+    if (cmd == "set_icond_npd") {
+      check_nargs(narg, 0, 1);
+      int ny = narg>0 ? get_arg<int>(args[0]) : 1;
+      ny = ny>=0? 1:-1;
+      init_data_npd(ny);
       continue;
     }
 
@@ -949,6 +1008,16 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       ny = ny>=0? 1:-1;
       double th = acos(-0.25);
       init_data_uniform(ny*sin(th),0,cos(th), 0,ny,0, th);
+      continue;
+    }
+
+    // set uniform i.c. with nz=-1 or nz=+1 (default)
+    if (cmd == "set_icond_uniform" ||
+        cmd == "set_icond_npd_simple") {
+      check_nargs(narg, 0, 1);
+      int nz = narg>0 ? get_arg<int>(args[0]) : 1;
+      nz = nz>=0? 1:-1;
+      init_data_uniform(0,0,1, 0,0,nz, acos(-0.25));
       continue;
     }
 

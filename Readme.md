@@ -70,14 +70,23 @@ Following commands change default boundary condition and have an effect
 only when the solver is starded next time.
 
 * `set_icond_uniform [<nz value>=1]` -- set uniform i.c. with nz=-1 or nz=+1.
+* `set_icond_npd_simple [<nz value>=1]` -- same
+
+* `set_icond_hpd_simple [<ny value>=1]` -- set simple HPD initial
+condition: th = acos(-0.25), m=(ny*sin(th),0,cos(th)), n = (0, ny, 0).
 
 * `set_icond_hpd [<ny value>=1]` -- set HPD initial condition with ny=-1
 or ny=+1. This function uses 3He parameters, cell size and field profile
 to calculate HPD state. Use it after all parameters are set. State with
 ny=+1 is stable, ny=-1 is unstable.
 
-* `set_icond_hpd_simple [<ny value>=1]` -- set simple HPD initial
-condition: th = acos(-0.25), m=(ny*sin(th),0,cos(th)), n = (0, ny, 0).
+* `set_icond_npd [<ny value>=1]` -- set NPD initial condition with ny=-1
+or ny=+1. This function uses 3He parameters, cell size and field profile
+to calculate HPD state. Use it after all parameters are set. State with
+ny=+1 is stable, ny=-1 is unstable. This initial condition
+could be bad near resonance because spin diffusion is not taken into account
+and sharp resonance peak appeares.
+
 
 * `set_icond_nsol <width>` -- set i.c witn a simple n-soliton. Width >0 does not work yet
 * `set_icond_tsol <width>` -- set i.c witn a simple t-soliton
