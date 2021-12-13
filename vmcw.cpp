@@ -1148,7 +1148,8 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         // theta soliton: HPD -> NPD- -> NPD+ -> HPD
         // Same, but with sharp theta step
         if (type == "th_soliton1") {
-          double w = (narg<2)? 0.01 : get_arg<double>(args[1]);
+          double w  = (narg<2)? 0.01 : get_arg<double>(args[1]);
+          int   sn = (narg<3)? -1 : get_arg<int>(args[2]);
           double wB   = pp.get_LF()*2*M_PI;
           double Cpar = pp.get_CP();
           // xiD = 13/24 K1/gD = 65/64 c_par^2/wB^2
@@ -1163,13 +1164,13 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
           // n-vector - just a linear changes to nz=0
           if (x/w>=-1 && x/w<0){
             double k = x/w+1; // 0..1
-            bn = bn*(1-k) + M_PI*k;
+            bn = bn*(1-k) + (sn<0 ?M_PI*k:0);
             bm = bm*(1-k);
           }
           if (x/w>=0 && x/w<1){
             double k = (x/w); // 0..1
             an += M_PI;
-            bn = M_PI*(1-k) + bn*k;
+            bn = (sn<0? M_PI*(1-k):0) + bn*k;
             bm = bm*k;
           }
           if (x/w>=1){
