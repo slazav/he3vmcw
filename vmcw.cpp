@@ -1341,10 +1341,10 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         std::ostringstream ss;
         ss << pp.pref << ".prof" << pp.cnt_prof << ".dat";
         name = ss.str();
+        pp.cnt_prof++;
       }
       int N = (narg>1) ? atoi(args[1].c_str()) : 0;
       write_profile(pp.solver, name, N);
-      pp.cnt_prof++;
       continue;
     }
 
