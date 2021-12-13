@@ -329,6 +329,7 @@ pdecol_solver::load_state(const std::string & fname){
     default:
       throw Err() << "unsupported state file version: " << version;
   }
+  running=1;
 }
 
 
