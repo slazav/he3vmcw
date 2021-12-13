@@ -1025,6 +1025,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
     // set i.c witn a simple n-soliton <width>
     // width >0 does not work yet
     if (cmd == "set_icond_nsol") {
+      check_nargs(narg, 1, 1);
       double w = get_one_arg<double>(args);
       double th = acos(-0.25);
       init_data_soliton(w, 0,0, 0,0, 1,1,
@@ -1034,6 +1035,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
 
     // set i.c witn a simple t-soliton <width>
     if (cmd == "set_icond_tsol") {
+      check_nargs(narg, 1, 1);
       double w = get_one_arg<double>(args);
       double th = acos(-0.25);
       init_data_soliton(w, 0,0, 0,0, 1,1,
@@ -1067,7 +1069,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
     // deform the current solution and restart the solver
     if (cmd == "deform") {
       if (!pp.solver) throw Err() << "solver is not running";
-      check_nargs(narg, 1, 3);
+      check_nargs(narg, 1, 4);
       std::string type = args[0];
       init_data_save(pp.solver); // save current profile to the init data
 
@@ -1105,6 +1107,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
 
         // constant rotation aroung z axis (number of periods - parameter n)
         if (type == "rotation") {
+          check_nargs(narg, 1, 2);
           int n = (narg<2)? 1 : get_arg<int>(args[1]);
           an -= 2*n*M_PI*(x+0.5);
           am -= 2*n*M_PI*(x+0.5);
@@ -1112,6 +1115,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
 
         // 2pi soliton with width w (orientation depends on w sign)
         if (type == "2pi_soliton") {
+          check_nargs(narg, 1, 2);
           double w = (narg<2)? 0.1 : get_arg<double>(args[1]);
           an += 4*atan(exp(x/w));
           am += 4*atan(exp(x/w));
@@ -1119,6 +1123,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
 
         // theta soliton: HPD -> NPD- -> NPD+ -> HPD
         if (type == "th_soliton") {
+          check_nargs(narg, 1, 2);
           double w = (narg<2)? 0.01 : get_arg<double>(args[1]);
           if (x/w>=-1.5 && x/w<-0.5){
             double k = x/w+1.5; // 0..1
@@ -1148,6 +1153,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         // theta soliton: HPD -> NPD- -> NPD+ -> HPD
         // Same, but with sharp theta step
         if (type == "th_soliton1") {
+          check_nargs(narg, 1, 4);
           double w  = (narg<2)? 0.01 : get_arg<double>(args[1]);
           int   sn = (narg<3)? -1 : get_arg<int>(args[2]);
           int   t  = (narg<4)? 1  : get_arg<int>(args[3]);
@@ -1191,6 +1197,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         // theta soliton: HPD -> NPD- -> 0 -> NPD- -> HPD
         // Sharp theta step.
         if (type == "th_soliton2") {
+          check_nargs(narg, 1, 2);
           double w = (narg<2)? 0.01 : get_arg<double>(args[1]);
           if (x/w>=-1 && x/w<0){
             double k = x/w+1; // 0..1
@@ -1211,6 +1218,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         // theta soliton: HPD -> NPD- -> NPD+ -> HPD
         // Artificial core
         if (type == "th_soliton1a") {
+          check_nargs(narg, 1, 2);
           pp.th_flag = 1;
           double w = (narg<2)? 0.01 : get_arg<double>(args[1]);
           if (x/w>=-1 && x/w<0){
@@ -1229,6 +1237,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         // theta soliton: HPD -> NPD- -> 0 -> NPD- -> HPD
         // Artificial core
         if (type == "th_soliton2a") {
+          check_nargs(narg, 1, 2);
           pp.th_flag = 1;
           double w = (narg<2)? 0.01 : get_arg<double>(args[1]);
           if (x/w>=-1 && x/w<0){
