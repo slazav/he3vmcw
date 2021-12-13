@@ -1150,6 +1150,8 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         if (type == "th_soliton1") {
           double w  = (narg<2)? 0.01 : get_arg<double>(args[1]);
           int   sn = (narg<3)? -1 : get_arg<int>(args[2]);
+          int   t  = (narg<4)? 1  : get_arg<int>(args[3]);
+
           double wB   = pp.get_LF()*2*M_PI;
           double Cpar = pp.get_CP();
           // xiD = 13/24 K1/gD = 65/64 c_par^2/wB^2
@@ -1158,8 +1160,15 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
           double X = x*pp.cell_len; // cm
 
           // exact solution of theta-soliton:
-          th = M_PI + 2.0*atan(
-            (1.0+cos(th))/sin(th) * tanh(sqrt(65.0/64.0)*X/2.0/xiD));
+          if (t == 1)
+            // thL -> 2pi-thL
+            th = M_PI + 2.0*atan(
+              (1.0+cos(th))/sin(th) * tanh(sqrt(65.0/64.0)*X/2.0/xiD));
+          else
+            // thL -> -thL
+            th = 2.0*atan(
+              sin(th)/(1.0+cos(th)) * tanh(-sqrt(65.0/64.0)*X/2.0/xiD));
+
 
           // n-vector - just a linear changes to nz=0
           if (x/w>=-1 && x/w<0){
