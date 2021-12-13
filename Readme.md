@@ -144,6 +144,12 @@ If the pnm writer for this file is not running only prints a warning.
 * `pnm_stop [<file>]` -- Stop the pnm writer. If the pnm writer for this
 file is not running only prints a warning.
 
+* `magn_start [<file>]` -- Start recording components of total
+magnetization (what you see in usual NMR experiment) to a file. If
+recording is already started then close old file and start new one.
+
+* `magn_stop` -- Stop writing magnetization file.
+
 
 #### External conditions:
 

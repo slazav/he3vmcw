@@ -176,8 +176,8 @@ struct pars_t {
   // prefix for data files, command file name without extension
   std::string pref;
 
-  // mesh, prof file counters (for default save_mesh/write_profile filenames)
-  int cnt_mesh=0, cnt_prof=0;
+  // mesh, prof, magn file counters (for default filenames)
+  int cnt_mesh=0, cnt_prof=0, cnt_magn=0;
 
   /*****************************/
 
@@ -186,6 +186,9 @@ struct pars_t {
 
   /* Container for PNM writers. Key is the file name. */
   pnm_writers_t pnm_writers;
+
+  /* Stream for magnetization writer */
+  std::ostream *out_m = NULL;
 
 } pp;
 
@@ -1387,6 +1390,34 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
     }
 
 
+    // Start recording total magnetization to a file.
+    if (cmd == "magn_start") {
+      check_nargs(narg, 0,1);
+      std::string name = narg>0 ? args[0]: "";
+      if (name=="") {
+        std::ostringstream ss;
+        ss << pp.pref << ".magn" << pp.cnt_magn << ".dat";
+        pp.cnt_magn++;
+        name = ss.str();
+      }
+
+      if (pp.out_m) delete pp.out_m;
+      pp.out_m = new std::ofstream(name);
+      if (!pp.out_m || !pp.out_m->good())
+        throw Err() << "Can't open file: " << name;
+      *pp.out_m << "# Integral magnetization log: T, LP, Mx, Mx, Mz\n";
+      continue;
+    }
+
+    // Start recording total magnetization.
+    if (cmd == "pnm_stop") {
+      if (pp.out_m) {
+        delete pp.out_m;
+        pp.out_m = NULL;
+      }
+      continue;
+    }
+
     /*******************************************************/
     // set NMR frequency
     if (cmd == "set_freq") {
@@ -1539,8 +1570,6 @@ try{
   if (!pos1) pos1 = argv[1];
   pp.pref = pos2 && pos2>pos1+1 ? std::string(argv[1], pos2-argv[1]) : argv[1];
 
-  std::ofstream out_m((pp.pref + ".magn.dat").c_str()); // log total magnetization
-  out_m << "# Integral magnetization log: T, LP, Mx, Mx, Mz\n";
   std::ofstream out_l((pp.pref + ".run.log").c_str()); // log commands
   out_l << "# Commands and main parameters\n";
 
@@ -1566,14 +1595,14 @@ try{
       std::vector<double> usol = pp.solver->values(xsol, nder);
 
       // write results
-      write_magn(out_m);
+      if (pp.out_m) write_magn(*pp.out_m);
       pp.pnm_writers.write(xsol, usol);
-      write_pars(out_l);
+       write_pars(out_l);
     }
 
     // flush files
     out_l.flush();
-    out_m.flush();
+    if (pp.out_m) pp.out_m->flush();
   }
 
 }
