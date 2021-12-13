@@ -316,18 +316,6 @@ set_adaptive_mesh(const int N){
   return x;
 }
 
-// Save the mesh to file
-void
-save_mesh(const std::vector<double> &x,
-          const std::string & fname){
-  std::ofstream ff(fname.c_str());
-  ff << "# N X\n"
-     << std::scientific << std::setprecision(6);
-  for (int i=0; i<x.size(); i++)
-    ff << i << " " << x[i] << "\n";
-}
-
-
 
 /******************************************************************/
 // Set parameters for Leggett equations using main parameter structure.
@@ -850,11 +838,6 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       pp.solver = new pdecol_solver(pp.tcurr, pp.mindt, pp.acc, xbrpt, npde);
       if (!pp.solver) throw Err() << "can't create solver";
 
-      // save the mesh
-      std::ostringstream ss;
-      ss << pp.pref << ".mesh" << pp.cnt_mesh << ".dat";
-      save_mesh(xbrpt, ss.str());
-      pp.cnt_mesh++;
       continue;
     }
 
@@ -1312,12 +1295,6 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
 //        if (!pp.solver) throw Err() << "can't create solver";
 
       pp.solver->restart();
-
-      // save the mesh
-      std::ostringstream ss;
-      ss << pp.pref << ".mesh" << pp.cnt_mesh << ".dat";
-      save_mesh(xbrpt, ss.str());
-      pp.cnt_mesh++;
       continue;
 
     }
@@ -1345,6 +1322,27 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       }
       int N = (narg>1) ? atoi(args[1].c_str()) : 0;
       write_profile(pp.solver, name, N);
+      continue;
+    }
+
+    // write mesh
+    if (cmd == "write_mesh") {
+      check_nargs(narg, 0,1);
+      if (!pp.solver) throw Err() << "solver is not running";
+
+      std::string name = narg>0 ? args[0]:"";
+      if (name =="") {
+        std::ostringstream ss;
+        ss << pp.pref << ".mesh" << pp.cnt_mesh << ".dat";
+        name = ss.str();
+        pp.cnt_mesh++;
+      }
+      auto xbrpt = pp.solver->get_xmesh();
+      std::ofstream ff(name);
+      ff << "# N X\n" << std::scientific << std::setprecision(6);
+      for (int i=0; i<xbrpt.size(); i++)
+        ff << i << " " << xbrpt[i] << "\n";
+
       continue;
     }
 
