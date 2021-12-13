@@ -129,6 +129,16 @@ then a default filename `<prefix>.prof<n>.dat` is used. If `N` is not set
 or `0`, then use solver's mesh. If `N>2`, build a uniform mesh with `N`
 points. If solver is not running then only prints a warning.
 
+* `write_mesh [<file>]` -- Write coordinate breakpoints x(i).
+Default filename is `<prefix>.mesh<n>.dat`.
+
+* `magn_start [<file>]` -- Start recording components of total
+magnetization (what you see in usual NMR experiment) to a file. If
+recording is already started then close old file and start new one.
+Default filename is `<prefix>.magn<n>.dat`.
+
+* `magn_stop` -- Stop writing magnetization file.
+
 * `pnm_start [<file>]` -- Start writing a pnm-file with vectors n and M
 orientation. If solver is not started do nothing and print a warning
 message. Default filename is `<prefix>.pic.pnm`. A few pnm writers
@@ -143,12 +153,6 @@ If the pnm writer for this file is not running only prints a warning.
 
 * `pnm_stop [<file>]` -- Stop the pnm writer. If the pnm writer for this
 file is not running only prints a warning.
-
-* `magn_start [<file>]` -- Start recording components of total
-magnetization (what you see in usual NMR experiment) to a file. If
-recording is already started then close old file and start new one.
-
-* `magn_stop` -- Stop writing magnetization file.
 
 
 #### External conditions:
