@@ -131,7 +131,15 @@ pdecol_solver::pdecol_solver(
   iounit_.LOUT = 0;
 
   INDEX=1;  // type of call (first call)
-  running=false;
+
+  // Do first step with minimum length and reset time to zero
+  // This is needed to set all solver parameters and avoid some
+  // strange state when solver exists, but some functions
+  // (like values()) are not available.
+  double t = t0;
+  pdecol_(&t0,&t,&mindt,XBKPT.data(),
+    &EPS,&NINT,&KORD,&NCC,&NPDE,&MF,&INDEX,
+    WORK.data(), IWORK.data() );
 }
 
 // restart running solver
@@ -167,7 +175,6 @@ pdecol_solver::step(double t_, bool exact) {
   if (verbose) {
     std::cerr << " DT: " << get_dtused() << " NQ: " << get_nqused() << "\n";
   }
-  running=true;
 }
 
 std::vector<double>
@@ -199,7 +206,6 @@ void
 pdecol_solver::values(std::vector<double> & xsol,
                       std::vector<double> & usol, int NDERV){
 
-  if (!running) throw Err() << "can't get values, a time step is needed";
   int NPTS = xsol.size();
 
   // array for values
@@ -328,7 +334,6 @@ pdecol_solver::load_state(const std::string & fname){
     default:
       throw Err() << "unsupported state file version: " << version;
   }
-  running=true;
 }
 
 

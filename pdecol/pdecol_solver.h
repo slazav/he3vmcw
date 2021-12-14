@@ -50,9 +50,6 @@ class pdecol_solver {
 
   void restart();
 
-  /// Is the solver running?
-  bool is_running() const {return running;}
-
   void reset_time();
 
   /// Get function values
@@ -154,7 +151,6 @@ class pdecol_solver {
   int MF;     // The method flag. Can be changed during calculations
               // 11,12,21 or 22
 
-  bool running; // is the solver running
   double t; // current time
   double t0, mindt;  // initial time and min.time step -- for the first call
   std::vector<double> XBKPT;
