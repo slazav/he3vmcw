@@ -162,14 +162,6 @@ struct pars_t {
   double aer_trw = 6e-3;
 */
 
-  // non-uniform mesh step: cell_len/(NPTS-1) / (1+xmesh_k*aer_step(x)')
-  // 0 means that mesh is uniform
-  // 1 means that mesh is twice mere dense if aerogel step derivatve is 1
-  double xmesh_k = 1;
-
-  // non-uniform mesh accuracy
-  double xmesh_acc = 1e-10;
-
   /*****************************/
   // files
 
@@ -271,13 +263,17 @@ set_aerogel_mesh(const int N){
 */
 
 // Create adaptive mesh (running solver should exist)
+// xmesh_k -- non-uniform mesh step: cell_len/(NPTS-1) / (1+xmesh_k*aer_step(x)')
+//            0 means that mesh is uniform
+//            1 means that mesh is twice mere dense if RMS of function derivatives is 1
+// xmesh_acc -- non-uniform mesh accuracy
+
 std::vector<double>
-set_adaptive_mesh(const int N){
+set_adaptive_mesh(const int N, const double xmesh_k, const double xmesh_acc = 1e-10){
   if (!pp.solver)
      throw Err() << "Running solver is needed for making adaptive mesh";
   if (N < 2)
      throw Err() << "Too few points for making mesh: " << N;
-
 
   //  start with a uniform mesh
   std::vector<double> x(N);
@@ -298,7 +294,7 @@ set_adaptive_mesh(const int N){
       for (int j=0; j<npde; j++){
         w[i] += pow( pp.solver->get_value(usol, N, i, j, 1), 2);
       }
-      w[i] = 1./(1 + pp.xmesh_k*sqrt(w[i]));
+      w[i] = 1./(1 + xmesh_k*sqrt(w[i]));
       sum+=w[i];
     }
 
@@ -311,7 +307,7 @@ set_adaptive_mesh(const int N){
       if (sh < abs(x[i] - x1)) sh = abs(x[i] - x1);
       x[i] = x1;
     }
-    if (sh<pp.xmesh_acc) break;
+    if (sh<xmesh_acc) break;
   }
   return x;
 }
@@ -947,7 +943,6 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
     // but real change happenes when the solver is (re)started.
     if (cmd == "cell_len")  { pp.cell_len = get_one_arg<double>(args); continue;}
 
-    if (cmd == "mesh_k")    { pp.xmesh_k  = get_one_arg<double>(args); continue;}
     //if (cmd == "aer_len")   { pp.aer_len = get_one_arg<double>(args); continue;}
     //if (cmd == "aer_cnt")   { pp.aer_cnt = get_one_arg<double>(args); continue;}
     //if (cmd == "aer_trw")   { pp.aer_trw = get_one_arg<double>(args); continue;}
@@ -1273,13 +1268,15 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
 
     if (cmd == "adaptive_mesh") {
       if (!pp.solver) throw Err() << "solver is not running";
-      check_nargs(narg, 0);
+      check_nargs(narg, 0,2);
+      if (narg>=2)  pp.npts = get_arg<int>(args[1]);
+      double xmesh_k = (narg<3)? 1 : get_arg<double>(args[2]);
 
       // destroy all writers
       pp.pnm_writers.clear();
 
       // initialize new mesh and fill init_data
-      std::vector<double> xbrpt = set_adaptive_mesh(pp.npts);
+      std::vector<double> xbrpt = set_adaptive_mesh(pp.npts, xmesh_k);
 
       std::vector<double> usol = pp.solver->values(xbrpt, 0); // no derivatives!
       pp.init_data = std::vector<double>(xbrpt.size()*(npde+1));
@@ -1289,10 +1286,6 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         for (int n = 0; n<npde; n++)
           pp.init_data[i*(npde+1)+n+1] = pp.solver->get_value(usol, xbrpt.size(), i, n, 0);
       }
-
-
-//        pp.solver = new pdecol_solver(pp.tcurr, pp.mindt, pp.acc, xbrpt, npde);
-//        if (!pp.solver) throw Err() << "can't create solver";
 
       pp.solver->restart();
       continue;

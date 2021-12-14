@@ -52,10 +52,12 @@ from the value which was used to start the current solver).
 * `cell_len <value, cm>` -- Change cell length. Do not change while
 the solver is running.
 
-* `adaptive_mesh` -- Set a non-uniform mesh using solution from a running
-solver, restart the solver using the new mesh.
-
-* `mesh_k` -- Non-uniform mesh density (0 means flat).
+* `adaptive_mesh [<N>] [<density>]` -- Set a non-uniform mesh using
+solution from a running solver, restart the solver using the new mesh.
+`<N>` - number of points in the mesh (default - use old value).
+`<density>` - Non-uniform mesh step: `cell_len/(N-1) / (1+<density>*RMS(U'))`.
+0 means that mesh is uniform,  1 means that mesh is twice mere dense if
+RMS of function derivatives is 1.
 
 #### Initial and boundary conditions:
 
