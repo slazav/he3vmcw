@@ -141,7 +141,6 @@ pdecol_solver::restart() {
   IWORK[0] = WORK.size();
   IWORK[1] = IWORK.size();
   INDEX=1;
-  running=false;
 }
 
 void
@@ -329,7 +328,7 @@ pdecol_solver::load_state(const std::string & fname){
     default:
       throw Err() << "unsupported state file version: " << version;
   }
-  running=1;
+  running=true;
 }
 
 

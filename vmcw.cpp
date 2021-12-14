@@ -272,6 +272,7 @@ std::vector<double>
 set_adaptive_mesh(const int N, const double xmesh_k, const double xmesh_acc = 1e-10){
   if (!pp.solver)
      throw Err() << "Running solver is needed for making adaptive mesh";
+
   if (N < 2)
      throw Err() << "Too few points for making mesh: " << N;
 
@@ -1102,6 +1103,12 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
           am += 4*atan(exp(x/w));
         }
 
+        // inverse direction of n)
+        if (type == "inverse_n") {
+          an = -an;
+          bn = M_PI - bn;
+        }
+
         // theta soliton: HPD -> NPD- -> NPD+ -> HPD
         if (type == "th_soliton") {
           check_nargs(narg, 1, 2);
@@ -1269,8 +1276,8 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
     if (cmd == "adaptive_mesh") {
       if (!pp.solver) throw Err() << "solver is not running";
       check_nargs(narg, 0,2);
-      if (narg>=2)  pp.npts = get_arg<int>(args[1]);
-      double xmesh_k = (narg<3)? 1 : get_arg<double>(args[2]);
+      if (narg>=1)  pp.npts = get_arg<int>(args[0]);
+      double xmesh_k = (narg<2)? 1 : get_arg<double>(args[1]);
 
       // destroy all writers
       pp.pnm_writers.clear();
