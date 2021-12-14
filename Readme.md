@@ -57,7 +57,7 @@ solution from a running solver, restart the solver using the new mesh.
 `<N>` - number of points in the mesh (default - use old value).
 `<density>` - Non-uniform mesh step: `cell_len/(N-1) / (1+<density>*RMS(U'))`.
 0 means that mesh is uniform,  1 means that mesh is twice mere dense if
-RMS of function derivatives is 1.
+RMS of function derivatives is 1. [ERROR] Adaptive mesh does not work now!
 
 #### Initial and boundary conditions:
 
@@ -120,7 +120,8 @@ deform none  # save function profiles for new initial conditions
 start        # start new solver with new parameters
 pnm_start    # start new pnm_writer
 ```
-TODO: make a high-level command for that?
+
+[ERROR] Changing number of points with deform does not work now!
 
 #### Data output:
 
