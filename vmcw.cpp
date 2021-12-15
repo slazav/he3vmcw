@@ -1445,8 +1445,8 @@ try{
       // write magnetization (using mesh from the solver)
       if (pp.out_m) write_magn(*pp.out_m);
 
-      // write pnm (using uniform mesh)
-      std::vector<double> xsol = make_uniform_mesh(pp.npts, pp.cell_len);
+      // write pnm (using same number of points as in the solver, but uniform mesh)
+      std::vector<double> xsol = make_uniform_mesh(pp.solver->get_npts(), pp.cell_len);
       std::vector<double> usol = pp.solver->values(xsol, nder);
       pp.pnm_writers.write(xsol, usol);
        write_pars(out_l);

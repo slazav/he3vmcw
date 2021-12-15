@@ -106,6 +106,8 @@ class pdecol_solver {
   // get number of equations
   int get_npde() const {return NPDE;}
 
+  // get number of mesh points
+  int get_npts() const {return XBKPT.size();}
 
   // get coordinate span
   double get_xlen() const {return *XBKPT.rbegin()-*XBKPT.begin();}
