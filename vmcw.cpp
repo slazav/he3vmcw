@@ -728,7 +728,11 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
     if (cmd == "start") {
       check_nargs(narg, 0);
       // stop solver if it already exists
-      if (pp.solver) delete pp.solver;
+      // save current profile to the init data
+      if (pp.solver){
+        init_data_save(pp.solver);
+        delete pp.solver;
+      }
 
       // destroy all writers
       pp.pnm_writers.clear();
@@ -745,7 +749,8 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
     if (cmd == "stop") {
       check_nargs(narg, 0);
       if (!pp.solver) throw Err() << "solver is not running";
-      if (pp.solver) delete pp.solver;
+      init_data_save(pp.solver);
+      delete pp.solver;
       pp.solver = NULL;
       continue;
     }
