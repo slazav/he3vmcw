@@ -140,6 +140,10 @@ pdecol_solver::pdecol_solver(
   pdecol_(&t0,&t,&mindt,XBKPT.data(),
     &EPS,&NINT,&KORD,&NCC,&NPDE,&MF,&INDEX,
     WORK.data(), IWORK.data() );
+
+  // check INDEX after run (0 or error)
+  check_error();
+
 }
 
 // restart running solver
