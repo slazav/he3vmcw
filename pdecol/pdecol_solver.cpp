@@ -136,7 +136,7 @@ pdecol_solver::pdecol_solver(
   // This is needed to set all solver parameters and avoid some
   // strange state when solver exists, but some functions
   // (like values()) are not available.
-  double t = t0;
+  double t = t0+mindt;
   pdecol_(&t0,&t,&mindt,XBKPT.data(),
     &EPS,&NINT,&KORD,&NCC,&NPDE,&MF,&INDEX,
     WORK.data(), IWORK.data() );
