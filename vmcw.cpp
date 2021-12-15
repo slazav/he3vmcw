@@ -609,8 +609,8 @@ init_data_save(pdecol_solver *solver) {
   if (!solver)
      throw Err() << "Running solver is needed for writing magnetization";
 
-  // build mesh using new value for npts
-  std::vector<double> xsol = make_uniform_mesh(pp.npts, pp.cell_len);
+  // get values using mesh from the running solver
+  std::vector<double> xsol = pp.solver->get_xmesh();
   std::vector<double> usol = solver->values(xsol, 0); // no derivatives!
 
   pp.init_data = std::vector<double>(xsol.size()*(npde+1));
@@ -618,7 +618,8 @@ init_data_save(pdecol_solver *solver) {
   for (int i=0; i< xsol.size(); i++){
     pp.init_data[i*(npde+1)] = xsol[i]/solver->get_xlen();
     for (int n = 0; n<npde; n++)
-      pp.init_data[i*(npde+1)+n+1] = solver->get_value(usol, xsol.size(), i, n, 0);
+      pp.init_data[i*(npde+1)+n+1] =
+        solver->get_value(usol, xsol.size(), i, n, 0);
   }
 }
 
