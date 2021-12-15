@@ -30,7 +30,9 @@ class Err {
 };
 
 // A global variable with the program parameters.
-
+// It should be global because it contains initial conditions
+// and He3 parameters which should be accessed from
+// UINIT_, F_, BNDRY_ functions called by the solver.
 struct pars_t {
 
   /* Number of points. It can be changed at any time, but real change
@@ -175,88 +177,6 @@ struct pars_t {
   std::ostream *out_m = NULL;
 
 
-  // Create uniform mesh
-  std::vector<double>
-  make_uniform_mesh(const int N){
-    if (N < 2) throw Err() << "Too few points for making mesh: " << N;
-    std::vector<double> x(N);
-    double x0 = -cell_len/2.0;
-    double dx = cell_len/(N-1);
-    for (int i=0; i<N; i++) x[i] = x0 + i*dx;
-    return x;
-  }
-
-  // Create adaptive mesh (running solver should exist)
-  // xmesh_k -- non-uniform mesh step: cell_len/(NPTS-1) / (1+xmesh_k*aer_step(x)')
-  //            0 means that mesh is uniform
-  //            1 means that mesh is twice mere dense if RMS of function derivatives is 1
-  // xmesh_acc -- non-uniform mesh accuracy
-  std::vector<double>
-  make_adaptive_mesh(const int N, const double xmesh_k, const double xmesh_acc = 1e-10){
-    if (!solver)
-      throw Err() << "Running solver is needed for making adaptive mesh";
-
-    if (N < 2)
-      throw Err() << "Too few points for making mesh: " << N;
-
-    //  start with a uniform mesh
-    std::vector<double> x(N);
-    double x0 = -cell_len/2.0;
-    double dx = cell_len/(N-1);
-    for (int i=0; i<N; i++) x[i] = x0 + i*dx;
-
-    int maxk=100;
-    for (int k=0; k<maxk; k++){
-      // get function derivatives int the  mesh points
-      std::vector<double> usol = solver->values(x, nder);
-      // Calculate point weights: w(i) = 1./(1 + k <U[i]'>)
-      // and total weight. Use only 1..N-1 points
-      std::vector<double> w(N);
-      double sum = 0;
-      for (int i=1; i<N; i++){
-        w[i]=0;
-        for (int j=0; j<npde; j++){
-          w[i] += pow( solver->get_value(usol, N, i, j, 1), 2);
-        }
-        w[i] = 1./(1 + xmesh_k*sqrt(w[i]));
-        sum+=w[i];
-      }
-
-      // Modify the mesh by changing dx -> dx*sum/w.
-      // Find max point shift
-      x[0] = x0;
-      double sh=0;
-      for (int i=1; i<N; i++){
-        double x1 = x[i-1] + dx * w[i-1]/sum * (N-1);
-        if (sh < abs(x[i] - x1)) sh = abs(x[i] - x1);
-        x[i] = x1;
-      }
-      if (sh<xmesh_acc) break;
-    }
-    return x;
-  }
-
-
-  // stop running solver if it is running;
-  // start a new one if start_new==1
-  void
-  solver_stop_start(bool start_new){
-    // stop solver if it already exists
-    if (solver) delete solver;
-    solver = NULL;
-
-    // destroy all writers
-    pnm_writers.clear();
-
-    if (!start_new) return;
-
-    // initialize new solver
-    tend=tcurr=0;
-    std::vector<double> xbrpt = make_uniform_mesh(npts);
-    solver = new pdecol_solver(tcurr, mindt, acc, xbrpt, npde);
-    if (!solver) throw Err() << "can't create solver";
-  }
-
 } pp;
 
 
@@ -364,6 +284,68 @@ void set_he3tp(double ttc, double p){
 #endif
 
 
+  // Create uniform mesh
+  std::vector<double>
+  make_uniform_mesh(const int N, const double cell_len){
+    if (N < 2) throw Err() << "Too few points for making mesh: " << N;
+    std::vector<double> x(N);
+    double x0 = -cell_len/2.0;
+    double dx = cell_len/(N-1);
+    for (int i=0; i<N; i++) x[i] = x0 + i*dx;
+    return x;
+  }
+
+  // Create adaptive mesh (running solver should exist)
+  // xmesh_k -- non-uniform mesh step: cell_len/(NPTS-1) / (1+xmesh_k*aer_step(x)')
+  //            0 means that mesh is uniform
+  //            1 means that mesh is twice mere dense if RMS of function derivatives is 1
+  // xmesh_acc -- non-uniform mesh accuracy
+  std::vector<double>
+  make_adaptive_mesh(pdecol_solver* solver, const int N, const double cell_len,
+                     const double xmesh_k, const double xmesh_acc = 1e-10){
+    if (!solver)
+      throw Err() << "Running solver is needed for making adaptive mesh";
+
+    if (N < 2)
+      throw Err() << "Too few points for making mesh: " << N;
+
+    //  start with a uniform mesh
+    std::vector<double> x(N);
+    double x0 = -cell_len/2.0;
+    double dx = cell_len/(N-1);
+    for (int i=0; i<N; i++) x[i] = x0 + i*dx;
+
+    int maxk=100;
+    for (int k=0; k<maxk; k++){
+      // get function derivatives int the  mesh points
+      std::vector<double> usol = solver->values(x, nder);
+      // Calculate point weights: w(i) = 1./(1 + k <U[i]'>)
+      // and total weight. Use only 1..N-1 points
+      std::vector<double> w(N);
+      double sum = 0;
+      for (int i=1; i<N; i++){
+        w[i]=0;
+        for (int j=0; j<npde; j++){
+          w[i] += pow( solver->get_value(usol, N, i, j, 1), 2);
+        }
+        w[i] = 1./(1 + xmesh_k*sqrt(w[i]));
+        sum+=w[i];
+      }
+
+      // Modify the mesh by changing dx -> dx*sum/w
+      // Find max point shift
+      x[0] = x0;
+      double sh=0;
+      for (int i=1; i<N; i++){
+        double x1 = x[i-1] + dx * w[i-1]/sum * (N-1);
+        if (sh < abs(x[i] - x1)) sh = abs(x[i] - x1);
+        x[i] = x1;
+      }
+      if (sh<xmesh_acc) break;
+    }
+    return x;
+  }
+
 /******************************************************************/
 // Writing data
 
@@ -376,8 +358,9 @@ write_profile(pdecol_solver *solver, const std::string & fname, const int N) {
   if (!pp.solver)
      throw Err() << "Running solver is needed for writing profile";
 
-  // build mesh using current value for npts
-  std::vector<double> xsol = N==0? pp.solver->get_xmesh():pp.make_uniform_mesh(N);
+  // use mesh from the solver (if N=0) or build a uniform mesh with N points:
+  std::vector<double> xsol = (N==0)?
+      pp.solver->get_xmesh() : make_uniform_mesh(N, pp.cell_len);
   std::vector<double> usol = pp.solver->values(xsol, nder);
 
   std::ofstream ss(fname.c_str());
@@ -412,7 +395,7 @@ write_magn(std::ostream & s){
   if (!pp.solver)
      throw Err() << "Running solver is needed for writing magnetization";
 
-  // build mesh using current value for npts
+  // Use mesh from the solver
   std::vector<double> xsol = pp.solver->get_xmesh();
   std::vector<double> usol = pp.solver->values(xsol, nder);
 
@@ -620,10 +603,6 @@ init_data_npd(int sn=1, int st=1){
 }
 
 // Save current profile to init_data.
-// With this function one can do things like this:
-// - with a running solver change npts
-// - save functions to init_data
-// - start new solver with new npts and old data as initial conditions
 void
 init_data_save(pdecol_solver *solver) {
 
@@ -631,11 +610,11 @@ init_data_save(pdecol_solver *solver) {
      throw Err() << "Running solver is needed for writing magnetization";
 
   // build mesh using new value for npts
-  std::vector<double> xsol = pp.make_uniform_mesh(pp.npts);
+  std::vector<double> xsol = make_uniform_mesh(pp.npts, pp.cell_len);
   std::vector<double> usol = solver->values(xsol, 0); // no derivatives!
 
   pp.init_data = std::vector<double>(xsol.size()*(npde+1));
-  //print values
+  // fill init_data array:
   for (int i=0; i< xsol.size(); i++){
     pp.init_data[i*(npde+1)] = xsol[i]/solver->get_xlen();
     for (int n = 0; n<npde; n++)
@@ -747,7 +726,17 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
     // (Re)start the solver.
     if (cmd == "start") {
       check_nargs(narg, 0);
-      pp.solver_stop_start(true);
+      // stop solver if it already exists
+      if (pp.solver) delete pp.solver;
+
+      // destroy all writers
+      pp.pnm_writers.clear();
+
+      // initialize new solver
+      pp.tend=pp.tcurr=0;
+      std::vector<double> xbrpt = make_uniform_mesh(pp.npts, pp.cell_len);
+      pp.solver = new pdecol_solver(pp.tcurr, pp.mindt, pp.acc, xbrpt, npde);
+      if (!pp.solver) throw Err() << "can't start solver";
       continue;
     }
 
@@ -755,7 +744,8 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
     if (cmd == "stop") {
       check_nargs(narg, 0);
       if (!pp.solver) throw Err() << "solver is not running";
-      pp.solver_stop_start(false);
+      if (pp.solver) delete pp.solver;
+      pp.solver = NULL;
       continue;
     }
 
@@ -793,7 +783,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
     if (cmd == "find_eq") {
       check_nargs(narg, 0);
       if (!pp.solver) throw Err() << "solver is not running";
-      std::vector<double> xsol = pp.make_uniform_mesh(pp.npts);
+      std::vector<double> xsol = make_uniform_mesh(pp.npts,pp.cell_len);
       auto usol = pp.solver->find_eq(xsol);
       pp.init_data = std::vector<double>(xsol.size()*(npde+1));
       for (int i=0; i< xsol.size(); i++){
@@ -844,10 +834,8 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
     // but real change happenes when the solver is (re)started.
     if (cmd == "mindt") { pp.mindt = get_one_arg<double>(args); continue; }
 
-    // Change number of points and restart the solver.
-    if (cmd == "npts") {
-      pp.npts = get_one_arg<int>(args); continue;
-    }
+    // Change number of points.
+    if (cmd == "npts") { pp.npts = get_one_arg<int>(args); continue; }
 
     // Change time step. Can be changed during calculation.
     if (cmd == "tstep") { pp.tstep = get_one_arg<double>(args); continue; }
@@ -1151,7 +1139,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       pp.pnm_writers.clear();
 
       // initialize new mesh and fill init_data
-      std::vector<double> xbrpt = pp.make_adaptive_mesh(pp.npts, xmesh_k);
+      std::vector<double> xbrpt = make_adaptive_mesh(pp.solver, pp.npts, pp.cell_len, xmesh_k);
 
       std::vector<double> usol = pp.solver->values(xbrpt, 0); // no derivatives!
       pp.init_data = std::vector<double>(xbrpt.size()*(npde+1));
@@ -1453,12 +1441,12 @@ try{
       std::cerr << pp.sweep_par_n << ":" << pp.sweep_par_o + pp.sweep_par_r*pp.tcurr << " ";
       pp.solver->step(pp.tcurr, false);
 
-      // build uniform mesh using current value for npts
-      std::vector<double> xsol = pp.make_uniform_mesh(pp.npts);
-      std::vector<double> usol = pp.solver->values(xsol, nder);
-
-      // write results
+      // write magnetization (using mesh from the solver)
       if (pp.out_m) write_magn(*pp.out_m);
+
+      // write pnm (using uniform mesh)
+      std::vector<double> xsol = make_uniform_mesh(pp.npts, pp.cell_len);
+      std::vector<double> usol = pp.solver->values(xsol, nder);
       pp.pnm_writers.write(xsol, usol);
        write_pars(out_l);
     }
