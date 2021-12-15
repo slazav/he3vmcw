@@ -157,23 +157,6 @@ struct pars_t {
   double cell_len = 0.4;
 
 
-/*
-  // Parameters for non-uniform ("aerogel") layout.
-  // - not tested for a long time
-  // - dDiff/dx is not taken into account
-  // - he3 parameters in aerogel are differs from bulk
-  //   dy some fixed factors (see set_bulk_pars_ function below)
-
-  // Aerogel length (in cell length units).
-  double aer_len = 0.0;
-
-  // Aerogel center (in cell length units).
-  double aer_cnt = 0.0;
-
-  // Aerogel transition width (in cell length units).
-  double aer_trw = 6e-3;
-*/
-
   /*****************************/
   // files
 
@@ -281,72 +264,14 @@ struct pars_t {
 
 
 
-
-/******************************************************************/
-// Aerogel profile.
-// Returns 1 in the central
-// part of the cell with fermi steps to 0 on edges.
-//   x is coordinate
-//   d is derivative (0 or 1)
-// Use parameters:
-//   cell_len - cell length, cm
-//   aer_len  -- aerogel length / cell length (use <=0 for no aerogel)
-//   aer_cnt  -- center of aerogel area / cell length
-//   aer_trw  -- transition width / cell length
-/*
-double
-aer_step(double x, int d){
-
-  if (pp.aer_len <= 0.0) return 0.0;
-
-  double xx = x/pp.cell_len - pp.aer_cnt;
-  double a = (fabs(xx) - pp.aer_len/2.0)/pp.aer_trw;
-  double dadx = (xx>0? 1:-1)/pp.aer_trw/pp.cell_len;
-
-  if(a < 82.0){
-    if (d==0) return 1.0/(1.0+exp(a));
-    else      return dadx * exp(a)/(1.0+exp(a))/(1.0+exp(a));
-  }
-  return 0.0;
-}
-*/
-
-/******************************************************************/
-
-
-/*
-// Create "aerogel" mesh
-// Not used now.
-std::vector<double>
-set_aerogel_mesh(const int N){
-  if (N < 2) throw Err() << "Too few points for making mesh: " << N;
-  std::vector<double> x(N);
-
-  // start with homogenious mesh with dx intervals
-  double dx = pp.cell_len/(N-1);
-  x[0] = -pp.cell_len/2.0;
-  for (int k=0; k<100; k++){
-    for (int i=0; i<N-1; i++){
-      x[i+1] = x[i] + dx/(1.0+pp.xmesh_k*fabs(aer_step(x[i],1)));
-    }
-    // scale the whole mesh to fit cell_len
-    double d = pp.cell_len - (x[N-1]-x[0]);
-    dx+=d/(N+1);
-    if (fabs(d)<pp.xmesh_acc) break;
-  }
-  return x;
-}
-*/
-
-
 /******************************************************************/
 // Set parameters for Leggett equations using main parameter structure.
 // This functions are called from F and BNDRY
 extern "C" {
   void set_bulk_pars_(double *t, double *x,
                  double *Wr, double *Wz, double *W0,
-                 double *WB, double *Cpar, double *dCpar,
-                 double *Diff, double *Tf, double *T1, int *th_flag){
+                 double *WB, double *Cpar, double *Diff,
+                 double *Tf, double *T1, int *th_flag){
 
     *W0 = 2*M_PI*pp.f0;
     *Wz = pp.get_Wz(*x,*t);
@@ -357,18 +282,7 @@ extern "C" {
     *Diff = pp.get_DF(*t);
     *Tf   = pp.get_TF(*t);
     *T1   = pp.get_T1(*t);
-    *dCpar = 0;
     *th_flag = pp.th_flag;
-
-    /*
-    // spatial modulation
-    if (pp.aer_len>0.0){
-      *Cpar *= 1.0 - 0.5*aer_step(*x,0);
-      *dCpar =(*Cpar) * 0.5*aer_step(*x,1);
-      *Diff *= 1.0 - 0.835 * aer_step(*x,0);
-      *Tf   *= 1.0 - 0.5 * aer_step(*x,0);
-    }
-    */
   }
 
   void set_bndry_pars_(double *t, double *x, double *Wz,
@@ -619,7 +533,7 @@ init_data_soliton(double w, // soliton width
 void
 init_data_hpd(int sn=1, int st=1){
 
-  double Wr, Wz, W0, WB, Cpar, dCpar, Diff, Tf, T1;
+  double Wr, Wz, W0, WB, Cpar, Diff, Tf, T1;
   int th_fl;
 
   sn = (sn>0)? +1:-1;
@@ -630,7 +544,7 @@ init_data_hpd(int sn=1, int st=1){
     double x  = i/(pp.npts+1.0) - 0.5;
     double xl = x*pp.cell_len;
     // get local parameters
-    set_bulk_pars_(&pp.tcurr, &xl, &Wr, &Wz, &W0,&WB, &Cpar, &dCpar, &Diff, &Tf, &T1, &th_fl);
+    set_bulk_pars_(&pp.tcurr, &xl, &Wr, &Wz, &W0,&WB, &Cpar, &Diff, &Tf, &T1, &th_fl);
 
     double h = Wr/W0;
     double d = -(Wz-W0)/W0;
@@ -672,7 +586,7 @@ init_data_hpd(int sn=1, int st=1){
 void
 init_data_npd(int sn=1, int st=1){
 
-  double Wr, Wz, W0, WB, Cpar, dCpar, Diff, Tf, T1;
+  double Wr, Wz, W0, WB, Cpar, Diff, Tf, T1;
   int th_fl;
 
   sn = (sn>0)? +1:-1;
@@ -683,7 +597,7 @@ init_data_npd(int sn=1, int st=1){
     double x  = i/(pp.npts+1.0) - 0.5;
     double xl = x*pp.cell_len;
     // get local parameters
-    set_bulk_pars_(&pp.tcurr, &xl, &Wr, &Wz, &W0,&WB, &Cpar, &dCpar, &Diff, &Tf, &T1, &th_fl);
+    set_bulk_pars_(&pp.tcurr, &xl, &Wr, &Wz, &W0,&WB, &Cpar, &Diff, &Tf, &T1, &th_fl);
 
     double th = (st>0? 1:-1) * acos(-0.25);
     double wx = -Wr/sqrt(pow(Wr,2) + pow(Wz-W0,2));

@@ -24,7 +24,7 @@ C-- F ---------- EVALUATION OF F ------------------------------------
         real*8 Wr, Wz, W0
 !       Leggett freq (rad/s), Cpar (cm/s) and it's z derivative,
 !       D (cm^2/s), Tf (s), T1 (s)
-        real*8 WB, Cpar, dCpar, Diff, Tf, T1
+        real*8 WB, Cpar, Diff, Tf, T1
 
         real*8 UMx,UMy,UMz, UN(3), Uth, UDU
         real*8 UMxm,UMym,UMzm
@@ -38,7 +38,7 @@ C-- F ---------- EVALUATION OF F ------------------------------------
 
 !       set parameters:
         call set_bulk_pars(T,X, Wr,Wz,W0,WB,
-     *                     Cpar, dCpar, Diff, Tf, T1, th_flag)
+     *                     Cpar, Diff, Tf, T1, th_flag)
 
         UMx = U(1)
         UMy = U(2)
@@ -131,11 +131,8 @@ C             - U d2|U|/|U|^2 + 2 U d|U|^2/|U|^3
         CT=dcos(Uth)
         UT=ST*(1.0D0+4.0D0*CT)*0.2666666D0 ! 4/15 sin(t)*(1+4*cos(t))
 
-
-
         AUT=UT*WB**2/Wz
         AF=-Cpar**2/Wz
-        DAF = -2D0*Cpar*dCpar/Wz
 
 C       Spin currents
         call fill_jgd_nt(UJ, UN, Uth, GN, Gth)
@@ -144,11 +141,11 @@ C       Gradient torque
 
 
 C       derivative of the spin flow: d/dz(Jiz - Diff*Mi')
-C       Note: here non-uniform spin-wave velocity (DAF!=0) can be used,
-C             but spin diffusion should be uniform
-        DJ(1) = AF*DJ(1) + DAF*UJ(1) - DIFF*GGMx
-        DJ(2) = AF*DJ(2) + DAF*UJ(2) - DIFF*GGMy
-        DJ(3) = AF*DJ(3) + DAF*UJ(3) - DIFF*GGMz
+C       Note: I one wants to use non-uniform parameters (spin-wave velocity
+C             or spin diffusion) modifications are needed here.
+        DJ(1) = AF*DJ(1) - DIFF*GGMx
+        DJ(2) = AF*DJ(2) - DIFF*GGMy
+        DJ(3) = AF*DJ(3) - DIFF*GGMz
 
         B = UN(1)*UMxm + UMym*UN(2) + UMzm*UN(3)
 
