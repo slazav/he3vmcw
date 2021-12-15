@@ -34,11 +34,11 @@ C-- F ---------- EVALUATION OF F ------------------------------------
         real*8 ST,CT,CTG,CTGT
         real*8 UT,AUT,AF,DAF,B
         real*8 UJ(3),DJ(3) ! spin current J and dJ/dz
-        integer i, th_flag
+        integer i
 
 !       set parameters:
         call set_bulk_pars(T,X, Wr,Wz,W0,WB,
-     *                     Cpar, Diff, Tf, T1, th_flag)
+     *                     Cpar, Diff, Tf, T1)
 
         UMx = U(1)
         UMy = U(2)
@@ -119,14 +119,6 @@ C             - U d2|U|/|U|^2 + 2 U d|U|^2/|U|^3
      *           - U(6)*GGth/Uth**2 + 2D0*U(6)*Gth**2/Uth**3
         endif
 
-!       th-soliton!
-        if (th_flag.ne.0.and.X.GT.0D0) then
-          Uth = - Uth
-          Gth = - Gth
-          GGth = - GGth
-        endif
-
-
         ST=dsin(Uth)
         CT=dcos(Uth)
         UT=ST*(1.0D0+4.0D0*CT)*0.2666666D0 ! 4/15 sin(t)*(1+4*cos(t))
@@ -174,8 +166,6 @@ C         if cos(th) is near 1 print a warning
 !            FV(i+3) = FV(i+3) - UN(i)*UDU
 !          ENDDO
 
-!         th-soliton!
-          if (th_flag.ne.0.and.X.GT.0D0) FV(7) = - FV(7)
         else
 
 C         avoid divergency in cos(th)=1
@@ -200,14 +190,6 @@ C         Leggett-Takagi relaxation:
           FV(6) = -0.5D0*Wz*
      *       ((UMym*UN(1)-UMxm*UN(2))*Uth + CTGT*(B*UN(3)-UMzm))
      *        + dTh*UN(3)
-
-!         th-soliton!
-          if (th_flag.ne.0.and.X.GT.0D0) then
-            FV(4) = - FV(4)
-            FV(5) = - FV(5)
-            FV(6) = - FV(6)
-          endif
-
         endif
 
 
@@ -230,14 +212,14 @@ C-- BNDRY ------ BOUNDARY CONDITIONS -- B(U,UX)=Z(T) ------------
         real*8 DA
 !      real*8 U4,U5,U6,STF,ST2,ST,FTNX5,FTNX4,FTN7,FTN5,FTN4,FTN
 !      real*8 DD45,CTF,CTM,CTM2,C266,C46,C56,C66,CT
-        integer I,J,th_flag
+        integer I,J
 
 !       paramaters, same as in F (only Cpar, Diff used)
         real*8 Cpar, Diff, Wz
         integer IBN
 
 !       set parameters:
-        call set_bndry_pars(T,X, Wz, Cpar, Diff, IBN, th_flag)
+        call set_bndry_pars(T,X, Wz, Cpar, Diff, IBN)
 
 !       set everything to zero:
         do I=1,NPDE
@@ -293,12 +275,6 @@ C-- BNDRY ------ BOUNDARY CONDITIONS -- B(U,UX)=Z(T) ------------
             GN(1) = UX(4)/Uth - U(4)*Gth/Uth**2
             GN(2) = UX(5)/Uth - U(5)*Gth/Uth**2
             GN(3) = UX(6)/Uth - U(6)*Gth/Uth**2
-          endif
-
-!         th-soliton! -- does not work properly
-          if (th_flag.ne.0.and.X.GT.0D0) then
-            Uth = -Uth
-            Gth = -Gth
           endif
 
           DA=Wz*Diff/Cpar**2

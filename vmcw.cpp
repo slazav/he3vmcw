@@ -98,9 +98,6 @@ struct pars_t {
   int bctype_l = 2;
   int bctype_r = 2;
 
-  // theta-soliton flag
-  int th_flag = 0;
-
   // Data for initial conditions.
   // Array with n*(npde+1) values. n is arbitrarary number,
   // values contain z coordinate and npde function components.
@@ -271,7 +268,7 @@ extern "C" {
   void set_bulk_pars_(double *t, double *x,
                  double *Wr, double *Wz, double *W0,
                  double *WB, double *Cpar, double *Diff,
-                 double *Tf, double *T1, int *th_flag){
+                 double *Tf, double *T1){
 
     *W0 = 2*M_PI*pp.f0;
     *Wz = pp.get_Wz(*x,*t);
@@ -282,24 +279,14 @@ extern "C" {
     *Diff = pp.get_DF(*t);
     *Tf   = pp.get_TF(*t);
     *T1   = pp.get_T1(*t);
-    *th_flag = pp.th_flag;
   }
 
   void set_bndry_pars_(double *t, double *x, double *Wz,
-                 double *Cpar, double *Diff, int *IBN, int *th_flag){
+                 double *Cpar, double *Diff, int *IBN){
 
     *Wz = pp.get_Wz(*x,*t);
     *Cpar = pp.get_CP(*t);
     *Diff = pp.get_DF(*t);
-    *th_flag = pp.th_flag;
-
-    /*
-    // spatial modulation
-    if (pp.aer_len>0.0){
-      *Cpar *= 1.0 - 0.5*aer_step(*x,0);
-      *Diff *= 1.0 - 0.835 * aer_step(*x,0);
-    }
-    */
 
     // type of boundary condition
     *IBN = (*x<0)? pp.bctype_l:pp.bctype_r;
@@ -534,7 +521,6 @@ void
 init_data_hpd(int sn=1, int st=1){
 
   double Wr, Wz, W0, WB, Cpar, Diff, Tf, T1;
-  int th_fl;
 
   sn = (sn>0)? +1:-1;
   st = (st>0)? +1:-1;
@@ -544,7 +530,7 @@ init_data_hpd(int sn=1, int st=1){
     double x  = i/(pp.npts+1.0) - 0.5;
     double xl = x*pp.cell_len;
     // get local parameters
-    set_bulk_pars_(&pp.tcurr, &xl, &Wr, &Wz, &W0,&WB, &Cpar, &Diff, &Tf, &T1, &th_fl);
+    set_bulk_pars_(&pp.tcurr, &xl, &Wr, &Wz, &W0,&WB, &Cpar, &Diff, &Tf, &T1);
 
     double h = Wr/W0;
     double d = -(Wz-W0)/W0;
@@ -587,7 +573,6 @@ void
 init_data_npd(int sn=1, int st=1){
 
   double Wr, Wz, W0, WB, Cpar, Diff, Tf, T1;
-  int th_fl;
 
   sn = (sn>0)? +1:-1;
   st = (st>0)? +1:-1;
@@ -597,7 +582,7 @@ init_data_npd(int sn=1, int st=1){
     double x  = i/(pp.npts+1.0) - 0.5;
     double xl = x*pp.cell_len;
     // get local parameters
-    set_bulk_pars_(&pp.tcurr, &xl, &Wr, &Wz, &W0,&WB, &Cpar, &Diff, &Tf, &T1, &th_fl);
+    set_bulk_pars_(&pp.tcurr, &xl, &Wr, &Wz, &W0,&WB, &Cpar, &Diff, &Tf, &T1);
 
     double th = (st>0? 1:-1) * acos(-0.25);
     double wx = -Wr/sqrt(pow(Wr,2) + pow(Wz-W0,2));
@@ -982,8 +967,6 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       std::string type = args[0];
       init_data_save(pp.solver); // save current profile to the init data
 
-      pp.th_flag = 0; // reset theta flag
-
       int N = pp.init_data.size()/(npde+1);
       // Be careful with first and last point!
       // Initial conditions should be compatable with boundary conditions.
@@ -1130,48 +1113,6 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
           }
         }
 
-        // theta soliton: HPD -> NPD- -> NPD+ -> HPD
-        // Artificial core
-        if (type == "th_soliton1a") {
-          check_nargs(narg, 1, 2);
-          pp.th_flag = 1;
-          double w = (narg<2)? 0.01 : get_arg<double>(args[1]);
-          if (x/w>=-1 && x/w<0){
-            double k = x/w+1; // 0..1
-            bn = bn*(1-k) + M_PI*k;
-            bm = bm*(1-k);
-          }
-          if (x/w>=0 && x/w<1){
-            double k = (x/w); // 0..1
-            bn = M_PI*(1-k) + bn*k;
-            bm = bm*k;
-          }
-          if (x/w>=0) an += M_PI;
-        }
-
-        // theta soliton: HPD -> NPD- -> 0 -> NPD- -> HPD
-        // Artificial core
-        if (type == "th_soliton2a") {
-          check_nargs(narg, 1, 2);
-          pp.th_flag = 1;
-          double w = (narg<2)? 0.01 : get_arg<double>(args[1]);
-          if (x/w>=-1 && x/w<0){
-            double k = x/w+1; // 0..1
-            bn = bn*(1-k) + M_PI*k;
-            bm = bm*(1-k);
-          }
-          if (x/w>=0 && x/w<1){
-            double k = (x/w); // 0..1
-            an = an+M_PI;
-            bn = M_PI*(1-k) + bn*k;
-            bm = bm*k;
-          }
-          if (x/w>=1){
-            an = an+M_PI;
-          }
-        }
-
-
         nx = sin(bn)*cos(an);
         ny = sin(bn)*sin(an);
         nz = cos(bn);
@@ -1225,9 +1166,6 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       continue;
 
     }
-
-    if (cmd == "art_th_sol"){
-      pp.th_flag = get_one_arg<int>(args); continue;}
 
     /*******************************************************/
     // write profile
