@@ -38,6 +38,9 @@ class pdecol_solver {
     int NPDE, int KORD=4, int NCC=2, int MF=22, int verbose=1
   );
 
+  // load solver from a file (see load_state method below)
+  pdecol_solver(const std::string & fname):NPDE(0) {load_state(fname);}
+
   /// Do calculation until time t.
   // TODO: some more exotic calculations can be done (INDEX=2,3)
   // Set exect=true to go to the time t exactly (should be done before

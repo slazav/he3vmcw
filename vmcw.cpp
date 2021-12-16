@@ -775,12 +775,10 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
     // read state from a file
     if (cmd == "load_state") {
       check_nargs(narg, 1);
-      if (!pp.solver){
-        // create some solver (parameters are not important)
-        std::vector<double> xbrpt(pp.npts,0.0);
-        pp.solver = new pdecol_solver(pp.tcurr, pp.mindt, pp.acc, xbrpt, npde);
-      }
-      pp.solver->load_state(args[0]);
+      if (!pp.solver)
+        pp.solver = new pdecol_solver(args[0]);
+      else
+        pp.solver->load_state(args[0]);
       pp.tcurr = pp.tend = pp.solver->get_t();
       continue;
     }

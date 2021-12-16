@@ -304,7 +304,7 @@ pdecol_solver::load_state(const std::string & fname){
       READ_DATA(t0);
       READ_DATA(mindt);
 
-      if (NPDE!=NPDE0) throw Err() << "can't load state with NPDE=" << NPDE;
+      if (NPDE0!=0 && NPDE!=NPDE0) throw Err() << "can't load state with NPDE=" << NPDE;
 
       int s;
       READ_DATA(s);
