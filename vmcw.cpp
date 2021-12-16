@@ -284,67 +284,85 @@ void set_he3tp(double ttc, double p){
 #endif
 
 
-  // Create uniform mesh
-  std::vector<double>
-  make_uniform_mesh(const int N, const double cell_len){
-    if (N < 2) throw Err() << "Too few points for making mesh: " << N;
-    std::vector<double> x(N);
-    double x0 = -cell_len/2.0;
-    double dx = cell_len/(N-1);
-    for (int i=0; i<N; i++) x[i] = x0 + i*dx;
-    return x;
-  }
+// Create uniform mesh
+std::vector<double>
+make_uniform_mesh(const int N, const double cell_len){
+  if (N < 2) throw Err() << "Too few points for making mesh: " << N;
+  std::vector<double> x(N);
+  double x0 = -cell_len/2.0;
+  double dx = cell_len/(N-1);
+  for (int i=0; i<N; i++) x[i] = x0 + i*dx;
+  return x;
+}
 
-  // Create adaptive mesh (running solver should exist)
-  // xmesh_k -- non-uniform mesh step: cell_len/(NPTS-1) / (1+xmesh_k*aer_step(x)')
-  //            0 means that mesh is uniform
-  //            1 means that mesh is twice mere dense if RMS of function derivatives is 1
-  // xmesh_acc -- non-uniform mesh accuracy
-  std::vector<double>
-  make_adaptive_mesh(pdecol_solver* solver, const int N, const double cell_len,
-                     const double xmesh_k, const double xmesh_acc = 1e-10){
-    if (!solver)
-      throw Err() << "Running solver is needed for making adaptive mesh";
+// Create adaptive mesh (running solver should exist)
+// xmesh_k -- non-uniform mesh step: cell_len/(NPTS-1) / (1+xmesh_k*aer_step(x)')
+//            0 means that mesh is uniform
+//            1 means that mesh is twice mere dense if RMS of function derivatives is 1
+// xmesh_acc -- non-uniform mesh accuracy
+std::vector<double>
+make_adaptive_mesh(pdecol_solver* solver, const int N, const double cell_len,
+                   const double xmesh_k, const double xmesh_acc = 1e-10){
+  if (!solver)
+    throw Err() << "Running solver is needed for making adaptive mesh";
 
-    if (N < 2)
-      throw Err() << "Too few points for making mesh: " << N;
+  if (N < 2)
+    throw Err() << "Too few points for making mesh: " << N;
 
-    //  start with a uniform mesh
-    std::vector<double> x(N);
-    double x0 = -cell_len/2.0;
-    double dx = cell_len/(N-1);
-    for (int i=0; i<N; i++) x[i] = x0 + i*dx;
+  //  start with a uniform mesh
+  std::vector<double> x(N);
+  double x0 = -cell_len/2.0;
+  double dx = cell_len/(N-1);
+  for (int i=0; i<N; i++) x[i] = x0 + i*dx;
 
-    int maxk=100;
-    for (int k=0; k<maxk; k++){
-      // get function derivatives int the  mesh points
-      std::vector<double> usol = solver->values(x, nder);
-      // Calculate point weights: w(i) = 1./(1 + k <U[i]'>)
-      // and total weight. Use only 1..N-1 points
-      std::vector<double> w(N);
-      double sum = 0;
-      for (int i=1; i<N; i++){
-        w[i]=0;
-        for (int j=0; j<npde; j++){
-          w[i] += pow( solver->get_value(usol, N, i, j, 1), 2);
-        }
-        w[i] = 1./(1 + xmesh_k*sqrt(w[i]));
-        sum+=w[i];
+  int maxk=100;
+  for (int k=0; k<maxk; k++){
+
+    std::vector<double> w(x.size());
+
+    // get function derivatives at mesh points
+    std::vector<double> usol = solver->values(x, nder);
+    // Calculate point weights: w(i) = 1./(1 + k <U[i]'>)
+    // and total weight. Use only 1..N-1 points
+    double wavr = 0;
+    for (int i=0; i<x.size(); i++){
+      w[i]=0;
+      for (int j=0; j<npde; j++){
+        w[i] += pow( solver->get_value(usol, x.size(), i, j, 1), 2);
       }
-
-      // Modify the mesh by changing dx -> dx*sum/w
-      // Find max point shift
-      x[0] = x0;
-      double sh=0;
-      for (int i=1; i<N; i++){
-        double x1 = x[i-1] + dx * w[i-1]/sum * (N-1);
-        if (sh < abs(x[i] - x1)) sh = abs(x[i] - x1);
-        x[i] = x1;
-      }
-      if (sh<xmesh_acc) break;
+      w[i] = 1./(1 + xmesh_k*sqrt(w[i]));
+      if (i!=x.size()-1) wavr+=w[i];
     }
-    return x;
+    wavr/=x.size()-1;
+
+    // Create a new mesh
+    std::vector<double> xn;
+    xn.push_back(x[0]);
+
+    while (*xn.rbegin()<*x.rbegin()){
+      double xp = *xn.rbegin();
+      // find weight at xp by interpolating w(x)
+      double w0=0;
+      for (int j=1; j<x.size(); j++){
+        if (x[j-1]<=xp && (xp<=x[j])){
+          w0 = w[j-1] + (xp-x[j-1])/(x[j]-x[j-1])*(w[j]-w[j-1]);
+          break;
+        }
+      }
+      if (w0==0) throw Err() << "make_adaptive_mesh: error in weight interpolation";
+
+      xn.push_back(xp + dx * w0/wavr);
+    }
+    xn[xn.size()-1]=x[x.size()-1];
+    x.swap(xn);
+    if (x.size() == N) break;
+
+    if (k==maxk-1) std::cerr <<
+      "make_adaptive_mesh: max number of iterations reached,"
+      " final number of points is different from requested: " << x.size() << "\n";
   }
+  return x;
+}
 
 /******************************************************************/
 // Writing data
@@ -391,7 +409,6 @@ write_profile(pdecol_solver *solver, const std::string & fname, const int N) {
 // write integral magnetization
 void
 write_magn(std::ostream & s){
-
   if (!pp.solver)
      throw Err() << "Running solver is needed for writing magnetization";
 
@@ -1139,24 +1156,31 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       if (narg>=1)  pp.npts = get_arg<int>(args[0]);
       double xmesh_k = (narg<2)? 1 : get_arg<double>(args[1]);
 
-      // destroy all writers
-      pp.pnm_writers.clear();
-
       // initialize new mesh and fill init_data
       std::vector<double> xbrpt = make_adaptive_mesh(pp.solver, pp.npts, pp.cell_len, xmesh_k);
+
 
       std::vector<double> usol = pp.solver->values(xbrpt, 0); // no derivatives!
       pp.init_data = std::vector<double>(xbrpt.size()*(npde+1));
       //print values
       for (int i=0; i< xbrpt.size(); i++){
         pp.init_data[i*(npde+1)] = xbrpt[i]/pp.solver->get_xlen();
+
         for (int n = 0; n<npde; n++)
           pp.init_data[i*(npde+1)+n+1] = pp.solver->get_value(usol, xbrpt.size(), i, n, 0);
       }
 
-      pp.solver->restart();
-      continue;
+      // stop solver
+      delete pp.solver;
 
+      // destroy all writers
+      pp.pnm_writers.clear();
+
+      // initialize new solver
+      pp.tend=pp.tcurr=0;
+      pp.solver = new pdecol_solver(pp.tcurr, pp.mindt, pp.acc, xbrpt, npde);
+      if (!pp.solver) throw Err() << "can't start solver";
+      continue;
     }
 
     /*******************************************************/
