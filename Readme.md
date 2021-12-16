@@ -12,10 +12,11 @@ for some default output files.
 
 #### Solver:
 
-* `start` -- (Re)start the solver. Coordinate mesh is saved into
-  `<prefix>.mesh` file (2 columns: point number, coordinate value)
+* `start` -- (Re)start the solver. If solver was running, use its data as
+initial conditions.
 
-* `stop` -- Stop the solver.
+* `stop` -- Stop the solver, save its data as
+initial conditions.
 
 * `exit` -- Stop the solver and exit.
 
@@ -24,9 +25,8 @@ state is saved, not experimental conditions (magnetic fields, 3He
 parameters, etc.). If solver is not running, then do nothing and print
 a warning message.
 
-* `load_state <file>` -- Load the solver state from a file.
-
-* `find_eq` -- Find equilibrium distribution of all functions.
+* `load_state <file>` -- Load solver state from a file. It does not matter
+was a solver running previously or not.
 
 * `wait <time, s>` -- Do calculations for some time period.
 
@@ -36,16 +36,16 @@ with `T + DT = T` error.
 
 * `acc <value>` -- Change solver accuracy. If solver is not running,
 the value will be used after it starts. Accuracy can be changed for
-the running solver.
+the running solver. Default value for accuracy is 2^-20.
 
-* `acc2 <value>` -- Same, but use log2 value (10 for accuracy 2^(-10)).
+* `acc2 <value>` -- Same, but use log2 value (10 for accuracy 2^-10).
 
-* `mindt <value>` -- Change min. time step. It can be changes at any
-time, but real change happenes when the new solver is started.
+* `mindt <value>` -- Change min. time step (seconds). It can be changes
+at any time, but real change happenes when the new solver is started.
+It's recommended not to change default value (1e-10).
 
 * `npts <number>` -- Change number of points. It is used when a new solver
-is started. It also used to get data from the solver (and can be different
-from the value which was used to start the current solver).
+is started. It is also used for setting non-uniform initial conditions.
 
 * `tstep <value>` -- Set time step. Can be changed during calculation.
 
@@ -57,7 +57,7 @@ solution from a running solver, restart the solver using the new mesh.
 `<N>` - number of points in the mesh (default - use old value).
 `<density>` - Non-uniform mesh step: `cell_len/(N-1) / (1+<density>*RMS(U'))`.
 0 means that mesh is uniform,  1 means that mesh is twice mere dense if
-RMS of function derivatives is 1. [ERROR] Adaptive mesh does not work now!
+RMS of function derivatives is 1.
 
 #### Initial and boundary conditions:
 
@@ -94,7 +94,7 @@ and sharp resonance peak appeares.
 * `set_icond_tsol <width>` -- set i.c witn a simple t-soliton
 
 * `deform <type> [<par>]` -- Update initial condition from current
-function values, make some modification, and restart the solver. Types:
+function values, make some modification, and apply it to the solver. Types:
 
   * `deform none` - no modifications;
   * `deform half_turn` - rotate alpha_n, alpha_m by pi.
@@ -111,17 +111,6 @@ function values, make some modification, and restart the solver. Types:
 
 After the deformation the solver uses same parameters as before,
 pnm_writer is not restarted.
-
-If one wants to restart the solver with different parameters (cell length, number of points etc.)
-using initial conditions from the old one one can do:
-```
-npts 512     # some parameters for the new solver
-deform none  # save function profiles for new initial conditions
-start        # start new solver with new parameters
-pnm_start    # start new pnm_writer
-```
-
-[ERROR] Changing number of points with deform does not work now!
 
 #### Data output:
 
