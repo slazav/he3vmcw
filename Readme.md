@@ -202,3 +202,6 @@ term is zero do nothing and print a warning message.
 given temperature and pressure (Leggett frequency, spin-wave velocity, spin diffusion, Leggett-takagi relaxation).
 Program should be built with `he3lib` support.
 
+* `pin <k> <w>` -- set pinning profile: minimum of Leggett frequency in the center with width xiD*w.
+May be useful for stabilizing theta-solitons. 0 (defailt) - no
+pinning, 1 - full pinning. `wB = wB*(1- k*exp(-(x/xiD/w)^2))`.

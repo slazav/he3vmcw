@@ -135,6 +135,10 @@ struct pars_t {
   double get_DF(const double t) const {return DF0 + DFT*tcurr;}
   double get_DF() const {return get_DF(tcurr);}
 
+  // Pinning profile: 0: -none, 1 - full.
+  // Legget frequency decreased by (1-p) in the central region of xiD size.
+  double pin = 0.0;
+
   // Reset sweeps (done before executing every new command)
   void reset_sweeps() {
     H0  = H0  + tcurr*HT;  HT=0.0;
@@ -199,6 +203,17 @@ extern "C" {
     *Diff = pp.get_DF(*t);
     *Tf   = pp.get_TF(*t);
     *T1   = pp.get_T1(*t);
+
+    if (pp.pin >0 && pp.pin<1){
+      double wB   = pp.get_LF()*2*M_PI;
+      double Cpar = pp.get_CP();
+      // xiD = 13/24 K1/gD = 65/64 c_par^2/wB^2
+      // here I use approximation K1 = K/4
+      double xiD = sqrt(65.0/64.0) * Cpar/wB;
+      double k = 1 - pp.pin*exp(-pow(*x/2.0/xiD, 2));
+      *WB *= k;
+    }
+
   }
 
   void set_bndry_pars_(double *t, double *x, double *Wz,
