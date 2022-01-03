@@ -136,8 +136,9 @@ struct pars_t {
   double get_DF() const {return get_DF(tcurr);}
 
   // Pinning profile: 0: -none, 1 - full.
-  // Legget frequency decreased by (1-p) in the central region of xiD size.
-  double pin = 0.0;
+  // Legget frequency decreased by (1-k) in the central region of xiD/pin_w size.
+  double pin_k = 0.0;
+  double pin_w = 0.5;
 
   // Reset sweeps (done before executing every new command)
   void reset_sweeps() {
@@ -204,13 +205,13 @@ extern "C" {
     *Tf   = pp.get_TF(*t);
     *T1   = pp.get_T1(*t);
 
-    if (pp.pin >0 && pp.pin<1){
+    if (pp.pin_k >0 && pp.pin_k<=1){
       double wB   = pp.get_LF()*2*M_PI;
       double Cpar = pp.get_CP();
       // xiD = 13/24 K1/gD = 65/64 c_par^2/wB^2
       // here I use approximation K1 = K/4
       double xiD = sqrt(65.0/64.0) * Cpar/wB;
-      double k = 1 - pp.pin*exp(-pow(*x/2.0/xiD, 2));
+      double k = 1 - pp.pin_k*exp(-pow(*x/xiD/pp.pin_w, 2));
       *WB *= k;
     }
 
@@ -1418,6 +1419,15 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
       pp.LF0 = get_one_arg<double>(args); continue; }
     if (cmd == "sweep_leggett_freq") {
       cmd_sweep("fB(Hz)", args, &pp.LF0, &pp.LFT); continue; }
+
+    // Set pinning profile (0..1)
+    if (cmd == "set_pin") {
+      check_nargs(narg, 0,2);
+      pp.pin_k = narg>0? get_arg<double>(args[0]) : 1.0;
+      pp.pin_w = narg>1? get_arg<double>(args[1]) : 2.0;
+      continue;
+
+    }
 
     /*******************************************************/
 
