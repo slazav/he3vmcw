@@ -159,7 +159,10 @@ C         if cos(th) is near 1 print a warning
      *      -0.5D0*Wz*(UMxm*UN(3)-UMzm*UN(1)+CTG*(B*UN(2)-UMym))
           FV(6) =
      *      -0.5D0*Wz*(UMym*UN(1)-UMxm*UN(2)+CTG*(B*UN(3)-UMzm))
-          FV(7) =  Wz*B + UT/Tf
+          FV(7) =  Wz*B
+
+C         Leggett-Takagi relaxation:
+          if (Tf.ne.0D0) FV(7) = FV(7) + UT/Tf
 
 !          UDU = UN(1)*FV(4) + UN(2)*FV(5) + UN(3)*FV(6)
 !          DO i=1,3
