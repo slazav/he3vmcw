@@ -699,14 +699,16 @@ cmd_sweep(const char *name, const std::vector<std::string> & args, T *P0, T *PT,
   double R = get_arg<double>(args[1]);  // rate
   double VO = *P0/factor;                // old value
 
-  pp.sweep_par_o = VO;
-  pp.sweep_par_r = R;
-  pp.sweep_par_n = name;
 
   int steps = abs(rint((VD-VO)/R/pp.tstep));
   if (steps==0) throw Err() << "zero steps for sweep";
   *PT = (VD-VO)/(steps*pp.tstep) * factor;
   *P0 -= pp.tcurr*(*PT);
+
+  pp.sweep_par_o = *P0;
+  pp.sweep_par_r = *PT;
+  pp.sweep_par_n = name;
+
   pp.tend  = pp.tcurr + steps*pp.tstep;
 }
 
