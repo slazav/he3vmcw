@@ -973,8 +973,16 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         init_data_uniform(0,0,1, 0,0,1, th0);
         break;
       }
+      if (type == "NPD2"){ // equivalent to NPD-
+        init_data_uniform(0,0,1, 0,0,1, 2*M_PI-th0);
+        break;
+      }
       if (type == "NPD-"){
         init_data_uniform(0,0,1, 0,0,1, -th0);
+        break;
+      }
+      if (type == "NPD2-"){ // equivalent to NPD
+        init_data_uniform(0,0,1, 0,0,1, -(2*M_PI-th0));
         break;
       }
       if (type == "th_soliton"){
