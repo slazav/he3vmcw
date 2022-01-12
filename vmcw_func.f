@@ -127,7 +127,8 @@ C             - U d2|U|/|U|^2 + 2 U d|U|^2/|U|^3
         AF=-Cpar**2/Wz
 
 C       Spin currents
-        call fill_jgd_nt(UJ, UN, Uth, GN, Gth)
+C        call fill_jgd_nt(UJ, UN, Uth, GN, Gth)
+
 C       Gradient torque
         call fill_tgd_nt(DJ, UN, Uth, GN, Gth, GGN, GGth)
 
