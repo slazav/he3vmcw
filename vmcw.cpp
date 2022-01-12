@@ -160,6 +160,11 @@ struct pars_t {
   // cell length, cm
   double cell_len = 0.4;
 
+  /*****************************/
+  // Variables for averaging.
+  // For averaging we want to change tstep, but then return to the saved value.
+  double tstep_save;
+  int navrg = -1; // -1 if averaging is inactive
 
   /*****************************/
   // files
@@ -640,13 +645,14 @@ void
 init_data_save(pdecol_solver *solver) {
 
   if (!solver)
-     throw Err() << "Running solver is needed for writing magnetization";
+     throw Err() << "init_data_save: running solver is needed";
 
   // get values using mesh from the running solver
   std::vector<double> xsol = pp.solver->get_xmesh();
   std::vector<double> usol = solver->values(xsol, 0); // no derivatives!
 
   pp.init_data = std::vector<double>(xsol.size()*(npde+1));
+
   // fill init_data array:
   for (int i=0; i< xsol.size(); i++){
     pp.init_data[i*(npde+1)] = xsol[i]/solver->get_xlen();
@@ -656,6 +662,56 @@ init_data_save(pdecol_solver *solver) {
   }
 }
 
+// Add values from solver to the current init_data (for averaging)
+void
+init_data_add(pdecol_solver *solver) {
+  if (!solver)
+     throw Err() << "init_data_add: running solver is needed";
+
+  // get mesh from init_data
+  int N = pp.init_data.size()/(npde+1);
+  std::vector<double> xsol = std::vector<double>(N);
+  for (int i=0; i<N; i++)
+    xsol[i] = pp.init_data[i*(npde+1)]*solver->get_xlen();
+
+  // get values using this mesh
+  std::vector<double> usol = solver->values(xsol, 0); // no derivatives!
+
+  // fill init_data array:
+  for (int i=0; i< N; i++){
+    for (int n = 0; n<npde; n++)
+      pp.init_data[i*(npde+1)+n+1] +=
+        solver->get_value(usol, N, i, n, 0);
+  }
+}
+
+// Finish averaging: divide values by navrg, restart solver
+void
+do_avrg() {
+
+  if (!pp.solver)
+     throw Err() << "do_avrg: running solver is needed";
+
+  if (pp.navrg<1)
+     throw Err() << "do_avrg: not enough points";
+
+  std::cerr << "  finish averaging (" << pp.navrg << " pts)\n";
+  int N = pp.init_data.size()/(npde+1);
+
+  for (int i=0; i< N; i++){
+    for (int n = 0; n<npde; n++)
+      pp.init_data[i*(npde+1)+n+1] /= pp.navrg;
+  }
+  pp.tstep = pp.tstep_save;
+  pp.navrg = -1;
+
+  auto xbrpt = pp.solver->get_xmesh();
+
+  // initialize new solver
+  delete pp.solver;
+  pp.solver = new pdecol_solver(pp.tcurr, pp.mindt, pp.acc, xbrpt, npde);
+  if (!pp.solver) throw Err() << "can't start solver";
+}
 
 /******************************************************************/
 // Helpers for command parsing
@@ -718,6 +774,7 @@ cmd_sweep(const char *name, const std::vector<std::string> & args, T *P0, T *PT,
 int
 read_cmd(std::istream &in_c, std::ostream & out_c){
   pp.reset_sweeps();
+  if (pp.navrg>=0) do_avrg();
 
   // Read input string line by line
   // Stop reading is some command increase tend, then
@@ -1210,6 +1267,62 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
     }
 
     /*******************************************************/
+    // Average functions over some time and restart solver
+    // using averaged values as initial conditions.
+    // usage: average <duration> <units=s> <npts=20>
+    // units:
+    //   s, ms, us -- seconds, milliseconds, microseconds
+    //   per_rf   -- period of RF field rotation (uses f0)
+    //   per_hpd  -- period of low-frequency HPD oscillations (uses f0, fB, HR0),
+    //               use center of the cell if RF field non-uniform.
+    if (cmd == "average") {
+      check_nargs(narg, 1,3);
+      if (!pp.solver) throw Err() << "solver is not running";
+
+      // parse parameters
+      auto v = get_arg<double>(args[0]);
+      std::string unit = narg>1 ? args[1]:"s";
+      int npts = narg>2? get_arg<int>(args[2]) : 20;
+
+      if (unit == "s"){
+      }
+      else if (unit == "ms"){
+        v*=1e-3;
+      }
+      else if (unit == "us"){
+        v*=1e-6;
+      }
+      else if (unit == "per_rf"){
+        v /= pp.f0;
+      }
+      else if (unit == "per_hpd"){
+        double fr = pp.get_Wr(0)/(2*M_PI);
+        double fB = pp.get_LF();
+        double f1 = sqrt(4.0/sqrt(15.0) * (fr*pp.f0*fB*fB)/(pp.f0*pp.f0 + 8.0/3.0*fB*fB));
+        v /= f1;
+      }
+      else throw Err() << "unknown units: " << unit;
+
+      // first point is not included into average (to have good result on one period)
+      double dt = v/npts;
+      std::cerr << "  avrg time: " << v << "s, "
+                << "  step: " << dt << "\n";
+
+      pp.sweep_par_o = 0.0;
+      pp.sweep_par_r = 1.0;
+      pp.sweep_par_n = "AVRG";
+
+      // save current tstep, calculate new
+      pp.navrg = 0;
+      pp.tstep_save = pp.tstep;
+      pp.tstep = dt;
+      pp.tend = pp.tcurr + v - 1e-3*dt;
+
+      continue;
+    }
+
+
+    /*******************************************************/
     // write profile
 
     // write function profiles to a file
@@ -1506,6 +1619,13 @@ try{
 
       // write magnetization (using mesh from the solver)
       if (pp.out_m) write_magn(*pp.out_m);
+
+      // do averaging
+      if (pp.navrg>=0) {
+        if (pp.navrg==0) init_data_save(pp.solver);
+        else init_data_add(pp.solver);
+        pp.navrg++;
+      }
 
       // write pnm (using same number of points as in the solver, but uniform mesh)
       std::vector<double> xsol = make_uniform_mesh(pp.solver->get_npts(), pp.cell_len);

@@ -12,8 +12,9 @@ for some default output files.
 
 #### Solver:
 
-* `start` -- (Re)start the solver. If solver was running, use its data as
-initial conditions.
+* `start` -- (Re)start the solver using a uniform mesh with number of
+points specified by `npts` command. If solver was running, use its data
+as initial conditions.
 
 * `stop` -- Stop the solver, save its data as
 initial conditions.
@@ -29,6 +30,13 @@ a warning message.
 was a solver running previously or not.
 
 * `wait <time, s>` -- Do calculations for some time period.
+
+* `average <duration> <units=s> <npts=20>` -- Average functions over some time
+and restart solver using the average value as initial conditions.
+Duration can be specified using different units: `s` (secnds), `ms`
+(milliseconds), `us` (microseconds), `per_rf` (period of RF pumping,
+1/f0), `per_hpd` (period of low-frequency HPD oscillations, depends on
+f0, fB, HR0, uses RF field in the cell center if it is non-uniform).
 
 * `reset_time` -- Reset time to 0. This command is useful
 when the time is much larger then time step and the calculation fails
