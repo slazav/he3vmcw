@@ -116,6 +116,9 @@ void fill_ggr_nt_(double ggR[DIM][DIM],
 
 /***********************************************************/
 /// Calculate gradient energies Ea, Eb (just by definition)
+/// F_\nabla = 1/2 Delta^2 [ K1 Ea + (K2+K3) Eb]
+///         ~= Delta^2 K1 (Ea/2 + Eb)
+///          = chi/gamma^2 cpar^2/4 (Ea/2 + Eb)
 void fill_eg0_nt_(double *Ea, double *Eb,
                  const double n[DIM], const double *t,
                  const double gn[DIM], const double *gt);
@@ -127,6 +130,9 @@ void fill_eg1_nt_(double *Ea, double *Eb,
 
 /***********************************************************/
 /// Calculate spin currents Ja, Jb (just by definition)
+/// J  = Delta^2 [ K1 Ja + (K2+K3) Jb]
+///   ~=  2 Delta^2 K1 (Ja/2 + Jb)
+///    = chi/gamma^2 cpar^2/2 (Ja/2 + Jb)
 void fill_jg0_nt_(double Ja[DIM], double Jb[DIM],
                  const double n[DIM], const double *t,
                  const double gn[DIM], const double *gt);

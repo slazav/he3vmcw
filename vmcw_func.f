@@ -124,7 +124,7 @@ C             - U d2|U|/|U|^2 + 2 U d|U|^2/|U|^3
         UT=ST*(1.0D0+4.0D0*CT)*0.2666666D0 ! 4/15 sin(t)*(1+4*cos(t))
 
         AUT=UT*WB**2/Wz
-        AF=-Cpar**2/Wz
+        AF=-Cpar**2/Wz/2D0
 
 C       Spin currents
 C        call fill_jgd_nt(UJ, UN, Uth, GN, Gth)
