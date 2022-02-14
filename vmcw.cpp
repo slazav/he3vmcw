@@ -1159,11 +1159,11 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
           if (t == 1)
             // thL -> 2pi-thL
             th = M_PI + 2.0*atan(
-              (1.0+cos(th))/sin(th) * tanh(sqrt(65.0/64.0)*X/2.0/xiD));
+              (1.0+cos(th))/sin(th) * tanh(sqrt(65.0/64.0)*X/xiD));
           else
             // thL -> -thL
             th = 2.0*atan(
-              sin(th)/(1.0+cos(th)) * tanh(-sqrt(65.0/64.0)*X/2.0/xiD));
+              sin(th)/(1.0+cos(th)) * tanh(-sqrt(65.0/64.0)*X/xiD));
 
 
           // n-vector - just a linear changes to nz=0
