@@ -7,6 +7,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
+#include "grad/grad.h"  // for write_profile
 #include "pdecol/pdecol_solver.h"
 #include "pnm_writer.h"
 
@@ -392,7 +393,7 @@ make_adaptive_mesh(pdecol_solver* solver, const int N, const double cell_len,
 // Use solver mesh if N==0, or build a uniform one with N points (N>2)
 // Now it saves everything in the same way for npde 6 or 7.
 void
-write_profile(pdecol_solver *solver, const std::string & fname, const int N) {
+write_profile(pdecol_solver *solver, const std::string & fname, const int N, const std::string & type) {
 
   if (!pp.solver)
      throw Err() << "Running solver is needed for writing profile";
@@ -403,28 +404,92 @@ write_profile(pdecol_solver *solver, const std::string & fname, const int N) {
   std::vector<double> usol = pp.solver->values(xsol, nder);
 
   std::ofstream ss(fname.c_str());
-  // print legend: # coord  U(0) U(1) ... U(0)' U(1)' ...
-  ss << "# coord.     ";
-  for (int d = 0; d<nder; d++){
-    ss << "  ";
-    for (int n = 0; n<npde; n++){
-      ss << "U(" << n << ")";
-      for (int i=0; i<d; i++) ss << "'";
-      ss << "      ";
-    }
-  }
-  ss << "\n" << std::scientific << std::setprecision(6);
 
-  //print values
-  for (int i=0; i< xsol.size(); i++){
-    ss << xsol[i];
+  // print legend: # coord  U(0) U(1) ... U(0)' U(1)' ...
+  if (type=="default") {
+    ss << "# coord.     ";
     for (int d = 0; d<nder; d++){
       ss << "  ";
-      for (int n = 0; n<npde; n++)
-        ss << " " << pp.solver->get_value(usol, xsol.size(), i, n, d);
+      for (int n = 0; n<npde; n++){
+        ss << "U(" << n << ")";
+        for (int i=0; i<d; i++) ss << "'";
+        ss << "      ";
+      }
     }
     ss << "\n";
   }
+  else if (type=="nt")     { ss << "# Z, nx*th, ny*th, nz*th\n"; }
+  else if (type=="mass")   { ss << "# Z, M_th, M_n\n"; }
+  else if (type=="energy") { ss << "# Z, F_SO (gD*Delta^2 units), E_GR (K1*Delta^2 units)\n"; }
+  else throw Err() << "write_profile: unknown profile type: " << type;
+
+  for (int i=0; i< xsol.size(); i++){
+
+    // Calculate n, dn, th, dth, n*th, d(n*th):
+    double th=0,n[3],nt[3];
+    double dth=0,dn[3],dnt[3];
+    if (npde==6) {
+      // first n,dn are n*th, d(n*th)
+      for (int k=0; k<3; k++){
+        nt[k] = pp.solver->get_value(usol, xsol.size(), i, 3+k, 0);
+        dnt[k] = pp.solver->get_value(usol, xsol.size(), i, 3+k, 1);
+      }
+      th  = sqrt(nt[0]*nt[0] + nt[1]*nt[1] + nt[2]*nt[2]);
+      dth = (nt[0]*dnt[0] + nt[1]*dnt[1] + nt[2]*dnt[2])/th;
+      for (int k=0; k<3; k++){
+        n[k] = nt[k]/th;
+        dn[k] = dnt[k]/th - nt[k]*dth/th/th;
+      }
+    }
+    else if (npde==7){
+      th  = pp.solver->get_value(usol, xsol.size(), i, 6, 0);
+      dth  = pp.solver->get_value(usol, xsol.size(), i, 6, 1);
+      for (int k=0; k<3; k++){
+        n[k]  = pp.solver->get_value(usol, xsol.size(), i, 3+k, 0);
+        dn[k] = pp.solver->get_value(usol, xsol.size(), i, 3+k, 1);
+        nt[k] = n[k]*th;
+        dnt[k] = dn[k]*th + n[k]*dth;
+      }
+    }
+    else throw Err() << "write_profile: npde=6 or 7 expected";
+
+    ss << std::scientific << std::setprecision(6);
+    ss << xsol[i] << " ";
+
+    // Default profile: functions and derivatives
+    if (type=="default") {
+      for (int d = 0; d<nder; d++){
+        ss << "  ";
+        for (int n = 0; n<npde; n++)
+          ss << " " << pp.solver->get_value(usol, xsol.size(), i, n, d);
+      }
+      ss << "\n";
+    }
+
+    else if (type=="nt") {
+      ss << nt[0] << " " << nt[1] << " " << nt[2] << "\n";
+    }
+
+    else if (type=="mass") {
+      double Mt = dth*dth;
+      double Mn = 2*(1.0-cos(th))*(dn[0]*dn[0]+dn[1]*dn[1]+dn[2]*dn[2]);
+      ss << Mt << " " << Mn << "\n";
+    }
+
+    else if (type=="energy") {
+      // FSO = g_D Delta^2 * 8(ct+0.25)^2
+      double FSO = 8.0*pow(cos(th) + 0.25, 2);
+
+      // FGR = 1/2 Delta^2 (K1 FG1 + (K2+K3) FG2) ~= K1 Delta^2 * (FG1/2 + FG2)
+      double FG1,FG2;
+      fill_eg1_nt_(&FG1, &FG2, n, &th, dn, &dth);
+      ss << FSO << " " << (FG1/2 + FG2) << "\n";
+    }
+    else
+      throw Err() << "write_profile: unknown profile type: " << type;
+
+  }
+
 }
 
 // write integral magnetization
@@ -1166,7 +1231,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
               sin(th)/(1.0+cos(th)) * tanh(-sqrt(65.0/64.0)*X/xiD));
 
 
-          // n-vector - just a linear changes to nz=0
+/*          // n-vector - just a linear changes to nz=0
           if (x/w>=-1 && x/w<0){
             double k = x/w+1; // 0..1
             bn = bn*(1-k) + (sn<0 ?M_PI*k:0);
@@ -1181,7 +1246,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
           if (x/w>=1){
             an += M_PI;
           }
-
+*/
         }
 
         // theta soliton: HPD -> NPD- -> 0 -> NPD- -> HPD
@@ -1327,7 +1392,7 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
 
     // write function profiles to a file
     if (cmd == "write_profile") {
-      check_nargs(narg, 0,2);
+      check_nargs(narg, 0,3);
       if (!pp.solver) throw Err() << "solver is not running";
 
       std::string name;
@@ -1341,7 +1406,8 @@ read_cmd(std::istream &in_c, std::ostream & out_c){
         pp.cnt_prof++;
       }
       int N = (narg>1) ? atoi(args[1].c_str()) : 0;
-      write_profile(pp.solver, name, N);
+      std::string type = (narg>2) ? args[2] : "default";
+      write_profile(pp.solver, name, N, type);
       continue;
     }
 
